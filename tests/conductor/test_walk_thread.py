@@ -43,9 +43,7 @@ def test_every_thread_call_shares_one_system_prompt() -> None:
     assert "OUTSTANDING" in system and '"answer"' in system
     # The call's legend is the user block's tail, never the system prompt.
     assert "playbook EXACTLY as listed" not in system
-    assert str(user_content(parse)).endswith(
-        "(follow its e.g. example when shown)."
-    )
+    assert str(user_content(parse)).endswith("(follow its e.g. example when shown).")
 
 
 def test_a_later_call_extends_the_earlier_one_byte_for_byte() -> None:

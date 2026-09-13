@@ -399,7 +399,9 @@ async def step(
         # so an ask's reply reading has a thread. The boot has no inputs
         # and reads the thread first: `--reply` IS the user's message
         # there, staged for its opening read.
-        said = str(state["values"].get(spec.inputs[0].name) or "") if spec.inputs else ""
+        said = (
+            str(state["values"].get(spec.inputs[0].name) or "") if spec.inputs else ""
+        )
         if not said and reply is not None and spec.activates:
             said, reply = reply, None
         vthread.seed(said or f"(stepping {app}/{name})", [])

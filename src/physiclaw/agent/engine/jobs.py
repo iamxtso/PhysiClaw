@@ -51,9 +51,7 @@ PERIODIC_MIN_GAP = dt.timedelta(minutes=30)
 
 AUTO_WAIT_JOB_ID = "wait-check-auto"
 _AUTO_WAIT_DESCRIPTION = "Auto follow-up after WAIT with no explicit create_job."
-_AUTO_WAIT_CONTEXT = (
-    "Previous session ended with WAIT. Re-check the user channel and the app, and continue the task."
-)
+_AUTO_WAIT_CONTEXT = "Previous session ended with WAIT. Re-check the user channel and the app, and continue the task."
 
 
 def fired_job_ids(triggers: list[Trigger]) -> list[str]:

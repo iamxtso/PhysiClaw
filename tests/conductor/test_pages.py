@@ -287,8 +287,13 @@ def test_a_page_may_declare_where_incoming_bubbles_sit() -> None:
     # The channel's thread page says where the user's bubbles' centers
     # fall — a band or a box, the `within` shape; absent means None and
     # the reply reader's own default applies.
-    out = parse_pages("thread:\n  anchors: ['ok']\n  incoming: [0.0, 0.0, 0.45, 1.0]\n", "channel")
+    out = parse_pages(
+        "thread:\n  anchors: ['ok']\n  incoming: [0.0, 0.0, 0.45, 1.0]\n", "channel"
+    )
     assert out["thread"].incoming == (0.0, 0.0, 0.45, 1.0)
     out = parse_pages("thread:\n  anchors: ['ok']\n  incoming: left\n", "channel")
     assert out["thread"].incoming == BANDS["left"]
-    assert parse_pages("thread:\n  anchors: ['ok']\n", "channel")["thread"].incoming is None
+    assert (
+        parse_pages("thread:\n  anchors: ['ok']\n", "channel")["thread"].incoming
+        is None
+    )

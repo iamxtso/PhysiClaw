@@ -366,7 +366,11 @@ def _parse_page(name: str, spec: Any) -> PageDecl:
     incoming = _parse_within(spec.get("incoming"), f"{where}: `incoming`")
 
     return PageDecl(
-        name=name, anchors=anchors, forbid=forbid, scrollable=scrollable, incoming=incoming
+        name=name,
+        anchors=anchors,
+        forbid=forbid,
+        scrollable=scrollable,
+        incoming=incoming,
     )
 
 

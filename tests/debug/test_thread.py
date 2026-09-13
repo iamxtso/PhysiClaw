@@ -151,7 +151,9 @@ def test_user_bubble_reads_as_incoming_and_agent_ask_is_excluded() -> None:
     )
 
     yes, no = frozenset({"ok", "好的"}), frozenset({"不用"})
-    new = reply.read_incoming(after_reply.rows, baseline, ask, incoming=(0.0, 0.0, 0.45, 1.0))[0]
+    new = reply.read_incoming(
+        after_reply.rows, baseline, ask, incoming=(0.0, 0.0, 0.45, 1.0)
+    )[0]
 
     assert new == ["ok"]
     assert reply.classify_all(new, yes, no) == "confirm"
