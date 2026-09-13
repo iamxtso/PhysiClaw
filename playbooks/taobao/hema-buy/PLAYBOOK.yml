@@ -1,6 +1,7 @@
-# taobao/hema-buy — groceries from 盒马 (Hema) inside Taobao, several
-# items in ONE order delivered in about 30 minutes: enter the storefront
-# once, `hema-add` per item, then `hema-checkout`.
+# taobao/hema-buy — groceries from 盒马 inside Taobao, several items in
+# ONE order (~30 min): enter the storefront once, `hema-add` per item,
+# then `hema-checkout`. Starts anywhere. Ends on the paid page, the
+# buyer told.
 name: hema-buy
 description: >-
   buy groceries from 盒马 (Hema) inside 淘宝, one order in ~30 min: fresh food,
@@ -32,26 +33,26 @@ route:
     message: "收到，正在盒马为你挑选：\n{parse.items}"
 
   - start: app
-    macro: launch
+    macro: launch                 # to the feed: resumed as it is, else cold-launched
 
-  - page: home
+  - page: home                    # the feed: its tab row (推荐 / 关注)
 
-  - do: enter                     # the main search for 盒马 opens its storefront
+  - do: enter                     # the feed's main search for 盒马 opens its storefront
     with: {keyword: "盒马"}
     macro: search
 
-  - page: hema-home
+  - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
 
-  - run: hema-add
-    each: {item: parse.items}
-    miss: skip
+  - run: hema-add                 # store search, pick, 加入购物车, back to this home; one
+    each: {item: parse.items}     # round per item; a line already in the cart is not
+    miss: skip                    # re-added, an item not found is skipped
     limit: {rounds: 4}
 
   - page: hema-home
 
-  - run: hema-checkout
+  - run: hema-checkout            # the cart, tick, settle, confirm, pay
     with: {lines: "{hema-add.line}"}
-    revise: parse
+    revise: parse                 # a reply the ask's words miss re-plans from `parse`
     limit: {revisions: 2}
 
   - page: paid

@@ -1,7 +1,7 @@
-# taobao/checkout — the cart to ONE paid order: tick the lines to buy,
-# 结算, confirm the real total (shipping and discounts applied) with the
-# buyer, 提交订单, pay. Runs alone for "把购物车结算了" and as the last
-# move of `buy-together`.
+# taobao/checkout — the marketplace cart to ONE paid order: tick the
+# lines, 结算, confirm the order page's total, pay. Runs alone for
+# "把购物车结算了" or as the last move of `buy-together`.
+# Starts anywhere (cold launch). Ends on the paid page.
 name: checkout
 description: pay for the items in the 淘宝 (Taobao) cart in ONE order
 enabled: false  # rehearse on YOUR device, then enable
@@ -11,10 +11,10 @@ inputs:
     default: "全部"
 
 route:
-  - start: app                    # the cold launch every route shares
-    macro: launch
+  - start: app
+    macro: launch                 # to the feed: resumed as it is, else cold-launched
 
-  - page: home
+  - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: open-cart                 # the home footer's 购物车 tab
     macro:
@@ -24,10 +24,10 @@ route:
         - wait: 3
           expect: "结算"
 
-  - page: cart
+  - page: cart                    # the 购物车 title over the 全选 footer
 
-  - do: nudge                     # this phone floats a button over the first line's
-    macro: nudge                  # checkbox while the list is at its top: shift it clear
+  - do: nudge                     # a short stroke up: the first line's checkbox sits
+    macro: nudge                  # under this phone's floating button
 
   - page: cart
 
@@ -35,9 +35,9 @@ route:
   # list — tick a listed line, untick any other ticked line, set a
   # quantity with the stepper. Never 结算 (the walk's move), never 删除.
   - agent: tick
-    prompt: prompts.tick
+    prompt: prompts.tick          # the list, the checkbox geometry, 合计 as the check
     tools: [tap, scroll]
-    give: [landmarks.select-all, landmarks.close, macros.nudge]
+    give: [landmarks.select-all, landmarks.close, macros.nudge]   # 全选, a promo ✕, the stroke
     never_tap:
       - {label: ["结算", "删除"], within: bottom}
       - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}

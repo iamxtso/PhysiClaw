@@ -1,5 +1,6 @@
 # taobao/hema-checkout — the 盒马 cart to ONE paid order; the last move
-# of `hema-buy`, starting where its rounds end: the storefront's home.
+# of `hema-buy`. Starts on the storefront's home, where the rounds end.
+# Ends on the paid page.
 name: hema-checkout
 description: pay for the lines in the 盒马 (Hema) cart inside Taobao in ONE order
 enabled: false  # rehearse on YOUR device, then enable
@@ -9,22 +10,22 @@ inputs:
     description: the cart lines to buy, one per line, with quantities
 
 route:
-  - page: hema-home
+  - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
 
-  - do: open-cart                 # the tab bar's 购物车, snapped to the top
-    macro: hema-open-cart
+  - do: open-cart                 # the tab bar's 购物车, then a stroke that snaps a
+    macro: hema-open-cart         # cart left scrolled back to its top
 
-  - page: hema-cart
+  - page: hema-cart               # the 购物车 title over the footer's settle button
 
-  - do: nudge                     # the 全选 row sits under this phone's floating button
-    macro: nudge
+  - do: nudge                     # a short stroke up while the 全选 row sits under
+    macro: store-nudge            # this phone's floating button
 
   - page: hema-cart
 
   - agent: tick
-    prompt: prompts.store-tick
+    prompt: prompts.store-tick    # the list, the checkbox geometry, the footer total
     tools: [tap, scroll]
-    give: [landmarks.close, macros.nudge]
+    give: [landmarks.close, macros.store-nudge]   # a promo ✕, the stroke
     never_tap:
       - ["去结算", "领券结算"]
       - "清空"
@@ -37,11 +38,11 @@ route:
 
   - page: hema-cart
 
-  - do: settle
-    on_fail: stop
+  - do: settle                    # 去结算 / 领券结算 in 盒马's footer, to the order page
+    on_fail: stop                 # nothing is paid yet
     macro: hema-settle
 
-  - page: store-order
+  - page: store-order             # 确认订单 over 提交订单
 
   - ask: confirm-pay
     approve: payment
@@ -56,7 +57,7 @@ route:
     on_fail: stop
     resume: foreground            # the ask left the app — come back where it was
 
-  - do: pay
+  - do: pay                       # 提交订单, then the cashier's button when one shows
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
     macro: submit-order

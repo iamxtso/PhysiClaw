@@ -42,7 +42,8 @@ steps:
     require: {text: "<<CONTACT>>", within: [0.0, 0.16, 1.0, 0.25]}
     hint: "WeChat search's first result is not <<CONTACT>> - check the contact name"
   - wait: 1
-  - mark: type                               # walked to: the steps above must show the thread
+  - mark: type                               # the jump lands here; walked to, it must show
+  # ── type and send ──────────────────────────────────────────────────
   - tap: "the message input box (keyboard down)"   # NEVER type into an unverified chat
     at: [0.15, 0.925, 0.60, 0.965]
     require: {text: "<<CONTACT>>", within: [0.20, 0.03, 0.80, 0.10]}

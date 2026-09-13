@@ -14,7 +14,7 @@ never a listed element, box it off the screenshot; 全选's circle is
 at the same x, level with its label, and tapping the label's text
 does nothing. This phone floats a round button over the left edge at
 about y 0.31–0.37, and a tap there is REFUSED: the walk nudged the
-list once before you start; run the granted macro `nudge` ONLY when
+list once before you start; run the granted macro `store-nudge` ONLY when
 全选's row lies inside that band (a finger's width up; it does nothing
 otherwise), once per need — a line's circle in the band clears with
 one `scroll`; never to search.

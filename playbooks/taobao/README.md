@@ -73,7 +73,8 @@ your device before a playbook that uses it is live.
 - Leaving a storefront cart and coming back re-ticks every line and
   keeps the list's scroll (全选, 清空 and the newest lines can sit above
   the header — `hema-open-cart` snaps it to the top when 全选 is off the
-  screen);
+  screen, `store-nudge` then moves the 全选 row clear of this phone's
+  floating button);
   `go_back` from the cart
   page pops the whole storefront (to the marketplace search-entry
   page), from the order page it pops to the cart with the ticks kept.

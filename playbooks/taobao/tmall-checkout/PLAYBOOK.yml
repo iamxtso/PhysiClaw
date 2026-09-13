@@ -1,6 +1,6 @@
-# taobao/tmall-checkout — the 天猫超市 store cart to ONE paid order; the
-# last move of `tmall-buy`, starting where its rounds end: the store's
-# page, whose footer total opens the cart sheet.
+# taobao/tmall-checkout — the 天猫超市 cart to ONE paid order; the last
+# move of `tmall-buy`. Starts on the store's page, where the rounds end.
+# Ends on the paid page.
 name: tmall-checkout
 description: pay for the lines in the 天猫超市 (Tmall Supermarket) store cart inside Taobao in ONE order
 enabled: false  # rehearse on YOUR device, then enable
@@ -10,7 +10,7 @@ inputs:
     description: the cart lines to buy, one per line, with quantities
 
 route:
-  - page: tmall-home
+  - page: tmall-home              # the store: 天猫超市闪购 over 全部商品
 
   - do: open-cart                 # the footer's running total opens the cart sheet
     macro:
@@ -20,17 +20,17 @@ route:
         - wait: 3
           expect: ["去结算", "领券结算", "起送"]   # the footer's button, whatever it reads
 
-  - page: tmall-cart
+  - page: tmall-cart              # the sheet's 全选 row under the store header
 
-  - do: nudge                     # the 全选 row sits under this phone's floating button
-    macro: nudge
+  - do: nudge                     # a short stroke up while the 全选 row sits under
+    macro: store-nudge            # this phone's floating button
 
   - page: tmall-cart
 
   - agent: tick
-    prompt: prompts.store-tick
+    prompt: prompts.store-tick    # the list, the checkbox geometry, the footer total
     tools: [tap, scroll]
-    give: [landmarks.close, macros.nudge]
+    give: [landmarks.close, macros.store-nudge]   # a promo ✕, the stroke
     never_tap:
       - ["去结算", "领券结算"]
       - "清空"
@@ -43,11 +43,11 @@ route:
 
   - page: tmall-cart
 
-  - do: settle
-    on_fail: stop
+  - do: settle                    # 去结算 / 领券结算 in the sheet's footer, to the order page
+    on_fail: stop                 # nothing is paid yet
     macro: settle
 
-  - page: store-order
+  - page: store-order             # 闪购天猫超市闪购 over 提交订单
 
   - ask: confirm-pay
     approve: payment
@@ -62,9 +62,9 @@ route:
     on_fail: stop
     resume: foreground            # the ask left the app — come back where it was
 
-  - do: pay
+  - do: pay                       # 提交订单, then the cashier's button when one shows
     irreversible: payment
-    on_fail: handover
+    on_fail: handover             # money may have moved: the model verifies and reports
     macro: submit-order
 
   - page: paid

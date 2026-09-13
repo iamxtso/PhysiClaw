@@ -1,6 +1,6 @@
 # taobao/hema-add — one item into the 盒马 cart; runs once per item
 # under `hema-buy`, which enters the storefront first. Starts and ends
-# on the storefront's home so the rounds chain without a relaunch.
+# on the storefront's home, so the rounds chain without a relaunch.
 name: hema-add
 description: put one item in the 盒马 (Hema) cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable
@@ -13,23 +13,23 @@ returns:
 
 route:
   - agent: parse
-    prompt: prompts.item-keyword
+    prompt: prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
-  - page: hema-home
+  - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
 
-  - do: find
+  - do: find                      # type the keyword into the storefront's search, run it
     with: {keyword: "{parse.keyword}"}
     macro: store-search
 
-  - page: store-results
+  - page: store-results           # the store's sort row (综合排序 / 销量优先)
 
   - agent: pick
-    prompt: prompts.store-pick
+    prompt: prompts.store-pick    # rows to an item, one add, the sheets that follow
     tools: [tap, scroll]
-    give: [landmarks.close, landmarks.pairing-close]
+    give: [landmarks.close, landmarks.pairing-close]   # a promo ✕, the 推荐搭配 sheet's ✕
     never_tap:
       - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button
@@ -43,11 +43,10 @@ route:
     think: low
     on_fail: stop
 
-  - page: store-detail
+  - page: store-detail            # the item page: 加入购物车 and the 店铺 tab
 
-  # Back to the storefront's home, where the next round (and the
-  # checkout) starts: the item page, then the results, then the search
-  # page — the page's own hand takes the last step when one is left.
+  # Two pops: the item page, then the results. When the search-entry
+  # page is left, the home's own hand takes the last step.
   - do: back-to-store
     macro:
       steps:

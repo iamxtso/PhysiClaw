@@ -1,7 +1,5 @@
-# taobao/buy — one playbook, one folder: the walk from a keyword to a
-# paid order. The pack's APP.yml holds what every taobao playbook
-# shares; hands only this route uses embed in it or sit in this
-# folder's macros/, shared ones are pack macros (../macros/<name>.yml).
+# taobao/buy — one item from a keyword to a paid order, by courier.
+# Starts anywhere (cold launch). Ends on the paid page, the buyer told.
 name: buy                       # = this folder's name; referenced as taobao/buy
 description: buy one item on 淘宝 (Taobao) by keyword, shipped by courier — the default for a product that names no store
 enabled: false  # rehearse on YOUR device, then enable
@@ -9,14 +7,9 @@ inputs:
   user_said:
     description: what the user said, verbatim — the original message the task came from
 
-# `page:` is where the walk must BE (checked every time); everything
-# else is a move landing on the page that follows it. Pages are declared
-# once in the manifest and referenced bare here.
 route:
-  # An agent step with no tools is a pure-text call: prompt in,
-  # declared fields out, no screen — it runs before the arm ever
-  # moves, so a message that yields no keyword escalates before the
-  # phone is touched. Outputs are referenced as {parse.keyword}.
+  # No tools: a pure-text call, before the arm moves. Its fields read
+  # downstream as {parse.keyword}.
   - agent: parse
     prompt: |
       From the buyer's message, produce the Taobao search keyword.
@@ -30,66 +23,43 @@ route:
       keyword: the search keyword, exactly as it should be typed
     think: off                    # a keyword is read off the words, not reasoned out
 
-  - start: app                    # ── START: cold-launch taobao ─────
-    macro: launch                 # the pack macro every route shares
-                                  # (../macros/launch.yml)
+  - start: app
+    macro: launch                 # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the landing the start must reach
+  - page: home                    # the feed: its tab row (推荐 / 关注)
 
-  - do: search                    # type the keyword, run the search
+  - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}  # suffix the search, not the field
-    macro: search                 # the pack macro (../macros/search.yml)
+    macro: search
 
-  - page: results
+  - page: results                 # the filter row (综合 / 销量)
 
-  # A custom sub-agent: YOUR prompt drives the LLM through the pick.
-  # `prompt` is filled from fields ONCE when the episode opens, then
-  # frozen; each call appends one [action]/[screen] pair and nothing
-  # is ever rewritten — every call's prefix is byte-identical to the
-  # previous call's whole request, so the provider cache pays for
-  # all but the newest block. Screens arrive as the model's own
-  # turns see them: the screenshot beside its element listing (icon
-  # and text rows with ids); the model answers a tool call the way
-  # its own turns would — one envelope, action + args, for every
-  # tool: tap {label, at}, scroll {direction}, back {}, done
-  # {returns}, escalate {}. A tap's box is judged by the engine's
-  # bbox rules, and a payment episode's by the money predicates
-  # before it fires.
-  #
-  # The pick ends on the BUY SHEET (立即购买 / 领券购买 from the detail
-  # page): one item, the spec options, the address, 实付 and the pay
-  # button — the payment ask reads its total there, and the pay move
-  # is one recorded tap. The cart is never touched: it belongs to
-  # the buyer and can hold dozens of their own lines.
+  # The model picks a listing and opens its buy sheet (立即购买 / 领券购买)
+  # with one spec at one exact price, then stops: the ask reads the
+  # total there and the pay move is one recorded tap. The cart is never
+  # touched; it is the buyer's own.
   - agent: pick
-    prompt: prompts.pick          # buy/prompts/pick.md — the pick's whole brief
-    tools: [tap, scroll, back]    # closed allowlist for this episode
-    give: [landmarks.close]       # known spots the model may name
-    never_tap:                    # …and the ones the walker will not fire,
-      # Never shown to the model: the prompt says don't, this makes it
-      # so. The two buttons are banded because 免密支付 is ALSO one of
-      # the labels the sheet total sits beside (`total_label:` below),
-      # and that row reads mid-page — recorded at y 0.56 as a label and
-      # y 0.92 as the button.
+    prompt: prompts.pick          # rows to a listing, the sheet's spec, stop before paying
+    tools: [tap, scroll, back]
+    give: [landmarks.close]       # the ✕ of a promo card over the page
+    never_tap:                    # bans the walker enforces; never shown to the model
+      # Banded because 免密支付 is also a label the total sits beside
+      # (`total_label:` below), read mid-page: y 0.56 the label, y 0.92
+      # the button.
       - {label: ["免密支付", "立即支付"], within: bottom}
       - {label: ["提交订单", "确认支付"], within: bottom}
-      # NOT banded: this one is an option row, recorded at y 0.34.
-      - "先用后付"
+      - "先用后付"                 # an option row at y 0.34, so not banded
     returns:
       summary: one line - title, spec, qty, the 实付 price
       message: a short Chinese message to the buyer asking them to
         confirm this purchase - name the item, spec, qty and price;
         say nothing about tools, walkers, or how the payment is made
     limit: {calls: 12, scrolls: 4}
-    think: low                    # a bounded think per call: the pick weighs
-                                  # rows, it does not deliberate for minutes
-    on_fail: stop                 # a pick that cannot finish ends the session:
-                                  # it stands ON the buy sheet, and handing a
-                                  # free model the tools there is how an
-                                  # unasked payment happened. The cost is
-                                  # silence — a stop tells the user nothing
+    think: low
+    on_fail: stop                 # it stands on the buy sheet: a free model with the
+                                  # tools there is how an unasked payment happened
 
-  - page: buysheet
+  - page: buysheet                # the pay button over the 实付 / 补贴后 row
 
   - ask: confirm-pay              # the human approves before money moves
     approve: payment
@@ -105,11 +75,8 @@ route:
     on_fail: stop                 # a failure (or an answered no) ends the session; nothing paid
     resume: foreground            # the ask left the app — come back where it was
 
-  # Payment is one recorded tap: the human consented to ¥{ask.total},
-  # the walker re-reads the sheet (the consented amount still shows,
-  # nothing higher appeared) and fires. A two-step cashier (提交订单
-  # then a payment sheet) gets its second tap only when its button is
-  # on screen.
+  # One recorded tap once the consented amount still shows; a two-step
+  # cashier gets its second tap only while its button is on screen.
   - do: pay
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
@@ -125,7 +92,5 @@ route:
 
   - page: paid
 
-  # The report: one message to the buyer, and the walk is done. A
-  # reply, if any, is the next wake's boot to read as a new request.
-  - tell: report
+  - tell: report                  # the walk is done; a reply is the next wake's request
     message: "已下单并完成支付：{pick.summary}。"

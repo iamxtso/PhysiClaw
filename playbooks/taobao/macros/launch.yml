@@ -3,8 +3,9 @@ description: bring Taobao to its feed from wherever the phone is — every route
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/launch
 enabled: false
 steps:
-  # Raise Taobao in whatever state it kept: the boot leaves the IM app
-  # in front, and force_quit (below) kills the FOREGROUND app.
+  # ── 1. raise Taobao in whatever state it kept ──────────────────────
+  # force_quit (below) kills the FOREGROUND app, and the boot leaves the
+  # IM app in front.
   - home_screen
   - tap: "blank area below the app cards"    # home_screen FROM home can open the switcher
     at: [0.42, 0.855, 0.58, 0.885]
@@ -22,6 +23,7 @@ steps:
   # launch cold.
   - if_page: home
     goto: feed
+  # ── 2. first cold launch ───────────────────────────────────────────
   - force_quit                               # the card the switcher flings is taobao's
   - home_screen
   - tap: "blank area below the app cards"
@@ -45,6 +47,7 @@ steps:
   # quit and launch once more, and the mark checks the pass reached it.
   - if_page: home
     goto: feed
+  # ── 3. second cold launch ──────────────────────────────────────────
   - force_quit
   - home_screen
   - tap: "blank area below the app cards"
@@ -60,6 +63,7 @@ steps:
   - tap: "推荐"
     at: [0.14, 0.055, 0.26, 0.095]
     when: ["我的闪购"]
+  # ── the feed: every exit lands here ────────────────────────────────
   # The mark re-peeks AFTER the sleep — THIS fresh view is what the home
   # verify reads, once the tab switch has settled.
   - wait: 2

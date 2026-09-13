@@ -1,6 +1,6 @@
-# taobao/buy-together — several items in ONE order: each into the cart
-# (`add`, once per item), then one checkout. Read top to bottom: understand,
-# acknowledge, gather each, check out, report.
+# taobao/buy-together — several marketplace items in ONE order: `add`
+# once per item, then one `checkout`. Starts anywhere (each round cold
+# launches). Ends on the paid page, the buyer told.
 name: buy-together
 description: buy several items on 淘宝 (Taobao) in ONE order by courier — the default for a list of products naming no store
 enabled: false  # rehearse on YOUR device, then enable
@@ -32,14 +32,14 @@ route:
   - tell: ack
     message: "收到，正在淘宝为你挑选：\n{parse.items}"
 
-  - run: add                      # one round per item, from add's own cold start;
-    each: {item: parse.items}     # an item already in the cart is not added again
-    miss: skip                    # an item that cannot be found is reported, not fatal
+  - run: add                      # search, pick, 加入购物车; one round per item, each from
+    each: {item: parse.items}     # add's own cold start; a line already in the cart is
+    miss: skip                    # not re-added, an item not found is skipped
     limit: {rounds: 4}
 
-  - page: detail                  # where the last round left the phone
+  - page: detail                  # the item page the last round ended on
 
-  - run: checkout                 # the cart to one paid order
+  - run: checkout                 # the cart, tick, 结算, confirm, pay
     with: {lines: "{add.line}"}   # every done round's line; a missed item has none
     revise: parse                 # a reply the words miss re-plans from `parse`
     limit: {revisions: 2}

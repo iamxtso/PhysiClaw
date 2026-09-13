@@ -134,7 +134,7 @@ pages:
     anchors:
       - {text: "外卖到家", within: top}
       - {text: "立即支付", within: bottom}
-    forbid: ["支付成功"]
+    forbid: ["支付成功"]            # the paid page keeps the order's rows under its banner
     recover:
       elsewhere: go_back
     tries: 2
@@ -154,7 +154,7 @@ pages:
     anchors:
       - {text: ["确认订单", "天猫超市闪购"], within: [0.0, 0.0, 1.0, 0.60]}
       - {text: "提交订单", within: bottom}
-    forbid: ["支付成功"]
+    forbid: ["支付成功"]            # the paid page keeps the order's rows under its banner
     recover:
       elsewhere: go_back
     tries: 2

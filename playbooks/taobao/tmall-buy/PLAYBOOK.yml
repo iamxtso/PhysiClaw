@@ -1,7 +1,7 @@
-# taobao/tmall-buy — supermarket staples from 天猫超市 inside Taobao,
-# several items in ONE order delivered within about 4 hours: open the
-# store once (through 闪购's search), `tmall-add` per item, then
-# `tmall-checkout`.
+# taobao/tmall-buy — staples from 天猫超市 inside Taobao, several items
+# in ONE order (~4 h): open the store once through 闪购's search,
+# `tmall-add` per item, then `tmall-checkout`. Starts anywhere. Ends on
+# the paid page, the buyer told.
 name: tmall-buy
 description: >-
   buy supermarket staples from 天猫超市 (猫超) inside 淘宝, one order in ~4 h:
@@ -33,36 +33,36 @@ route:
     message: "收到，正在天猫超市为你挑选：\n{parse.items}"
 
   - start: app
-    macro: launch
+    macro: launch                 # to the feed: resumed as it is, else cold-launched
 
-  - page: home
+  - page: home                    # the feed: its tab row (推荐 / 关注)
 
-  - do: open-shangou
+  - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
     macro: open-shangou
 
-  - page: shangou-home
+  - page: shangou-home            # 闪购外卖 over 我的闪购
 
-  - do: find-store
+  - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "天猫超市"}
     macro: shangou-search
 
-  - page: shangou-results
+  - page: shangou-results         # the 闪购 search header's slogan
 
-  - do: open-store
+  - do: open-store                # the first card, 天猫超市闪购
     macro: open-tmall
 
-  - page: tmall-home
+  - page: tmall-home              # the store: 天猫超市闪购 over 全部商品
 
-  - run: tmall-add
-    each: {item: parse.items}
-    miss: skip
+  - run: tmall-add                # store search, pick, 加入购物车, back to the store; one
+    each: {item: parse.items}     # round per item; a line already in the cart is not
+    miss: skip                    # re-added, an item not found is skipped
     limit: {rounds: 4}
 
   - page: tmall-home
 
-  - run: tmall-checkout
+  - run: tmall-checkout           # the cart sheet, tick, settle, confirm, pay
     with: {lines: "{tmall-add.line}"}
-    revise: parse
+    revise: parse                 # a reply the ask's words miss re-plans from `parse`
     limit: {revisions: 2}
 
   - page: paid

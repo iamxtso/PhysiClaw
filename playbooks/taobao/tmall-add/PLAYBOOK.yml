@@ -1,6 +1,6 @@
 # taobao/tmall-add — one item into the 天猫超市 store cart; runs once per
 # item under `tmall-buy`, which opens the store first. Starts and ends
-# on the store's page so the rounds chain without a relaunch.
+# on the store's page, so the rounds chain without a relaunch.
 name: tmall-add
 description: put one item in the 天猫超市 (Tmall Supermarket) store cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable
@@ -13,23 +13,23 @@ returns:
 
 route:
   - agent: parse
-    prompt: prompts.item-keyword
+    prompt: prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
-  - page: tmall-home
+  - page: tmall-home              # the store: 天猫超市闪购 over 全部商品
 
-  - do: find
+  - do: find                      # type the keyword into the store's search, run it
     with: {keyword: "{parse.keyword}"}
     macro: store-search
 
-  - page: store-results
+  - page: store-results           # the store's sort row (综合排序 / 销量优先)
 
   - agent: pick
-    prompt: prompts.store-pick
+    prompt: prompts.store-pick    # rows to an item, one add, the sheets that follow
     tools: [tap, scroll]
-    give: [landmarks.close, landmarks.pairing-close]
+    give: [landmarks.close, landmarks.pairing-close]   # a promo ✕, a 推荐搭配 sheet's ✕
     never_tap:
       - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button
@@ -43,12 +43,9 @@ route:
     think: low
     on_fail: stop
 
-  - page: store-detail
+  - page: store-detail            # the item page: 加入购物车 and the 店铺 tab
 
-  # Back to the storefront's home, where the next round (and the
-  # checkout) starts: the item page, then the results, then the search
-  # page, each popped by the pack's one hand for this store.
-  - do: back-to-store
-    macro: store-back
+  - do: back-to-store             # the item page's arrow while it shows, an edge swipe,
+    macro: store-back             # the search page's arrow while it shows
 
   - page: tmall-home

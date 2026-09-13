@@ -1,7 +1,7 @@
 # taobao/shangou-buy — takeout from ONE restaurant or shop on 淘宝闪购:
-# search the store by name, then one episode opens its card and adds
-# every dish the buyer named (each through its spec sheet); 去结算,
-# confirm the order page's total, pay. One order is one store.
+# search the store by name, one episode opens its card and adds every
+# dish, settle, confirm, pay. Starts anywhere. Ends on the paid page,
+# the buyer told.
 name: shangou-buy
 description: >-
   order takeout from ONE restaurant or shop on 淘宝闪购 (ex-饿了么) inside 淘宝,
@@ -36,26 +36,26 @@ route:
     message: "收到，正在淘宝闪购为你点单：{parse.store}\n{parse.dishes}"
 
   - start: app
-    macro: launch
+    macro: launch                 # to the feed: resumed as it is, else cold-launched
 
-  - page: home
+  - page: home                    # the feed: its tab row (推荐 / 关注)
 
-  - do: open-shangou
+  - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
     macro: open-shangou
 
-  - page: shangou-home
+  - page: shangou-home            # 闪购外卖 over 我的闪购
 
-  - do: find-store
+  - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "{parse.store}"}
     macro: shangou-search
 
-  - page: shangou-results
+  - page: shangou-results         # the 闪购 search header's slogan
 
   # One episode: open the store's card, then add every dish. Which card
   # is the store is a reading of names the results reorder, so it is
   # the model's; the dishes follow in the same context.
   - agent: order
-    prompt: prompts.dish-order
+    prompt: prompts.dish-order    # the card by name, each dish through its spec sheet
     tools: [tap, scroll, back]
     never_tap:
       - {label: ["去结算", "领券结算", "立即支付", "提交订单"], within: bottom}
@@ -68,13 +68,13 @@ route:
     think: low
     on_fail: stop
 
-  - page: shangou-store
+  - page: shangou-store           # the store's menu: 外送 / 自取 up top
 
-  - do: settle
-    on_fail: stop
+  - do: settle                    # 去结算 on the store's cart bar, to the order page
+    on_fail: stop                 # nothing is paid yet
     macro: settle
 
-  - page: shangou-order
+  - page: shangou-order           # 外卖到家 over the 立即支付 button
 
   # The order page pays from its own button, which carries the total.
   - ask: confirm-pay
@@ -92,7 +92,7 @@ route:
 
   - do: pay
     irreversible: payment
-    on_fail: handover
+    on_fail: handover             # money may have moved: the model verifies and reports
     macro:
       steps:
         - tap: "立即支付￥…"                      # the order page's own pay button
