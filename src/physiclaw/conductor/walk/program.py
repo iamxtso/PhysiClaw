@@ -969,9 +969,8 @@ class Program:
             return
         self._paid_logged = True
         self.log_day(
-            f"conductor: {self.app}: payment ¥{money.plain(self.ledger.paid)} fired "
-            f"(playbook {self.ref}) — verify the order before "
-            "paying again"
+            f"conductor: {self.app}: payment {money.plain(self.ledger.paid)} fired "
+            f"(playbook {self.ref}) — {money.VERIFY_AFTER_PAY}"
         )
 
     def enter_gate(self, node: Checked) -> Turn:
@@ -1077,10 +1076,10 @@ class Program:
         (the same synthesized end_session a suspension uses). No
         suspension is written, so the next wake reads the thread again
         and walks the route from the top. The recap says whether money
-        moved: after a fired payment a stop leaves the order unverified."""
+        moved: after a fired payment a stop leaves what it paid for unverified."""
         node = self._node_id() or "(end)"
         spent = (
-            f"a payment of ¥{money.plain(self.ledger.paid)} fired, unverified"
+            f"a payment of {money.plain(self.ledger.paid)} fired, unverified"
             if self.ledger.paid is not None
             else "nothing paid"
         )

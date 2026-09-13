@@ -382,7 +382,7 @@ def test_gate_deny_hands_over_without_reasking() -> None:
     step = _reply_arrives(p, h, send, "不用")
 
     summary = _finish(p, h, step)
-    assert "user declined" in summary and "back out" in summary
+    assert "user declined" in summary and "undo what this task changed" in summary
 
 
 def test_gate_reply_outside_the_declared_words_is_read_in_the_thread() -> None:
@@ -788,7 +788,7 @@ def test_payment_never_fires_off_an_unverified_screen() -> None:
     summary = _finish(p, h, p.advance(h))  # blind money refused, hand over
     assert "move 'pay' expects page" in summary
     # Consent was bound but never consumed — the brief must say so.
-    assert "consented to ¥45" in summary and "NOT been made" in summary
+    assert "consented to 45" in summary and "NOT been made" in summary
 
 
 def test_pay_consumes_the_consent() -> None:
@@ -887,7 +887,7 @@ def _write_suspended(playbook: str, idx: int, **over) -> None:
         "baseline": [],
         "quoted": None,
         "consented": None,
-        "seen": [],
+        "total_label": [],
         "awaiting": False,
     }
     data.update(over)
@@ -1016,12 +1016,12 @@ def test_second_ask_reads_a_yes_that_repeats_the_first() -> None:
     assert "completed" in summary
 
 
-def test_gate_seen_amounts_survive_the_suspension() -> None:
-    gate = program.Gate(quoted=45.0, consented=45.0, seen=(45.0, 79.0))
+def test_gate_total_label_survives_the_suspension() -> None:
+    gate = program.Gate(quoted=45.0, consented=45.0, total_label=("合计", "实付"))
 
     restored = program.Gate.from_suspended(gate.to_suspended())
 
-    assert restored.seen == (45.0, 79.0) and restored.consented == 45.0
+    assert restored.total_label == ("合计", "实付") and restored.consented == 45.0
 
 
 # ---------- payment gate: total edges ----------
@@ -1368,8 +1368,8 @@ def test_failed_payment_call_logs_the_purchase_and_briefs_it() -> None:
 
     summary = _finish(p, h, p.advance(h))
 
-    assert "A payment of ¥45 was FIRED" in summary
-    assert "payment ¥45 fired" in daylog.load_recent_entries(5)
+    assert "A payment of 45 was FIRED" in summary
+    assert "payment 45 fired" in daylog.load_recent_entries(5)
 
 
 def test_recovery_never_restarts_once_a_payment_fired() -> None:
@@ -1550,7 +1550,7 @@ def test_payment_fire_writes_the_doctrine_purchase_log_line() -> None:
 
     entries = daylog.load_recent_entries(5)
 
-    assert "conductor: demo: payment ¥45 fired (playbook demo/pay)" in entries
+    assert "conductor: demo: payment 45 fired (playbook demo/pay)" in entries
 
 
 TRAILING_ASK = (
@@ -1581,7 +1581,7 @@ def test_a_resumed_walk_does_not_log_last_wakes_payment_again() -> None:
     rate = p.advance(h)  # the landing logs the purchase; then the trailing ask
     assert rate.tool_calls[1].arguments["name"] == "channel/send"
     _suspend_via_silence(p, h, rate)
-    line = "conductor: demo: payment ¥45 fired (playbook demo/pay)"
+    line = "conductor: demo: payment 45 fired (playbook demo/pay)"
     assert daylog.load_recent_entries(20).count(line) == 1
 
     resumed = setup.load_suspended()
@@ -1808,7 +1808,7 @@ def test_a_deny_is_answered_by_the_ask_before_the_brief() -> None:
     summary = _finish(p, h, _deny_answered(p, h, send))
 
     assert "user declined the ask, answered" in summary
-    assert "Back out" in summary and "acknowledge" not in summary
+    assert "Undo what this task changed" in summary and "acknowledge" not in summary
 
 
 def test_a_deny_the_model_read_is_answered_too() -> None:
@@ -1931,7 +1931,7 @@ def test_after_a_fired_payment_stop_still_stops_and_says_so() -> None:
     stop = p.advance(h)
 
     assert stop.tool_names() == ["note", "end_session"]
-    assert "a payment of ¥45 fired, unverified" in stop.tool_calls[1].arguments["recap"]
+    assert "a payment of 45 fired, unverified" in stop.tool_calls[1].arguments["recap"]
 
 
 def test_a_suspension_carries_the_threads_think_level() -> None:

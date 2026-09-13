@@ -56,12 +56,12 @@ def walk_brief(
         # Consent is CONSUMED by firing (program.py), so a consented
         # value surviving to the brief proves the payment did NOT fire.
         parts.append(
-            f"The user consented to ¥{money.plain(consented)}; the payment has NOT been made."
+            f"The user consented to {money.plain(consented)}; the payment has NOT been made."
         )
     if ledger.paid is not None:
         parts.append(
-            f"A payment of ¥{money.plain(ledger.paid)} was FIRED before this stop and its result "
-            "is unverified — check the order before any further payment."
+            f"A payment of {money.plain(ledger.paid)} was FIRED before this stop and its result "
+            f"is unverified — {money.VERIFY_AFTER_PAY}."
         )
     parts.append(
         "The synthesized turns above are the walk so far; this turn's "

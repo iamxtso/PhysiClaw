@@ -213,7 +213,7 @@ class AgentStep(Step[AgentNode]):
         self.calls = 0
         self.scrolls = 0
         self.consented: float | None = None
-        self.seen: tuple[float, ...] = ()
+        self.total_label: tuple[str, ...] = ()
         self.pending_desc = ""
 
     def open(self) -> Turn:
@@ -314,7 +314,7 @@ class AgentStep(Step[AgentNode]):
                     f"agent {node.id!r}: payment episode without bound consent"
                 )
             self.consented = walk.gate.consented
-            self.seen = walk.gate.seen
+            self.total_label = walk.gate.total_label
             vals = {**vals, "ask.total": money.plain(self.consented)}
         brief = [self._prompt(vals)]
         if self.node.returns:
@@ -484,13 +484,14 @@ class AgentStep(Step[AgentNode]):
             # proposes. The page first — the enter gate verified it once
             # at the episode's start, and a scroll or a tap since may
             # have landed on a screen the pack never declared, where a
-            # matching amount proves nothing. Then the amounts: one while
-            # no visible amount equals the consented total, or with any
-            # amount above it, is refused.
+            # matching amount proves nothing. Then the total: the ask's
+            # label must still read the consented amount.
             blocked = walk.money_page_block(f"payment agent {node.id!r}")
             if blocked is None:
                 blocked = money.fire_block(
-                    consented=self.consented, seen=self.seen, screen=walk.screen
+                    consented=self.consented,
+                    total_label=self.total_label,
+                    screen=walk.screen,
                 )
             if blocked is not None:
                 return walk.handover(f"payment agent {node.id!r}: {blocked}")

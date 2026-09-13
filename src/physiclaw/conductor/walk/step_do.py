@@ -37,7 +37,7 @@ class DoStep(Step[DoNode]):
                 assert walk.screen is not None  # a matched verdict was read off it
                 blocked = money.fire_block(
                     consented=walk.gate.consented,
-                    seen=walk.gate.seen,
+                    total_label=walk.gate.total_label,
                     screen=walk.screen,
                 )
             if blocked is not None:

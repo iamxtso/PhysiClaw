@@ -165,7 +165,7 @@ class Ledger:
         """A payment fired. Accumulated, not assigned: `paid` is what
         this walk has spent, not what the last tap cost."""
         self.paid = (self.paid or 0.0) + amount
-        self.events.append(f"paid ¥{plain(amount)}")
+        self.events.append(f"paid {plain(amount)}")
 
     # ---- the thread's position ----
 
@@ -219,9 +219,9 @@ class Ledger:
         the plain rendering, for an exit that is not a warning."""
         parts = [lead, *self.account()]
         if consented is not None:
-            parts.append(f"user consented to ¥{plain(consented)}, not paid")
+            parts.append(f"user consented to {plain(consented)}, not paid")
         if self.paid is not None:
-            parts.append(f"paid ¥{plain(self.paid)}")
+            parts.append(f"paid {plain(self.paid)}")
         return "; ".join(parts)
 
     def to_suspended(self) -> dict[str, Any]:

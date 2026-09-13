@@ -89,17 +89,13 @@ _amount = st.decimals(
 )
 
 
-@given(st.lists(_amount, min_size=1, max_size=6), st.sampled_from(["¥", "￥"]))
-def test_every_currency_amount_on_a_screen_is_read_back(amounts, sign: str) -> None:
-    # Thousands separators included — "¥1,234.56" once quoted ¥1.
-    screen = make_screen(
-        *(
-            (f"合计 {sign}{_grouped(a)}", 0.5, 0.15 + i * 0.05)
-            for i, a in enumerate(amounts)
-        )
-    )
-    read = money.amounts(screen)
-    assert [round(x, 2) for x in read] == [round(float(a), 2) for a in amounts]
+@given(_amount, st.sampled_from(["¥", "￥", "$", "€"]))
+def test_the_declared_total_reads_back_whole(amount, sign: str) -> None:
+    # Thousands separators included — "¥1,234.56" once quoted ¥1 — and
+    # any currency sign.
+    screen = make_screen((f"Total {sign}{_grouped(amount)}", 0.5, 0.9))
+    read = money.declared_total(screen, ("Total",))
+    assert read is not None and round(read, 2) == round(float(amount), 2)
 
 
 def _grouped(a) -> str:
@@ -110,16 +106,17 @@ def _grouped(a) -> str:
 
 
 @given(st.text(alphabet=st.characters(blacklist_categories=("Cc", "Cs")), max_size=40))
-def test_amounts_never_raises_and_reads_only_currency_marked_numbers(
+def test_the_total_reader_never_raises_and_reads_only_currency_marked_numbers(
     label: str,
 ) -> None:
     # Through the listing grammar, as a real screen arrives — what the
-    # row keeps of the label is what the reader must agree with.
+    # row keeps of the label is what the reader must agree with: a
+    # total reads when the row carries a currency-marked number, else
+    # None, and never an exception.
     screen = make_screen((label, 0.5, 0.15))
-    out = money.amounts(screen)
-    assert len(out) == sum(
-        len(conventions.PRICE_RE.findall(r.label)) for r in screen.rows
-    )
+    out = money.declared_total(screen, (label,) if label.strip() else ("x",))
+    marked = any(conventions.PRICE_RE.findall(r.label) for r in screen.rows)
+    assert (out is not None) == (marked and bool(label.strip()))
 
 
 # ---------- match: normalization and the label tiers ----------

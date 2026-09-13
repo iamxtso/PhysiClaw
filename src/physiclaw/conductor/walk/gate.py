@@ -18,9 +18,9 @@ class Gate:
     baseline: set[str] = field(default_factory=set)
     quoted: float | None = None
     consented: float | None = None
-    # Every amount on the sheet when the ask quoted it — the fire-time
-    # bound's reference for "what the user saw".
-    seen: tuple[float, ...] = ()
+    # The ask's `total_label:` readings — the fire-time check reads the
+    # total by them, exactly as the ask quoted it.
+    total_label: tuple[str, ...] = ()
     silence: int = 0
     awaiting: bool = False  # ask sent, polling for the reply
     # The reply words the last LANDED send declared (already in
@@ -69,7 +69,7 @@ class Gate:
         gate's fresh confirm, never this one's leftovers. Returns the
         amount that fired."""
         amount, self.consented, self.quoted = self.consented, None, None
-        self.seen = ()
+        self.total_label = ()
         return amount
 
     def to_suspended(self) -> dict:
@@ -82,7 +82,7 @@ class Gate:
             "baseline": sorted(self.baseline),
             "quoted": self.quoted,
             "consented": self.consented,
-            "seen": list(self.seen),
+            "total_label": list(self.total_label),
             "awaiting": self.awaiting,
             "yes": list(self.yes),
             "no": list(self.no),
@@ -97,7 +97,7 @@ class Gate:
             baseline=set(data.get("baseline") or []),
             quoted=data.get("quoted"),
             consented=data.get("consented"),
-            seen=tuple(float(a) for a in (data.get("seen") or [])),
+            total_label=tuple(str(r) for r in (data.get("total_label") or [])),
             awaiting=bool(data.get("awaiting")),
             yes=tuple(str(w) for w in (data.get("yes") or [])),
             no=tuple(str(w) for w in (data.get("no") or [])),

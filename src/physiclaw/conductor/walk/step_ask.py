@@ -12,8 +12,8 @@ the declared words do not cover hands over — the model reads the
 thread, the conductor never guesses. A payment ask reads the sheet
 total off the waypoint before it, once that page reads — the amount
 beside the label its `total_label:` names — and quotes it in the message:
-the ask IS the consent record. Every amount on that sheet is
-remembered as what the user saw.
+the ask IS the consent record, and the label it read by is what the
+pay move reads the total by again before it fires.
 """
 
 from physiclaw.common import gesture_vocab
@@ -105,7 +105,7 @@ class AskStep(Step[AskNode]):
                     f"({wrong}) — refusing to ask blind"
                 )
             assert walk.screen is not None  # a verified verdict was read off it
-            walk.gate.seen = tuple(money.amounts(walk.screen))
+            walk.gate.total_label = tuple(node.total_label)
             total = money.declared_total(walk.screen, node.total_label)
             if total is None:
                 return walk.handover(
@@ -162,7 +162,7 @@ class AskStep(Step[AskNode]):
                 # reading that BINDS money has to be placed.
                 return walk.handover(
                     f"ask {node.id!r}: read a yes, but the ask itself is not on the "
-                    "thread — read it yourself before any payment"
+                    "thread — read it yourself before any irreversible move"
                 )
             return self._settled(True, new[-1])
         # The declared words do not cover it ("ok, but make it two
@@ -199,7 +199,7 @@ class AskStep(Step[AskNode]):
         return walk.revise(replies) or walk.handover(
             f"ask {node.id!r}: reply {replies!r} matches none of its yes/no words "
             "and could not be read as one — read the thread and decide before "
-            "any payment"
+            "any irreversible move"
         )
 
     def _settled(self, ok: bool, replies: str, *, by_model: bool = False) -> Turn:

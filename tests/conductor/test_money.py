@@ -43,15 +43,11 @@ def test_declared_total_never_reads_a_row_above_the_bare_label() -> None:
     assert money.declared_total(sheet, ("实付", "免密支付", "优惠后")) == 24.75
 
 
-def test_amounts_read_at_most_two_decimals() -> None:
-    # The rig's sheet, 2026-09-03: OCR ran "实付￥24.75" into the next
-    # word ("1优惠前…"), and the ask quoted ¥24.751. A price has two
-    # decimals; the glued digit is not part of it.
-    screen = make_screen(
-        ("实付￥24.751优惠前￥45", 0.5, 0.25), ("共减￥12.501开88VIP", 0.5, 0.3)
-    )
+def test_declared_total_reads_at_most_two_decimals() -> None:
+    # OCR glues a digit onto a price now and then ("￥24.751"): the
+    # amount reads to the fen, never a third decimal.
+    screen = make_screen(("实付 ￥24.751", 0.5, 0.9))
 
-    assert money.amounts(screen) == [24.75, 45.0, 12.5]
     assert money.declared_total(screen, ("实付",)) == 24.75
 
 
@@ -78,43 +74,42 @@ def test_declared_total_needs_the_label() -> None:
     )
 
 
-def test_fire_block_requires_consent_then_the_same_sheet() -> None:
-    sheet = make_screen(("合计 ¥45", 0.5, 0.5))
+def test_fire_block_requires_consent_then_the_quoted_total() -> None:
+    sheet = make_screen(("合计 ¥45", 0.5, 0.9))
+    label = ("合计",)
 
     assert "without a confirmed total" in (
-        money.fire_block(consented=None, seen=(), screen=sheet) or ""
+        money.fire_block(consented=None, total_label=label, screen=sheet) or ""
     )
-    assert money.fire_block(consented=45.0, seen=(45.0,), screen=sheet) is None
-    changed = make_screen(("合计 ¥60", 0.5, 0.5))
-    assert "sheet changed" in (
-        money.fire_block(consented=45.0, seen=(45.0,), screen=changed) or ""
+    assert money.fire_block(consented=45.0, total_label=label, screen=sheet) is None
+    changed = make_screen(("合计 ¥60", 0.5, 0.9))
+    assert "now 60 beside 合计" in (
+        money.fire_block(consented=45.0, total_label=label, screen=changed) or ""
     )
-    above = make_screen(("合计 ¥45", 0.5, 0.5), ("¥99", 0.5, 0.7))
-    assert "appeared after the ask" in (
-        money.fire_block(consented=45.0, seen=(45.0,), screen=above) or ""
+    gone = make_screen(("提交订单", 0.5, 0.9))
+    assert "no amount beside 合计" in (
+        money.fire_block(consented=45.0, total_label=label, screen=gone) or ""
     )
 
 
-def test_fire_block_allows_an_amount_the_user_already_saw() -> None:
-    # A struck-through original price above the total was on the sheet
-    # the user consented to — it is not a change. Only an amount above
-    # the total that APPEARED since the ask blocks.
-    sheet = make_screen(("原价 ¥79", 0.5, 0.4), ("合计 ¥59.9", 0.5, 0.9))
-    seen = tuple(money.amounts(sheet))
-    assert money.declared_total(sheet, ("合计",)) == 59.9
+def test_fire_block_reads_only_the_declared_total() -> None:
+    # A promo card mid-page read ￥45 when the ask quoted the sheet and
+    # ￥46 at the tap — one OCR digit on a card that is not the order. The
+    # walk knows money only where the pack says the total is read.
+    label = ("合计",)
+    flickered = make_screen(("￥46¥0.99", 0.5, 0.63), ("合计：￥11.7", 0.6, 0.92))
 
-    assert money.fire_block(consented=59.9, seen=seen, screen=sheet) is None
-    grew = make_screen(
-        ("原价 ¥79", 0.5, 0.4), ("合计 ¥59.9", 0.5, 0.9), ("¥120", 0.5, 0.7)
+    assert money.fire_block(consented=11.7, total_label=label, screen=flickered) is None
+    repriced = make_screen(("￥45¥0.99", 0.5, 0.63), ("合计：￥46", 0.6, 0.92))
+    assert "now 46" in (
+        money.fire_block(consented=11.7, total_label=label, screen=repriced) or ""
     )
-    assert "120.0" in (money.fire_block(consented=59.9, seen=seen, screen=grew) or "")
 
 
-def test_amounts_read_thousands_separators() -> None:
+def test_declared_total_reads_thousands_separators() -> None:
     sheet = make_screen(("合计 ¥1,234.56", 0.5, 0.9), ("¥12", 0.5, 0.3))
 
     assert money.declared_total(sheet, ("合计",)) == 1234.56
-    assert money.amounts(sheet) == [1234.56, 12.0]
 
 
 def test_declared_total_prefers_the_exact_label_and_the_footer() -> None:

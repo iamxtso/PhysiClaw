@@ -889,7 +889,7 @@ def test_payment_episode_fires_only_off_a_verified_page_like_the_move() -> None:
 
     summary = _finish(p, h, step)
     assert "not a verified demo page" in summary
-    assert "consented to ¥45; the payment has NOT been made" in summary
+    assert "consented to 45; the payment has NOT been made" in summary
     assert p.ledger.paid is None
 
 

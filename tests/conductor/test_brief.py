@@ -44,7 +44,7 @@ def test_walk_brief_includes_recorded_outputs_under_the_data_stamp() -> None:
 def test_walk_brief_consent_line_says_payment_did_not_fire() -> None:
     text = _walk(consented=58.0)
 
-    assert "consented to ¥58" in text
+    assert "consented to 58" in text
     assert "has NOT been made" in text
 
 

@@ -5,17 +5,16 @@ rules can be read (and audited) without the state machine around them.
 The walk supplies the numbers and acts on the answers:
 
   - `declared_total` — the amount beside the label the ask's `total_label:`
-    names: the number the user is quoted and consents to.
-  - `amounts` — every amount the screen shows; the ask records this
-    set as what the user SAW, the fire-time check reads the sheet the
-    same way.
-  - `fire_block` — the two fire-time predicates, run against the
-    CURRENT screen after the human's consent: staleness (the sheet
-    must still show the consented total) and the bound (no amount
-    above the total may have APPEARED since the ask — what the user
-    saw is the limit; a struck-through original price they saw is
-    not a change). None = pay; else the bare reason — the walk
-    prefixes the move it was guarding and hands over.
+    names: the number the user is quoted and consents to, read the
+    same way again at fire time.
+  - `fire_block` — the fire-time predicate, run against the CURRENT
+    screen after the human's consent: the declared total must still
+    read as the consented amount — same label, same rule, same number.
+    Where the pack says the total is read is all the walk knows about
+    money on the page; every other price on it (a promo card, an add-on
+    carousel, a struck-through original) is not the order, and a page
+    re-renders those between two frames. None = pay; else the bare
+    reason — the walk prefixes the move it was guarding and hands over.
 
 Consent itself — quoting, binding, consuming — stays with the gate
 (`step_ask.py`, `speak.py`, `gate.Gate`): consent is a conversation, these are
@@ -25,6 +24,10 @@ arithmetic.
 from physiclaw.common.bbox import Bbox, center_of, same_line
 from physiclaw.common.listing import Screen, label_hit
 from physiclaw.conductor.spec.conventions import PRICE_RE
+
+# The one sentence a fired-but-unverified payment leaves behind — the
+# daily log and the handover brief say it alike.
+VERIFY_AFTER_PAY = "verify what it paid for before paying again"
 
 
 def plain(value: float) -> str:
@@ -45,20 +48,10 @@ def amount(text: str) -> float:
     return float(text.replace(",", ""))
 
 
-def amounts(screen: Screen) -> list[float]:
-    """Every ¥/￥ amount visible on the screen — `conventions.PRICE_RE`, the
-    one spelling of a currency amount, run over raw row labels; never a
-    model."""
-    out: list[float] = []
-    for row in screen.rows:
-        out.extend(amount(m) for m in PRICE_RE.findall(row.label))
-    return out
-
-
 def _is_label_row(label: str, readings: tuple[str, ...]) -> tuple[bool, bool]:
     """(hits, exact): whether a row reads as the total label at all, and
-    whether it is that label and nothing else — "合计" or "合计: ¥59.9",
-    never "商品合计 ¥79" (a subtotal wearing the same characters)."""
+    whether it is that label and nothing else — "Total" or "Total: $59.9",
+    never "Items total $79" (a subtotal wearing the same word)."""
     if not any(label_hit(r, label) for r in readings):
         return False, False
     bare = PRICE_RE.sub("", label)
@@ -69,9 +62,9 @@ def _is_label_row(label: str, readings: tuple[str, ...]) -> tuple[bool, bool]:
 def declared_total(screen: Screen, readings: tuple[str, ...]) -> float | None:
     """The amount beside the declared total label: on the label's own
     row, else the nearest amount on a row sharing its line (OCR splits
-    "合计" from its "¥59.9") — never a row above or below, whatever the
+    "Total" from its "$59.9") — never a row above or below, whatever the
     distance. A row that is the label and nothing else beats one that
-    merely contains it (the payable 合计 over a 商品合计 subtotal); among
+    merely contains it (the payable Total over an Items total subtotal); among
     equals the lowest on screen wins (the footer); a label row with no
     amount on its line yields to the next. None when none reads."""
     priced = [
@@ -110,27 +103,19 @@ def _gap(a: Bbox, b: Bbox) -> float:
 
 
 def fire_block(
-    *, consented: float | None, seen: tuple[float, ...], screen: Screen
+    *, consented: float | None, total_label: tuple[str, ...], screen: Screen
 ) -> str | None:
-    """The two fire-time predicates. `seen` is every amount on the sheet
-    when the ask quoted it. None = pay; else the bare reason to block —
-    the walk prefixes the move it was guarding."""
+    """The fire-time predicate. `total_label` is the ask's own readings —
+    the total is read at fire time exactly as it was quoted. None = pay;
+    else the bare reason to block — the walk prefixes the move it was
+    guarding."""
     if consented is None:
         return "reached without a confirmed total"
-    amts = amounts(screen)
-    if not any(abs(a - consented) < 0.01 for a in amts):
-        return (
-            f"sheet changed after consent: confirmed ¥{plain(consented)}, "
-            f"now sees {amts or 'no amounts'}"
-        )
-    over = [
-        a
-        for a in amts
-        if a > consented + 0.005 and not any(abs(a - s) < 0.01 for s in seen)
-    ]
-    if over:
-        return (
-            f"amount(s) {over} above the consented total ¥{plain(consented)} "
-            "appeared after the ask"
-        )
-    return None
+    total = declared_total(screen, total_label)
+    if total is not None and abs(total - consented) < 0.01:
+        return None
+    now = plain(total) if total is not None else "no amount"
+    return (
+        f"sheet changed after consent: confirmed {plain(consented)}, "
+        f"now {now} beside {' / '.join(total_label)}"
+    )
