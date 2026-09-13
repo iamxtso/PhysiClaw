@@ -1,19 +1,28 @@
 name: launch
-description: cold-launch Taobao from wherever the phone is — every route's start
+description: bring Taobao to its feed from wherever the phone is — every route's start
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/launch
 enabled: false
 steps:
-  # ALWAYS cold: a resumed app lands mid-state (a stale search,
-  # a detail page) and fails the settle expect. force_quit kills
-  # the FOREGROUND app, and the boot leaves the IM app there —
-  # so bring taobao to the front first, then kill it.
+  # Raise Taobao in whatever state it kept: the boot leaves the IM app
+  # in front, and force_quit (below) kills the FOREGROUND app.
   - home_screen
   - tap: "blank area below the app cards"    # home_screen FROM home can open the switcher
     at: [0.42, 0.855, 0.58, 0.885]
-  - tap: "the taobao app icon"               # foreground it in whatever state it kept
+  - tap: "the taobao app icon"
     at: [0.720, 0.425, 0.909, 0.551]
   - wait: 2
-  - force_quit                               # now the card the switcher flings is taobao's
+  # Taobao restores the last TAB: a walk that ended on 闪购外卖 comes
+  # back on it, and that tab is not the feed. Its header still holds the
+  # 推荐 tab — press it while the tab's own row (我的闪购) shows.
+  - tap: "推荐"
+    at: [0.14, 0.055, 0.26, 0.095]
+    when: ["我的闪购"]
+  # Resumed on the feed: nothing more to do. Anything else it kept (an
+  # ad, a search, an item page, an order sheet) is mid-state: quit and
+  # launch cold.
+  - if_page: home
+    goto: feed
+  - force_quit                               # the card the switcher flings is taobao's
   - home_screen
   - tap: "blank area below the app cards"
     at: [0.42, 0.855, 0.58, 0.885]
@@ -21,23 +30,19 @@ steps:
     at: [0.720, 0.425, 0.909, 0.551]
   - wait: 5
   # A cold launch may open on a full-screen ad — without this step
-  # every relaunch fails verify. `when` runs it only while 跳过 shows.
+  # every relaunch fails verify.
   - tap: "跳过"
     at: [0.79, 0.030, 0.87, 0.065]
     when: {text: "跳过", within: [0.70, 0.0, 1.0, 0.12]}
   - wait: 4
-  # Taobao also restores the last TAB: a walk that ended on 闪购外卖 comes
-  # back on it, and that tab is not the feed. Its header still holds the
-  # 推荐 tab — press it while the tab's own row (我的闪购) shows.
   - tap: "推荐"
     at: [0.14, 0.055, 0.26, 0.095]
     when: ["我的闪购"]
   - wait: 2
   # Taobao restores the page it was quit on ONCE: the first cold launch
   # after a force_quit may come up on that page, and the launch after
-  # that on the feed. So the feed already showing skips the second
-  # pass; otherwise quit and launch once more, and the mark checks the
-  # pass reached the feed.
+  # that on the feed. So the feed already showing is done; otherwise
+  # quit and launch once more, and the mark checks the pass reached it.
   - if_page: home
     goto: feed
   - force_quit

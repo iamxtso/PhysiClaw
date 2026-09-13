@@ -58,7 +58,7 @@ route:
     prompt: prompts.dish-order
     tools: [tap, scroll, back]
     never_tap:
-      - {label: ["去结算", "立即支付", "提交订单"], within: bottom}
+      - {label: ["去结算", "领券结算", "立即支付", "提交订单"], within: bottom}
       - "清空"
       - "凑单"
       - "换购"
@@ -71,6 +71,7 @@ route:
   - page: shangou-store
 
   - do: settle
+    on_fail: stop
     macro: settle
 
   - page: shangou-order

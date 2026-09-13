@@ -18,21 +18,21 @@ route:
         - tap: "到手约￥… (the cart footer's total)"
           at: [0.15, 0.90, 0.45, 0.95]
         - wait: 3
-          expect: "清空"
+          expect: ["去结算", "领券结算", "起送"]   # the footer's button, whatever it reads
 
-  - page: store-cart
+  - page: tmall-cart
 
   - do: nudge                     # the 全选 row sits under this phone's floating button
     macro: nudge
 
-  - page: store-cart
+  - page: tmall-cart
 
   - agent: tick
     prompt: prompts.store-tick
     tools: [tap, scroll]
     give: [landmarks.close, macros.nudge]
     never_tap:
-      - "去结算"
+      - ["去结算", "领券结算"]
       - "清空"
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}
     returns:
@@ -41,9 +41,10 @@ route:
     think: low
     on_fail: stop
 
-  - page: store-cart
+  - page: tmall-cart
 
   - do: settle
+    on_fail: stop
     macro: settle
 
   - page: store-order

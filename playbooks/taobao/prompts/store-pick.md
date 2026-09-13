@@ -22,7 +22,9 @@ search results to the item's page, with the item added, never buying.
    1 when it names none), then tap the sheet's bottom button ONCE.
    盒马 then covers the page with a 推荐搭配 sheet (rows of other
    items): tap the granted `pairing-close` landmark's box ONCE to
-   close it; never scroll, never go_back on that sheet.
+   close it; never scroll, never go_back on that sheet. A dialog
+   购物车内部分商品无法购买 (lines already in the cart that are 售罄 or
+   即将上架) may sit over that sheet first: tap 知道了, never 去查看.
 3. DONE — standing on the item page again, return done with the
    fields you read: the title, the quantity you set, the unit price.
 A promo card may cover the page after it opens: tap the granted

@@ -31,7 +31,7 @@ route:
     tools: [tap, scroll]
     give: [landmarks.close, landmarks.pairing-close]
     never_tap:
-      - {label: ["去结算", "立即购买"], within: bottom}       # one target: the checkout button
+      - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button
       - "凑单"
       - "换购"

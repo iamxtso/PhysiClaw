@@ -1,0 +1,12 @@
+name: hema-settle
+description: press 去结算 (or 领券结算) on the 盒马 cart, whose footer sits higher than the other storefronts'
+# Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-settle
+enabled: false
+steps:
+  # 领券结算 when an unclaimed coupon applies to the ticked set: the same
+  # button, and the tap claims the coupon on the way.
+  - tap: ["去结算", "领券结算"]
+    at: [0.74, 0.86, 0.92, 0.91]
+    require: {text: ["去结算", "领券结算"], within: bottom}
+    hint: "no 去结算 in the footer — nothing is ticked, or the store is below its 起送 (差¥N起送)"
+  - wait: 5                                  # the order page is slow to build

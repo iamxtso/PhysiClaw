@@ -26,7 +26,8 @@ landmarks:
     at: [0.06, 0.910, 0.94, 0.955]       # UNRECORDED estimate — record it
   close:
     label: "the ✕ below a promo popup card"  # 天降红包 / coupon popups: an icon,
-    at: [0.44, 0.665, 0.56, 0.735]           # no text row — the box is the tap
+    at: [0.44, 0.68, 0.56, 0.75]             # no text row — the box is the tap; the
+                                             # marketplace's ✕ sits at y 0.67–0.73, 盒马's at 0.69–0.75
   select-all:
     label: "全选"                             # the cart footer's left checkbox + label
     at: [0.040, 0.858, 0.220, 0.896]         # the label sits at x 0.14–0.21
@@ -41,8 +42,9 @@ landmarks:
 # to override these for that walk.
 pages:
   home:
-    anchors:
-      - {text: ["推荐", "关注"], within: top}   # one anchor, two readings
+    anchors:                       # one anchor, two readings, pinned to the tab
+      - {text: ["推荐", "关注"], within: [0.0, 0.04, 0.45, 0.11]}   # row: a scrolled
+                                   # cart's 为你推荐 sits centred, lower
     forbid: ["我的闪购"]            # the 闪购外卖 tab prints the same header row
     recover:
       covered: {tap: landmarks.close}
@@ -97,9 +99,10 @@ pages:
     anchors:
       - {text: "权益中心", within: [0.5, 0.10, 1.0, 0.30]}
       - {text: "分类", within: bottom}          # the storefront's own tab bar
-    recover:
-      covered: {tap: landmarks.close}
-      elsewhere: go_back
+    # A promo card (天天特惠 / 秋风起) covers the home on entry and dims
+    # 权益中心 past OCR, so the reading is unknown, not covered: one hand
+    # for every reading closes a card while one shows, else pops a screen.
+    recover: {macro: hema-recover}
     tries: 2
   # 淘宝闪购: the home tab, its search results (store cards), a store's menu.
   shangou-home:
@@ -140,7 +143,7 @@ pages:
     anchors:
       - {text: "天猫超市闪购", within: top}
       - {text: "全部商品", within: [0.0, 0.15, 1.0, 0.35]}
-    forbid: ["清空"]                # the cart sheet over the storefront leaves the header showing
+    forbid: ["全选", "清空"]        # the cart sheet over the storefront leaves the header showing
     recover:
       covered: {tap: landmarks.close}
       elsewhere: {macro: store-back}
@@ -174,10 +177,25 @@ pages:
       covered: {tap: landmarks.close}
       elsewhere: go_back
     tries: 2
-  store-cart:                     # the storefront's cart: 清空 up top, 去结算 below
+  # The two storefront carts differ: 盒马's is a page under a 购物车
+  # title, 天猫超市's a sheet over its store page headed by 全选（已选N件）
+  # (the marketplace cart keeps its 全选 in the footer). Both end in a
+  # footer whose button reads 去结算, 领券结算 when a coupon is claimable,
+  # or 差¥N起送 below the store's minimum. 清空 beside 全选 is too small
+  # for OCR to hold, so neither reads it.
+  hema-cart:
     anchors:
-      - {text: "清空", within: [0.5, 0.10, 1.0, 0.80]}
-      - {text: "去结算", within: bottom}
+      - {text: "购物车", within: top}
+      - {text: ["去结算", "领券结算", "起送"], within: bottom}
+    scrollable: true
+    recover:
+      covered: {tap: landmarks.close}
+    tries: 2
+  tmall-cart:                     # the sheet leaves the store's header showing
+    anchors:
+      - {text: "天猫超市闪购", within: top}
+      - {text: "全选", within: [0.0, 0.25, 0.5, 0.70]}
+      - {text: ["去结算", "领券结算", "起送"], within: bottom}
     scrollable: true
     recover:
       covered: {tap: landmarks.close}

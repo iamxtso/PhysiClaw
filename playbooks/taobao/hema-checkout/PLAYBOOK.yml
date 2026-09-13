@@ -11,27 +11,22 @@ inputs:
 route:
   - page: hema-home
 
-  - do: open-cart                 # the storefront's own tab bar
-    macro:
-      steps:
-        - tap: "购物车"
-          at: [0.55, 0.925, 0.72, 0.965]
-        - wait: 3
-          expect: "去结算"
+  - do: open-cart                 # the tab bar's 购物车, snapped to the top
+    macro: hema-open-cart
 
-  - page: store-cart
+  - page: hema-cart
 
   - do: nudge                     # the 全选 row sits under this phone's floating button
     macro: nudge
 
-  - page: store-cart
+  - page: hema-cart
 
   - agent: tick
     prompt: prompts.store-tick
     tools: [tap, scroll]
     give: [landmarks.close, macros.nudge]
     never_tap:
-      - "去结算"
+      - ["去结算", "领券结算"]
       - "清空"
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}
     returns:
@@ -40,16 +35,11 @@ route:
     think: low
     on_fail: stop
 
-  - page: store-cart
+  - page: hema-cart
 
-  - do: settle                    # 盒马's footer sits higher than the others'
-    macro:
-      steps:
-        - tap: "去结算"
-          at: [0.74, 0.86, 0.92, 0.91]
-          require: {text: "去结算", within: bottom}
-          hint: "no 去结算 in the footer — nothing is ticked, or the store is below its 起送"
-        - wait: 5                # the order page is slow to build
+  - do: settle
+    on_fail: stop
+    macro: hema-settle
 
   - page: store-order
 

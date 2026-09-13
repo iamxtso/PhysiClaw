@@ -15,4 +15,6 @@ Recorded facts: the storefront shows 盒马 + address in the header,
 权益中心, and its own 首页/分类/购物车/我的 bar. Its cart page lists lines
 with a checkbox each, 全选（已选N件） and 清空 above, 去结算 in a footer
 that sits higher than 天猫超市's; the order page is 确认订单 with
-合计：￥ and 提交订单.
+合计：￥ and 提交订单. The cart's footer button reads 去结算, 领券结算 when
+a coupon is claimable for the ticked set, or 差¥N起送 under the ¥18
+minimum; 全选's circle is a toggle (one tap clears a fully ticked cart).

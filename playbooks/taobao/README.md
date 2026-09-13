@@ -42,7 +42,10 @@ your device before a playbook that uses it is live.
 ## Traps
 
 - `force_quit` kills the foreground app, so `launch` raises Taobao
-  before quitting it; a resumed app lands mid-state and fails verify.
+  before quitting it. A Taobao that resumes on its feed (the tab row
+  settled with 推荐, scrolled or not: the search bar stays sticky) is
+  used as it is; anything else it kept is mid-state and is quit and
+  launched cold.
 - Two-character anchors (综合, 销量) match feed text unless pinned
   `within: top`.
 - The detail footer's third icon is 收藏, not the cart; `buy` never
@@ -61,3 +64,21 @@ your device before a playbook that uses it is live.
   records its own.
 - The buy sheet shows `￥…起` until a spec is chosen, and an option row
   tap sometimes needs a second tap.
+- A storefront cart's footer button is not the page's identity: 盒马
+  prints 去结算, 领券结算 when an unclaimed coupon applies to the ticked
+  set (the tap claims it on the way), and 差¥N起送 below the store's
+  minimum (¥18 at 盒马, ¥20 at 瑞幸) — `hema-cart` reads its 购物车
+  title and `tmall-cart` its 全选 row over any of those three (清空 is
+  too small for OCR to hold), and `settle` accepts both labels.
+- Leaving a storefront cart and coming back re-ticks every line and
+  keeps the list's scroll (全选, 清空 and the newest lines can sit above
+  the header — `hema-open-cart` snaps it to the top when 全选 is off the
+  screen);
+  `go_back` from the cart
+  page pops the whole storefront (to the marketplace search-entry
+  page), from the order page it pops to the cart with the ticks kept.
+- 盒马's home opens under a promo card on entry (天天特惠 / 秋风起,
+  its ✕ at y 0.69–0.75) that dims 权益中心 past OCR, so the reading is
+  unknown rather than covered — `hema-recover` closes it while its
+  texts show; and 加入购物车 may raise 购物车内部分商品无法购买 (售罄 /
+  即将上架 lines already in the cart) over the 推荐搭配 sheet — 知道了.
