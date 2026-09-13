@@ -78,6 +78,16 @@ your device before a playbook that uses it is live.
   `go_back` from the cart
   page pops the whole storefront (to the marketplace search-entry
   page), from the order page it pops to the cart with the ticks kept.
+- 盒马 splits an order whose lines have different delivery slots: 去结算
+  opens a 请分开结算 sheet with one parcel per slot, each with its own
+  minimum, instead of the order page — the walk stops there, and
+  nothing declares which parcel to buy.
+- 天猫超市's store opens under a welcome card (恭喜获得 ¥26, 开心收下)
+  whose ✕ sits at y 0.75–0.80, lower than the other stores'; the page
+  reads through it, so no covered hand ever fires — `open-tmall` closes
+  it while its texts show.
+- A 盒马 item page swallows the edge swipe (its gallery): `hema-back`
+  pops by each page's own top-left arrow instead.
 - 盒马's home opens under a promo card on entry (天天特惠 / 秋风起,
   its ✕ at y 0.69–0.75) that dims 权益中心 past OCR, so the reading is
   unknown rather than covered — `hema-recover` closes it while its

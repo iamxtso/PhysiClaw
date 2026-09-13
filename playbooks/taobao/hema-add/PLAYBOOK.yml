@@ -45,14 +45,7 @@ route:
 
   - page: store-detail            # the item page: 加入购物车 and the 店铺 tab
 
-  # Two pops: the item page, then the results. When the search-entry
-  # page is left, the home's own hand takes the last step.
-  - do: back-to-store
-    macro:
-      steps:
-        - go_back
-        - wait: 1
-        - go_back
-        - wait: 2
+  - do: back-to-store             # the item page's arrow, then the results' — lands on hema-home
+    macro: hema-back
 
   - page: hema-home

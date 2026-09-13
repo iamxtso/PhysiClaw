@@ -103,7 +103,7 @@ pages:
     # 权益中心 past OCR, so the reading is unknown, not covered: one hand
     # for every reading closes a card while one shows, else pops a screen.
     recover: {macro: hema-recover}
-    tries: 2
+    tries: 4                      # counted per walk, and every round enters the home twice
   # 淘宝闪购: the home tab, its search results (store cards), a store's menu.
   shangou-home:
     anchors:
