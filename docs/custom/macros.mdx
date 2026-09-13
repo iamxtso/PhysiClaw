@@ -77,9 +77,6 @@ steps:
 # No send step: the agent checks the text and decides whether to send.
 ```
 
-Verbs: `tap`, `double_tap`, `long_press` (a label, with `at`), `swipe` (`up`/`down`/`left`/`right`, with `at` and optional `size`/`speed`), `send_to_clipboard` (text), `wait` (seconds), and the bare words `home_screen`, `go_back`, `force_quit`, `peek`. Beside a verb: `at`, `when` or `skip_when` (run the step only while, or skip it while, a check holds; a screen that cannot be read skips a `when` step and runs a `skip_when` one), `require` and `forbid` (checked before the step), `expect` and `hint` (on a `wait`). A check is a text, a list of alternates, `{text, within}` with a band (`top`, `bottom`, `left`, `right`) or a box, or `{and|or|not}`. A pack macro may jump forward: `if_page: <name>` with `goto: <mark>` skips to `mark: <mark>` while the pack's page already shows, so the steps that reach it are not replayed; walked to, the mark checks the page arrived. Jumps follow one another, never one inside another.
-
-The full reference lives at `~/.physiclaw/macros/README.md`.
 
 ## Rehearse
 
@@ -96,20 +93,10 @@ physiclaw macros check
 physiclaw macros run notify-user-whatsapp -i message=hi
 ```
 
-Every step gets a handle from its position and verb line (`idx8-tap-paste`), shown in the step log. Rehearse one gesture at a time with `--start-at` and `--stop-after` on the same handle, look at the phone, fix the step, and run it again. A pack's macro is addressed as `<app>/<name>`, an inline body as `<app>/<playbook>.<move>`. The studio's Macro tab does the same with a cursor over the steps.
-
-```bash
-physiclaw macros run taobao/buy.search --start-at idx4-tap-paste --stop-after idx4-tap-paste
-```
-
 ## Best practices
 
 **Keep macros short and single-purpose.** Anything that needs a decision mid-way, like confirmations, payments, or choosing among results, belongs to the agent, not a macro.
 
 **Let an agent draft it.** Connect `claude` or `codex` to your MCP server, then ask it to write the macro.
-
-**Rehearse before enabling.** Hard-coded bboxes are trustworthy only because you tested them on this rig, this phone, this layout.
-
-**Give text targets their real on-screen text as the object.** That is what lets a press follow a button that moved; icons and blank areas get a plain description instead.
 
 **Watch the stats.** `physiclaw macros stats` shows per-macro counters. A rising `consecutive_aborts` streak means the app layout changed under the macro; re-rehearse and update the bboxes.
