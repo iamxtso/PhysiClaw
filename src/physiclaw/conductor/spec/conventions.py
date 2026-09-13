@@ -8,6 +8,7 @@ A leaf: nothing here imports the conductor.
 """
 
 import re
+import unicodedata
 
 # Reserved app namespaces a pack's page refs may cross into. Neither is
 # a task pack, and both are scaffolded into playbooks/<app>/ like any
@@ -78,9 +79,14 @@ def owned_by(pid: str, app: str) -> bool:
 THREAD_ID = page_id(CHANNEL_APP, THREAD_PAGE)
 LOCKED_ID = page_id(IOS_APP, LOCKED_PAGE)
 
-# The one spelling of "a ¥/￥ amount": `match.normalize` class-tokenizes
-# with it, `money.amounts` reads its group — thousands separators
-# included ("¥1,234.56"), which `money.amount` strips. At most two
+# The one spelling of "a currency amount": `match.normalize` class-tokenizes
+# with it, `money.amount` reads its group — thousands separators
+# included ("$1,234.56"), which `money.amount` strips. At most two
 # decimals: a price has no third, and OCR glues the next word's leading
-# digit onto one ("实付￥24.751优惠前" once quoted ¥24.751 to the user).
-PRICE_RE = re.compile(r"[¥￥]\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)")
+# digit onto one ("Total $24.751st…" once quoted 24.751 to the user).
+_CURRENCY_SIGNS = "".join(
+    chr(c) for c in range(0x10000) if unicodedata.category(chr(c)) == "Sc"
+)
+PRICE_RE = re.compile(
+    f"[{re.escape(_CURRENCY_SIGNS)}]" + r"\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)"
+)

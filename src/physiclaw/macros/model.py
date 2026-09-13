@@ -57,7 +57,7 @@ MAX_WAIT_SECONDS = 30
 MAX_RUN_SECONDS = 300
 # How deep the combinators may nest inside ONE check. Two, because that is
 # where real macros already sit: the shipped `init` scaffold and the docs
-# example both top out at ONE level, and `{not: {or: ["Upgrade", "升级"]}}`
+# example both top out at ONE level, and `{not: {or: ["Upgrade", "Update"]}}`
 # — no language variant of the popup — is the deepest idiom worth writing.
 # Three means tracing brackets, and an unreadable check is one nobody
 # verifies against the screen; the failure mode is a guard that silently

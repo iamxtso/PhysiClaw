@@ -39,7 +39,7 @@ PARSE_TASK_LEGEND = (
     # was asking for exactly the playbook on the menu.
     "WHICH request: normally the user's newest one — but when "
     "their newest message is only a nudge to carry on (a bare "
-    '"go on" / "继续" / "any update?"), it refers to their most '
+    '"go on" or "any update?", in any language), it refers to their most '
     "recent request above it that is still outstanding. "
     # The completion reply is what makes this safe to widen: the
     # assistant reports every finished task into this same
@@ -52,7 +52,7 @@ PARSE_TASK_LEGEND = (
     "block is background only — it records earlier, separate "
     "tasks (even for the same product on another day) and never "
     "finishes a request this thread shows unanswered. Re-running "
-    "a finished task can spend money twice, so on any doubt about "
+    "a finished task repeats it, money and all, so on any doubt about "
     'which it is, answer "not_a_task". '
     "When you answer with a "
     'playbook, ALSO add a fourth field "inputs": an object filling '
@@ -62,10 +62,7 @@ PARSE_TASK_LEGEND = (
     "out entirely rather than filling it with null or an empty "
     "string; each omitted input falls back to its own default. "
     "Each value contains ONLY what that input's description asks "
-    "for — a search-keyword input takes the bare product/search "
-    "term (follow its e.g. example when shown), never quantity or "
-    "count words; those belong only in an input that asks for "
-    "them."
+    "for (follow its e.g. example when shown)."
 )
 
 # agent_act — what the screen block IS, said once in the system prompt:
@@ -84,8 +81,8 @@ SCREEN_ROWS_NOTE = (
     f"to bottom: `{LISTING_HEADER}`. A "
     "[text] row is one OCR box: one on-screen item (a listing, a card, a "
     "message) usually spans several consecutive rows, a title may be cut "
-    "at the row edge and continue on the next, and a price or sales row "
-    "belongs to the title rows just above it. An [icon] row has no label; "
+    "at the row edge and continue on the next, and a secondary row (a price, "
+    "a subtitle, a count) belongs to the title rows just above it. An [icon] row has no label; "
     "read what it is from the screenshot at its box (icons are drawn there "
     "with their id). Boxes are fractions of the screenshot's width and "
     "height. Use the screenshot to see layout and what the rows belong "
@@ -96,17 +93,16 @@ READ_REPLY_LEGEND = (
     '"answer" is "confirm" when the user\'s newest reply agrees to the ask '
     'exactly as put (a bare yes, an ok, a go-ahead), "deny" when they refuse '
     'or want something different, and "other" for anything you cannot read '
-    "as one of those — a question, a hold, a change of quantity or item. "
-    'When unsure, "other": money moves on confirm, and a wrong confirm cannot '
-    "be undone."
+    "as one of those — a question, a hold, a change to what was asked. "
+    'When unsure, "other": the move fires on confirm and cannot be undone.'
 )
 # summarize — the closing record of a completed walk.
 SUMMARIZE_LEGEND = (
     '"answer" is "done", and ALSO add two fields, each ONE line of plain text: '
-    '"recap" — the outcome for the session record (what was done or bought, '
-    "the amount paid, where it stands, in the user's language for names and "
-    'the item); "memory" — the line tomorrow\'s run should find in the daily '
-    "log: the fact that matters later (what the user got, its price, a "
+    '"recap" — the outcome for the session record (what was done, any '
+    "amount that moved, where it stands, in the user's language for names); "
+    '"memory" — the line tomorrow\'s run should find in the daily '
+    "log: the fact that matters later (what the user got, what it cost, a "
     "preference they showed), no narration, no tools."
 )
 # The one stamp untrusted text wears wherever a model reads it — the

@@ -6,7 +6,7 @@ agent's memory travels to the model:
   - ``memory.<slug>``   ONLY its `## <slug>` section — a slug matches a
                         heading as a whole whitespace-separated token
                         (`shopping` never bleeds into `## shopping_blacklist`;
-                        bilingual headings work as `## shopping_prefs 购物偏好`),
+                        a heading may carry a translation after its slug),
                         and no match means no text (fail closed)
   - ``daylog``          the recent daily-log window — the same one the
                         engine preloads into the model's wake context

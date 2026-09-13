@@ -51,7 +51,7 @@ log = logging.getLogger(__name__)
 
 def _menu_input(i: MacroInput) -> str:
     """One declared input on the parse_task menu: name, description, the
-    authored `example:` (the extraction hint — "五常大米 5kg" shows the
+    authored `example:` (the extraction hint — "Milk 1L" shows the
     shape a value should take better than any rule prose), and whether
     the message may leave it out: an input with a `default:` is
     optional, and the model is told so rather than left to guess which
@@ -107,7 +107,7 @@ class Activation:
         """One line per playbook: the ref (the answer key), what it does,
         its inputs. The description is what the model chooses by, so a
         playbook's description names its app the way users say it
-        (淘宝, 京东) — `playbooks check` warns when two enabled
+        (two shopping apps) — `playbooks check` warns when two enabled
         playbooks across packs read the same."""
         lines = ["Available playbooks:"]
         for ref, (spec, _pack) in self.entries.items():

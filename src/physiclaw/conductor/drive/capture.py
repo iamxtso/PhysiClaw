@@ -155,7 +155,7 @@ def _readings(
     Two passes through ONE ladder. First the run-time rule
     (`candidate_rows`). Then, for observations it found nothing on, the
     same rule read `loose` and pinned to the spot the exact readings
-    agree on — how a two-character anchor's OCR confusion (综合 read 综台)
+    agree on — how a two-character anchor's OCR confusion (one character read as a lookalike)
     gets mined into `variants` even though the matcher never admits it
     unmined: here the observations are labeled genuine and the position
     vouches for the row."""

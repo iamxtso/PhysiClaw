@@ -191,7 +191,7 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
   as written — nothing moves the tap under the hood, so a miss is visible
   and fixable (presence checks are `require`'s job). The object may list
   up to {MAX_LABEL_READINGS} alternate readings of ONE target
-  (`tap: ["免密支付", "立即支付"]`), for the reader and for `require`.
+  (`tap: ["Pay now", "Pay Now"]`), for the reader and for `require`.
 - Step handles are derived, never written: `idx<N>-<verb>-<object>`
   (`idx1-home_screen`, `idx3-wait-2`, `idx8-tap-paste`; a long object is
   cut to {HANDLE_OBJECT_CHARS} characters at a word boundary, a readings
@@ -201,7 +201,7 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
   step's POSTCONDITION. `skip_when: X` skips the step while X shows; `when: X`
   runs it only while X shows. Use ONLY when skipping leaves the same screen
   state as executing (don't tap the input box when the keyboard is already
-  up; tap 跳过 only when the ad is up). Checked before `require`; free when
+  up; tap Skip only when the ad is up). Checked before `require`; free when
   the screen text is already held, otherwise one peek; never polls. A
   screen that cannot be read satisfies neither: a `skip_when` step then
   RUNS (skipping is an optimisation), a `when` step is SKIPPED (running

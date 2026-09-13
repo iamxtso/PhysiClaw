@@ -670,7 +670,7 @@ def test_parse_task_prompt_scopes_the_request_it_may_activate() -> None:
     assert "OUTSTANDING" in prompt  # which request is in scope at all
     assert "nudge" in prompt  # 1: the newest line may only point back
     assert "FINISHED" in prompt  # 2: and a done one is out of scope
-    assert "money twice" in prompt  # ...with the reason it matters
+    assert "money and all" in prompt  # ...with the reason it matters
 
 
 def test_contract_orders_reason_before_answer() -> None:
@@ -700,7 +700,7 @@ def test_parse_task_prompt_pins_value_hygiene() -> None:
 
     prompt = user_content(req)  # a thread call's legend rides the user block
 
-    assert "never quantity or count words" in prompt
+    assert "follow its e.g. example" in prompt
     assert "ONLY what that input's description asks" in prompt
 
 

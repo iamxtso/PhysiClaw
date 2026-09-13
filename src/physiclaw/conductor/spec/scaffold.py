@@ -145,7 +145,7 @@ description: EDIT ME — what this pack automates, and when to adopt it
 # pages:
 #   home:
 #     anchors:
-#       - {{text: ["Search", "搜索"], within: top}}
+#       - {{text: ["Search", "Find"], within: top}}
 #     recover: {{macro: launch}}          # the pack's cold launch
 """
 
@@ -241,7 +241,7 @@ route:
     # ({bands}) or a box; a `forbid:` term showing reads the page out.
     anchors:
       - "EDIT ME"           # a label text that identifies this page
-      # - {{text: ["Search", "搜索"], within: top}}
+      # - {{text: ["Search", "Find"], within: top}}
     # forbid: ["popup text"]  # veto terms — kills look-alike takeovers
     # scrollable: true        # content may scroll under fixed chrome
     recover:                # not this page → this hand, read again
@@ -267,7 +267,7 @@ route:
   #     EDIT ME — the goal, the rules, and where to finish.
   #   tools: [{agent_tools}]
   #   give: [landmarks.back, macros.{macro}]
-  #   context: [memory.shopping, daylog]
+  #   context: [daylog]
   #   returns:
   #     summary: EDIT ME — what to report back
   #   limit: {{calls: {agent_calls}, scrolls: {agent_scrolls}}}
@@ -276,8 +276,8 @@ route:
   # A human gate before money moves — the payment move follows it:
   # - ask: confirm-pay
   #   approve: payment
-  #   total_label: "合计"     # the label the sheet total sits beside
-  #   message: "EDIT ME — total ¥{{ask.total}}, reply ok to pay or no to cancel"
+  #   total_label: "EDIT ME"  # the label the sheet total sits beside
+  #   message: "EDIT ME — total {{ask.total}}, reply ok to pay or no to cancel"
   #   yes: ["ok"]
   #   no: ["no"]
   #   denied: "EDIT ME — cancelled, nothing paid"   # the walk's answer to a no
@@ -287,8 +287,8 @@ route:
   #   resume: {macro}         # re-enter the app after the reply
   #   on_fail: stop           # a failure here ends the session, nothing paid
   # A playbook of this pack as one move, once per item of a list:
-  # - run: add
-  #   each: {{item: parse.items}}   # one round per line `parse` returned
+  # - run: EDIT-ME                # a playbook of this pack, once per line
+  #   each: {{item: parse.items}}   # `parse` returned
   #   miss: skip                  # a round that fails is recorded, not fatal
   # - page: home                  # add's last page
   - tell: done
@@ -453,6 +453,7 @@ pages:
   {THREAD_PAGE}:
     anchors:
       - "EDIT ME"                  # the thread header text
+    incoming: [0.0, 0.0, 0.45, 1.0]  # where the user's bubbles' centers sit; ours outside it
 """
 
 # Rehearsable skeletons for the two channel macros. Steps are

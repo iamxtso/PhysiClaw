@@ -44,7 +44,7 @@ def test_every_thread_call_shares_one_system_prompt() -> None:
     # The call's legend is the user block's tail, never the system prompt.
     assert "playbook EXACTLY as listed" not in system
     assert str(user_content(parse)).endswith(
-        "those belong only in an input that asks for them."
+        "(follow its e.g. example when shown)."
     )
 
 
@@ -110,7 +110,7 @@ def test_the_ledgers_delta_rides_the_next_call_once() -> None:
     assert "asked user_said='buy milk'" in block
     assert "decided pick.summary='Milk 5kg ¥45'" in block
     assert "sent to the user: 'buy Milk 5kg for ¥45?'" in block
-    assert "user confirmed pay ('好的')" in block and "paid ¥45" in block
+    assert "user confirmed pay ('好的')" in block and "paid 45" in block
     thread.settle(read, MicroOutcome(out="done", reason="r", confidence=0.9), ledger)
     again = thread.request(SUMMARIZE, "close", (), {}, ledger=ledger)
     assert "since the last call" not in str(user_content(again))  # reported already
@@ -138,7 +138,7 @@ def test_read_reply_carries_the_ask_the_replies_and_the_frame() -> None:
         blocks[2]
         .text.rstrip()
         .endswith(
-            'When unsure, "other": money moves on confirm, and a wrong confirm cannot be undone.'
+            'When unsure, "other": the move fires on confirm and cannot be undone.'
         )
     )
     assert _SPECS[READ_REPLY].answer_space(req) == ("confirm", "deny", "other")

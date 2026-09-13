@@ -718,7 +718,7 @@ def _parse_check(raw: Any, where: str, input_names: set[str]) -> Clause:
         # "no check" would drop a guard the author believed they had.
         raise MacroError(
             f"{where} is empty — write one clause, e.g. "
-            f'{where.rsplit(".", 1)[-1]}: "WeChat"'
+            f'{where.rsplit(".", 1)[-1]}: "Settings"'
         )
     clause = _clause_expr(raw, where)
     _check_single_chars(clause, where)
@@ -733,7 +733,7 @@ def _clause_expr(
 
         "WeChat"                                whole-screen substring
         ["WeChat", "Weixin"]                    any of them
-        {text: "微信", within: top}              element-granular, scoped to a
+        {text: "Settings", within: top}          element-granular, scoped to a
                                                 band or a [l,t,r,b] box; text
                                                 may list alternates
         {or: [c, c, ...]}  {and: [c, c, ...]}   combinators, spelled out
@@ -745,7 +745,7 @@ def _clause_expr(
     means one thing everywhere in the format.
 
     Any of them may also carry `within`, which SCOPES the whole subtree —
-    `{or: ["space", "空格"], within: [...]}` beats repeating the same bbox
+    `{or: ["Next", "Done"], within: [...]}` beats repeating the same bbox
     on every alternative. It is pure sugar: `scope` is pushed down here so
     the runner only ever sees fully-resolved leaves and never has to walk
     back up for an inherited region. Innermost wins, so a leaf may override

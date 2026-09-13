@@ -772,7 +772,7 @@ def _guard_grants(
         """Which target these recorded labels name, by the rule the
         RUNTIME reads a screen row with (`match.label_matches`) — not
         exact equality. The natural thing to write is the label as the
-        listing shows it, price and all ("立即支付（￥3.60）"), which is
+        listing shows it, price and all ("Pay now ($3.60)"), which is
         not equal to the target and is the same button."""
         written = [normalize(w) for w in labels]
         for target in never_tap:
@@ -1408,7 +1408,7 @@ def _parse_ask(
         if "total_label" not in entry:
             raise PlaybookError(
                 f"{where}: a payment ask declares `total_label:` — the label "
-                "the sheet total sits beside (e.g. 合计), read off that row only"
+                "the sheet total sits beside, read off that row only"
             )
         total = checked_readings(
             entry, where, require_str, PlaybookError, key="total_label"

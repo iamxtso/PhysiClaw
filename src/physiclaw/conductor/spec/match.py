@@ -52,13 +52,13 @@ from physiclaw.macros.model import Clause, MacroError
 
 # Fuzzy-tier floors (industrial practice: fuzzy text is reliable only
 # paired with anchors/structure — UiPath's 0.5–0.6 band). Short anchors
-# (SHORT_ANCHOR_MIN..SHORT_ANCHOR_MAX chars — CJK chrome like 搜索框, 购物车)
+# (SHORT_ANCHOR_MIN..SHORT_ANCHOR_MAX chars — CJK chrome of two to four characters)
 # instead allow ONE substituted character against any same-length
 # window of the label: bigram/ratio tiers mathematically cannot admit a
 # single-char confusion in a short string, and single-char visual
 # confusion is the dominant CJK OCR error. Below SHORT_ANCHOR_MIN the
 # tier is off: one substitution in two characters is half the anchor,
-# and on a real order sheet it read a 热销 banner as 销量 — a two-char
+# and on a real order sheet it read a banner's word as the anchor's one-character sibling — a two-char
 # anchor must be read exactly (or pinned to a band and calibrated so
 # its OCR variants are mined: capture's `loose` reading lowers the
 # floor to LOOSE_ANCHOR_MIN at a spot the exact readings vouch for).
@@ -173,7 +173,7 @@ def label_matches(
 def window_match(anchor_norm: str, label_norm: str) -> bool:
     """Short-anchor tier (and capture's confusion mining for anchors too
     short to get it at run time): some same-length window of the label is within
-    one SUBSTITUTION of the anchor — catches 综合→综台 both standalone and
+    one SUBSTITUTION of the anchor — catches a lookalike character both standalone and
     buried inside a longer row. Equal-length edit distance ≤1 is exactly
     Hamming ≤1 (an insert/delete changes length), so no DP is needed; the
     `any(ch in ...)` prefilter is a C-level scan that rejects most rows

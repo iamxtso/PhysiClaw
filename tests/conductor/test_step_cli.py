@@ -133,8 +133,10 @@ def test_step_unknown_node_exits_one(stepped_pack) -> None:
 def test_step_seeds_the_virtual_thread_with_the_user_words(stepped_pack) -> None:
     from physiclaw.debug import thread as vthread
 
+    # The playbook's first declared input is the user's words — whatever
+    # the pack named it; a playbook with no inputs gets the placeholder.
     _step("-i", "keyword=milk", "--reply", "好的")
 
     thread = vthread.load()
-    assert thread.bubbles[0].text == "(stepping demo/flow)"
+    assert thread.bubbles[0].text == "milk"
     assert thread.staged == ["好的"]
