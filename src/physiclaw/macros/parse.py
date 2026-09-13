@@ -51,9 +51,11 @@ idempotence postcondition rather than general branching, and its one
 span-sized form, the jump: ``if_page: X`` / ``goto: m`` skips forward
 to ``mark: m`` while the pack's page X already reads, so the steps
 between — the ones that reach X — are not replayed onto X. Jumps come in
-sequence (a goto, its mark, then the next goto — never one span inside
-another), forward only, a page (never a text) as the condition; the mark
-checks, when walked to, that the span did reach the page. A page is the
+sequence (a span closes at its mark before the next opens — never one
+span inside another, though several gotos may land on one mark when
+they name its page: exits along one road), forward only, a page (never
+a text) as the condition; the mark checks, when walked to, that the
+span did reach the page. A page is the
 pack's to read, so ``if_page`` parses only through the ``pages`` resolver a
 pack loader supplies. A macro's robustness comes from staying a dumb
 replay of a rehearsed path.
@@ -614,31 +616,39 @@ def _mark_name(raw: Any, where: str) -> str:
 
 
 def _check_jump(steps: list[Step]) -> list[Step]:
-    """The whole-list rules of the jumps, then each pair wired: a goto
-    learns its mark's index, a mark gets its goto's page as a `require`
-    guard whose hint names the span that was to reach it. Jumps come in SEQUENCE — a goto, its mark,
-    then the next goto — so no span opens inside another, no two gotos
-    share a mark, every jump is forward, and a run visits each step at
-    most once. At least one step between a goto and its mark (a jump
-    over nothing hides nothing); mark names unique."""
+    """The whole-list rules of the jumps, then each span wired: a goto
+    learns its mark's index, a mark gets its gotos' page as a `require`
+    guard whose hint names the span that was to reach it. Spans come in
+    SEQUENCE — a mark closes the span before the next span opens — so
+    no span crosses another, every jump is forward, and a run visits
+    each step at most once. Several gotos may land on ONE mark (exits
+    along one road, each "already there, done"): they must name the
+    mark's one page, since the mark's check is that page. At least one
+    step between a goto and its mark (a jump over nothing hides
+    nothing); mark names unique."""
     out = list(steps)
-    open_goto: tuple[int, GotoStep] | None = None
+    open_goto: tuple[int, GotoStep] | None = None  # the span not yet closed
+    exits: list[int] = []  # later gotos onto the same mark, to wire alike
     seen: dict[str, int] = {}
     for i, st in enumerate(steps, start=1):
         if isinstance(st, GotoStep):
-            if open_goto is not None:
-                g, goto = open_goto
-                raise MacroError(
-                    f"step {i}: `goto` opens a span inside the span of step {g} "
-                    f"(`goto: {goto.mark}` has not reached its mark) — jumps "
-                    "come one after another, never one inside another"
-                )
             if st.mark in seen:
                 raise MacroError(
                     f"step {i}: `goto: {st.mark}` jumps BACKWARD to step "
                     f"{seen[st.mark]} — a jump only skips forward"
                 )
-            open_goto = (i, st)
+            if open_goto is None:
+                open_goto = (i, st)
+                continue
+            g, goto = open_goto
+            if (st.mark, st.page) != (goto.mark, goto.page):
+                raise MacroError(
+                    f"step {i}: `{st.display()}` inside the span of step {g} "
+                    f"(`{goto.display()}` has not reached its mark) — spans come "
+                    "one after another, never one inside another; jumps that "
+                    "share a road land on one mark and name its one page"
+                )
+            exits.append(i)
         elif isinstance(st, MarkStep):
             if st.mark in seen:
                 raise MacroError(
@@ -654,12 +664,16 @@ def _check_jump(steps: list[Step]) -> list[Step]:
                     f"step {i}: `mark: {st.mark}` is not where step {g}'s "
                     f"`goto: {goto.mark}` lands — a goto's mark is the NEXT mark"
                 )
-            if i == g + 1:
+            last = exits[-1] if exits else g
+            if i == last + 1:
                 raise MacroError(
-                    f"step {g}: `goto: {goto.mark}` jumps over nothing — the mark "
+                    f"step {last}: `goto: {goto.mark}` jumps over nothing — the mark "
                     "is the very next line"
                 )
-            out[g - 1] = replace(goto, target=i)
+            for gi in (g, *exits):
+                gs = steps[gi - 1]
+                assert isinstance(gs, GotoStep)
+                out[gi - 1] = replace(gs, target=i)
             span = f"{g + 1}-{i - 1}" if i - 1 > g + 1 else f"{g + 1}"
             out[i - 1] = replace(
                 st,
@@ -668,7 +682,7 @@ def _check_jump(steps: list[Step]) -> list[Step]:
                     hint=f"step{'s' if i - 1 > g + 1 else ''} {span} were to reach it",
                 ),
             )
-            open_goto = None
+            open_goto, exits = None, []
     if open_goto is not None:
         g, goto = open_goto
         raise MacroError(f"step {g}: `goto: {goto.mark}` without its `mark`")

@@ -39,4 +39,6 @@ class FakePage(Clause):
 def pages(name: str) -> Clause:
     if name == "thread":
         return FakePage(name="thread", text="Thread")
-    raise MacroError(f"no page {name!r} in pack 'demo' — it declares: thread")
+    if name == "feed":
+        return FakePage(name="feed", text="Feed")
+    raise MacroError(f"no page {name!r} in pack 'demo' — it declares: thread, feed")

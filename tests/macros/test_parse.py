@@ -1217,13 +1217,21 @@ def test_a_user_macro_cannot_jump_since_it_has_no_pages() -> None:
 @pytest.mark.parametrize(
     "mutate, fragment",
     [
-        # a goto inside an open span
+        # a goto to ANOTHER mark inside an open span
         (
             lambda t: t.replace(
                 "  - home_screen\n",
-                "  - home_screen\n  - if_page: thread\n    goto: type\n",
+                "  - home_screen\n  - if_page: thread\n    goto: sent\n",
             ),
             "inside the span of step 1",
+        ),
+        # a second goto to the same mark, but from another page
+        (
+            lambda t: t.replace(
+                "  - home_screen\n",
+                "  - home_screen\n  - if_page: feed\n    goto: type\n",
+            ),
+            "name its one page",
         ),
         # a mark nothing lands on
         (lambda t: t + "  - mark: other\n", "without a `goto`"),
@@ -1283,6 +1291,23 @@ def test_a_user_macro_cannot_jump_since_it_has_no_pages() -> None:
 def test_the_jump_rules_are_load_errors(mutate, fragment: str) -> None:
     with pytest.raises(MacroError, match=fragment):
         parse_macro(mutate(JUMP), "send", pages)
+
+
+def test_several_jumps_may_land_on_one_mark() -> None:
+    # Exits along one road: each "already on the thread, done", both
+    # wired to the one mark, whose check is their one page.
+    two = JUMP.replace(
+        "  - home_screen\n",
+        "  - home_screen\n  - if_page: thread\n    goto: type\n",
+    )
+    m = parse_macro(two, "send", pages)
+
+    first, second, mark = m.steps[0], m.steps[2], m.steps[4]
+    assert isinstance(first, GotoStep) and isinstance(second, GotoStep)
+    assert isinstance(mark, MarkStep)
+    assert first.target == 5 and second.target == 5
+    assert mark.guard is not None and mark.guard.require is first.page
+    assert mark.guard.hint == "steps 2-4 were to reach it"
 
 
 def test_jumps_in_sequence_each_wire_their_own_mark() -> None:

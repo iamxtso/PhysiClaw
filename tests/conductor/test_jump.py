@@ -108,5 +108,8 @@ def test_the_shipped_packs_parse_with_their_jumps() -> None:
     for name in ("open", "send"):
         gotos = [s for s in channel.macros[name].steps if isinstance(s, GotoStep)]
         assert len(gotos) == 1 and gotos[0].page.display() == "page thread"
+    # launch has two exits onto one mark: resumed on the feed, and the
+    # first cold launch on the feed; both name `home` and land together.
     launch = [s for s in taobao.macros["launch"].steps if isinstance(s, GotoStep)]
-    assert len(launch) == 1 and launch[0].page.display() == "page home"
+    assert len(launch) == 2 and {g.page.display() for g in launch} == {"page home"}
+    assert len({g.target for g in launch}) == 1

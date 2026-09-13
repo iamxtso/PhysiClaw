@@ -210,8 +210,9 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
   while the pack's page already reads (as the conductor reads it, never
   an abort), the steps up to the mark are skipped, since they exist to
   REACH that page; walked to, the mark requires the page. Condition first;
-  nothing else on either line; jumps one after another, never nested. A
-  user macro has no pages and cannot jump.
+  nothing else on either line; spans one after another, never nested,
+  though several jumps may land on one mark when they name its page
+  (exits along one road). A user macro has no pages and cannot jump.
 - `require` / `forbid` — checked BEFORE the step fires, so they describe
   the screen the step NEEDS, never the screen the step produces (to wait
   on an app you just launched, use a `wait` carrying an `expect`).
