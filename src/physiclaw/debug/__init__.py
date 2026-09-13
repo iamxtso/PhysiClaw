@@ -14,7 +14,7 @@ executes for real, and only the OBSERVATION of conductor-minted
 ``channel/*`` macros and thread peeks is rewritten from
 ``debug/thread.json`` (`interceptor.py`), with listings rendered
 against the real channel pack's own fingerprint (`thread.py`) so
-`match_screen` and `reply.new_incoming` genuinely run.
+`match_screen` and `reply.read_incoming` genuinely run.
 `physiclaw debug --task --reply` scripts the whole conversation up
 front: replies are STAGED, and `thread.py`'s timing rule releases each
 one only on a peek that follows an agent ask — after the ask, never

@@ -2,7 +2,8 @@
 
 The conductor's own pack: how to reach YOUR user's thread in the IM app
 and speak there. `open` navigates to the thread by in-app search
-(skipped when the thread already shows, the same in `send`),
+(skipped when the thread already shows, or when WeChat resumes on it
+after the dock tap; the same in `send`),
 `send` pastes and sends a message into it, and `boot/` is the walk every
 wake plays first: reach the thread, read the request, hand the matching
 playbook the baton.

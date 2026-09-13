@@ -72,8 +72,13 @@ def read_replies(walk: Walk, *, after_ask: bool = True) -> tuple[list[str], bool
     thread — the reading that binds money must be."""
     assert walk.screen is not None
     gate = walk.gate
+    assert walk.channel is not None  # the ask went out through it
     return reply.read_incoming(
-        walk.screen.rows, gate.baseline, gate.ask, after_ask=after_ask
+        walk.screen.rows,
+        gate.baseline,
+        gate.ask,
+        after_ask=after_ask,
+        incoming=walk.channel.incoming,
     )
 
 
@@ -100,9 +105,7 @@ def deny(walk: Walk, *, answered: bool = False) -> Turn:
     carries the fact to the model instead. Giving the disposition the
     write would mean the gate carrying the ask's id, which it does not."""
     walk.gate.awaiting = False
-    advice = (
-        "back out of any open checkout or cart state this task created, and wrap up"
-    )
+    advice = "undo what this task changed in the app, then wrap up"
     if not answered:
         advice = f"acknowledge them, {advice}"
     return walk.handover(

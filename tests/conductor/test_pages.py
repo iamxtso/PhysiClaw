@@ -63,6 +63,7 @@ def test_parse_empty_file_is_no_pages() -> None:
         ("results:\n  anchors: [123]", "a text, a list"),
         ("results:\n  anchors: ['ok']\n  forbid: 'nope'", "list of strings"),
         ("results:\n  anchors: ['ok']\n  scrollable: 1", "true or false"),
+        ("thread:\n  anchors: ['ok']\n  incoming: sideways", "must be one of"),
     ],
 )
 def test_parse_rejects_with_named_error(text: str, fragment: str) -> None:
@@ -280,3 +281,14 @@ def test_collect_page_decls_skips_a_dotted_route_page() -> None:
     }
 
     assert list(pages.collect_page_decls(doc, doc.get("playbooks"))) == ["home"]
+
+
+def test_a_page_may_declare_where_incoming_bubbles_sit() -> None:
+    # The channel's thread page says where the user's bubbles' centers
+    # fall — a band or a box, the `within` shape; absent means None and
+    # the reply reader's own default applies.
+    out = parse_pages("thread:\n  anchors: ['ok']\n  incoming: [0.0, 0.0, 0.45, 1.0]\n", "channel")
+    assert out["thread"].incoming == (0.0, 0.0, 0.45, 1.0)
+    out = parse_pages("thread:\n  anchors: ['ok']\n  incoming: left\n", "channel")
+    assert out["thread"].incoming == BANDS["left"]
+    assert parse_pages("thread:\n  anchors: ['ok']\n", "channel")["thread"].incoming is None

@@ -11,6 +11,7 @@ convention names live in `conventions.py`.
 import logging
 from dataclasses import dataclass
 
+from physiclaw.common.bbox import Bbox
 from physiclaw.conductor.spec.conventions import (
     BOOT_PLAYBOOK,
     CHANNEL_APP,
@@ -47,6 +48,14 @@ class Channel:
     pack: Pack
     boot: "Playbook | None" = None
 
+    @property
+    def incoming(self) -> Bbox:
+        """Where the user's bubbles sit: the thread page's `incoming:`
+        (`load_channel` refuses a pack without it)."""
+        box = next(p.decl.incoming for p in self.prints if p.decl.name == THREAD_PAGE)
+        assert box is not None  # load_channel's contract
+        return box
+
     def _live(self, name: str) -> str | None:
         key = qualified_macro(CHANNEL_APP, name)
         m = self.macros.get(key)
@@ -70,9 +79,11 @@ def load_channel() -> Channel | None:
     except Exception as e:
         log.warning("channel pack unusable (%s) — asks will hand over", e)
         return None
-    if not any(p.decl.name == THREAD_PAGE for p in prints):
+    thread = next((p.decl for p in prints if p.decl.name == THREAD_PAGE), None)
+    if thread is None or thread.incoming is None:
         log.warning(
-            "channel pack declares no %r page — unusable, asks will hand over",
+            "channel pack declares no %r page with `incoming:` — unusable, "
+            "asks will hand over",
             THREAD_PAGE,
         )
         return None

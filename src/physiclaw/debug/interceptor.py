@@ -44,6 +44,7 @@ import logging
 from functools import cached_property
 
 from physiclaw.common import gesture_vocab, verdict
+from physiclaw.common.bbox import Bbox
 from physiclaw.common.listing import Screen
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, SEND_MACRO
 from physiclaw.conductor.spec.match import match_screen
@@ -80,6 +81,12 @@ class FakeChannel:
         # Per-session cache — the channel fingerprint cannot change
         # mid-session (None, a valid answer, is cached too).
         return vthread.thread_print()
+
+    @property
+    def incoming(self) -> Bbox:
+        """The thread page's `incoming:` box, as the real channel's."""
+        box = self._pp.decl.incoming if self._pp is not None else None
+        return box if box is not None else vthread.INCOMING_FALLBACK
 
     def intercept(
         self, call: ToolCall, synthesized: bool, blocks: list[dict]

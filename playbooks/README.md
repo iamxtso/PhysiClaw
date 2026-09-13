@@ -47,7 +47,10 @@ empty file is a valid pack (the file is the pack marker):
   learned on-device via
   `physiclaw playbooks pages calibrate`. A page here may carry its
   `recover:` hand too — a gesture, a landmark tap, or a pack macro by
-  name — which every route inherits unless it declares its own.
+  name — which every route inherits unless it declares its own. The
+  channel's thread page may declare `incoming:`, a band or a box the
+  user's bubbles' centers fall in (the assistant's sit outside it),
+  which is how a reply is told from the walk's own ask.
 
 `<name>/PLAYBOOK.yml` is the playbook, headed like a macro or a skill: `name`
 (must equal the folder's), `description` (the line the activation menu

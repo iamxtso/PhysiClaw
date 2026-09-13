@@ -101,6 +101,9 @@ class PageDecl:
     anchors: tuple[AnchorDecl, ...]
     forbid: tuple[str, ...] = ()
     scrollable: bool = False
+    # A thread page: the band or box the other party's bubbles' centers
+    # fall in (`reply.read_incoming` keys on it).
+    incoming: Bbox | None = None
 
 
 # The pack-level fixed spots: `landmarks:`, an OPEN vocabulary of named
@@ -173,7 +176,7 @@ def parse_pages(text: str, app: str) -> dict[str, PageDecl]:
 # waypoint declares (vs merely references), and pack.py derives its
 # waypoint key set from it — a new page field lands here and reaches
 # every door.
-PAGE_DECL_FIELDS = ("anchors", "forbid", "scrollable")
+PAGE_DECL_FIELDS = ("anchors", "forbid", "scrollable", "incoming")
 # A manifest page's one non-declaration key: the recover hand every
 # route of the pack inherits for it (a route may declare its own).
 PAGE_RECOVERY_FIELDS = ("recover", "tries", "on_fail")
@@ -360,7 +363,11 @@ def _parse_page(name: str, spec: Any) -> PageDecl:
     if not isinstance(scrollable, bool):
         raise PagesError(f"{where}: `scrollable` must be true or false")
 
-    return PageDecl(name=name, anchors=anchors, forbid=forbid, scrollable=scrollable)
+    incoming = _parse_within(spec.get("incoming"), f"{where}: `incoming`")
+
+    return PageDecl(
+        name=name, anchors=anchors, forbid=forbid, scrollable=scrollable, incoming=incoming
+    )
 
 
 def _parse_anchors(raw: Any, where: str) -> tuple[AnchorDecl, ...]:

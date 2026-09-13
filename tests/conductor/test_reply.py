@@ -13,8 +13,12 @@ YES = frozenset(map(reply.normalize, ["好的", "嗯", "ok", "go ahead", "confir
 NO = frozenset(map(reply.normalize, ["不用", "不要", "算了", "no thanks", "cancel"]))
 
 
+LEFT = (0.0, 0.0, 0.45, 1.0)  # the shipped channel pack's `incoming:`
+
+
 def _new(rows, baseline, own, **kw):
-    return reply.new_incoming(rows, baseline, own, **kw)
+    kw.setdefault("incoming", LEFT)
+    return reply.read_incoming(rows, baseline, own, **kw)[0]
 
 
 @pytest.mark.parametrize(
@@ -113,6 +117,23 @@ def test_centered_timestamp_rows_are_not_incoming() -> None:
     )
 
     assert _new(screen.rows, set(), "ask text") == ["好的"]
+
+
+def test_the_status_bar_clock_is_never_incoming() -> None:
+    # The status bar's clock sits top-left, LEFT of center, and ticks
+    # every minute: at a send's landing (the deny sweep, after_ask off)
+    # it is a row the baseline never held. On a live wake it read as the
+    # reply "19:16", missed the declared words and re-planned the walk.
+    screen = make_screen(
+        ("19:16", 0.185, 0.028),
+        ("19:07", 0.5, 0.17),
+        ("盒马下单：", 0.27, 0.43),
+        ("合计 ¥11.7 回复 好的 确认支付，或 不用 取消。", 0.6, 0.47),
+    )
+    ask = "盒马下单： 合计 ¥11.7 回复 好的 确认支付，或 不用 取消。"
+
+    assert _new(screen.rows, {"19:14"}, ask, after_ask=False) == []
+    assert _new(screen.rows, {"19:14"}, ask) == []
 
 
 def test_reply_repeating_a_visible_word_below_the_ask_counts() -> None:
@@ -259,7 +280,7 @@ def test_short_leading_lines_of_our_own_bubble_are_not_a_reply() -> None:
         ("实付 ¥40.8。回复 好的 确认支付，或 不用 取消。", 0.70, 0.37),
     )
 
-    assert reply.ask_band(screen.rows, ASK) == (0.31, 0.37)
+    assert reply.ask_band(screen.rows, ASK, incoming=LEFT) == (0.31, 0.37)
     assert _new(screen.rows, {"earlier"}, ASK, after_ask=False) == []
 
 
@@ -278,5 +299,17 @@ def test_a_reply_repeating_one_of_the_asks_own_words_still_counts() -> None:
 def test_the_band_is_none_when_our_message_is_not_on_the_thread() -> None:
     screen = make_screen(("好的", 0.25, 0.40))
 
-    assert reply.ask_band(screen.rows, ASK) is None
+    assert reply.ask_band(screen.rows, ASK, incoming=LEFT) is None
     assert _new(screen.rows, set(), ASK) == ["好的"]  # the baseline still decides
+
+
+def test_the_incoming_box_is_the_channels_to_declare() -> None:
+    # The pack says where the user's bubbles sit. The default reads a
+    # left-incoming thread; a right-incoming thread is the same rows
+    # mirrored, read with the box the pack declares.
+    left = make_screen(("our ask text", 0.75, 0.3), ("好的", 0.25, 0.4))
+    assert _new(left.rows, set(), "our ask text") == ["好的"]
+
+    mirrored = make_screen(("our ask text", 0.25, 0.3), ("好的", 0.75, 0.4))
+    right = (0.55, 0.0, 1.0, 1.0)
+    assert _new(mirrored.rows, set(), "our ask text", incoming=right) == ["好的"]

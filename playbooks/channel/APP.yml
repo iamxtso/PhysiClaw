@@ -21,10 +21,15 @@ pages:
       # opens on exactly that (home or lock screen, WeChat badge).
       - {text: "<<CONTACT>>", within: [0.30, 0.03, 0.70, 0.12]}
     forbid: ["Weixin"]   # the chat LIST header — kills the list lookalike
+    # Where the user's bubbles sit: their centers fall in this box, the
+    # assistant's own outside it. The reader tells a reply from its own
+    # ask by it, and centered system rows (time stamps) fall outside.
+    incoming: [0.0, 0.0, 0.45, 1.0]
 
 # Adapting to your device
 # - `open`/`send` navigate via WeChat's search, never by chat-list
-#   position, and skip the navigation when the thread already shows;
+#   position, and skip the navigation when the thread already shows or
+#   WeChat resumes on it after the dock tap;
 #   both abort on a guard mismatch, and `send` refuses to
 #   type unless the thread title matches — never message the wrong chat.
 # - Recorded on an English-system WeChat (guards accept Contacts and

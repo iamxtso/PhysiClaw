@@ -286,6 +286,7 @@ def build_program(
 CHANNEL_PAGES = """\
 thread:
   anchors: ["MyChat"]
+  incoming: [0.0, 0.0, 0.45, 1.0]
 """
 
 CHANNEL_OPEN = """\

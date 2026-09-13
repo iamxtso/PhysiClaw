@@ -13,7 +13,10 @@ steps:
   - tap: "the WeChat dock icon"
     at: [0.348, 0.893, 0.510, 0.973]
   - wait: 2
-  - go_back                                  # in a thread -> pops to the chat list; on the list -> harmless edge bounce
+  # Resumed on the thread (a walk leaves WeChat there): nothing to reach.
+  - if_page: thread
+    goto: done
+  - go_back                                  # in another thread -> pops to the chat list; on the list -> harmless edge bounce
   # Search is position-independent: the chat list reorders itself
   # (Official Accounts folder, new chats), so never tap a list row blind.
   - tap: "Search"

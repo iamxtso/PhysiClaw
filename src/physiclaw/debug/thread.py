@@ -15,8 +15,8 @@ whole system reads, against the REAL channel pack's fingerprint: every
 declared anchor of the `thread` page is rendered at its learned position
 (else its region band, else spread across the top), so `match_screen`
 scores the render like a genuine reading rather than being bypassed.
-Bubble geometry carries the semantics `reply.new_incoming` keys on:
-incoming bubbles centered left of `INCOMING_MAX_CX`, our own right of
+Bubble geometry carries the semantics `reply.read_incoming` keys on:
+incoming bubbles centered left of `INCOMING_DEFAULT`, our own right of
 it, newest at the bottom, long texts split into wrapped-line rows.
 
 Block builders mirror the server's wire shapes (`core/server/tools.py`):
@@ -43,12 +43,13 @@ THREAD_SCHEMA = 1
 USER = "user"
 AGENT = "agent"
 
-# Bubble geometry, chosen against `reply.INCOMING_MAX_CX` (0.45): user
-# bubbles center at 0.25 (incoming), the agent's at 0.75 (own). Bands
-# start below the anchor chrome and stack downward like a real thread
-# scrolled to its tail.
-_USER_BBOX = (0.06, 0.44)
-_AGENT_BBOX = (0.56, 0.94)
+# Bubble geometry: user bubbles center in the thread page's `incoming:`
+# box, the agent's mirrored across the screen — the sides the reader
+# keys on. The fallback box serves a home with no thread page yet (the
+# stepper's placeholder thread). Bands start below the anchor chrome
+# and stack downward like a real thread scrolled to its tail.
+INCOMING_FALLBACK = (0.0, 0.0, 0.45, 1.0)
+_BUBBLE_HALF_W = 0.19
 _BUBBLE_TOP = 0.20  # first bubble's center y, below the anchor chrome
 _BUBBLE_STEP = 0.06
 _BUBBLE_BOTTOM = 0.95
@@ -230,10 +231,11 @@ def render_listing(bubbles: list[Bubble], pp: PagePrint | None) -> str:
     ]
     fit = int((_BUBBLE_BOTTOM - _BUBBLE_TOP) / _BUBBLE_STEP)
     y = _BUBBLE_TOP
+    box = (pp.decl.incoming if pp is not None else None) or INCOMING_FALLBACK
+    user_cx = (box[0] + box[2]) / 2
     for sender, line in lines[-fit:]:
-        left, right = _AGENT_BBOX if sender == AGENT else _USER_BBOX
-        cx, half_w = (left + right) / 2, (right - left) / 2
-        elements.append(_element(len(elements), line, cx, y, half_w))
+        cx = 1.0 - user_cx if sender == AGENT else user_cx
+        elements.append(_element(len(elements), line, cx, y, _BUBBLE_HALF_W))
         y += _BUBBLE_STEP
     return format_elements(elements)
 

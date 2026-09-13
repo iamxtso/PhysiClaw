@@ -12,11 +12,12 @@ the thread (the walk hands over).
 The screen is a thread with the keyboard often up (a send leaves it
 raised): the key rows and the predictive bar above them are never
 messages, and a wrapped last line of our own ask can OCR left of
-center — both are recognized by shape and skipped.
+center — both are recognized by shape and skipped, as is the status
+bar above the thread (its clock ticks, left of center).
 
 New-message detection is positional first, set-difference second:
-incoming bubbles sit left of center in every listing-shaped IM layout
-(ours sit right); a bubble BELOW our visible ask is newer than the ask
+incoming bubbles sit in the box the channel's thread page declares
+(`incoming:`; ours sit outside it); a bubble BELOW our visible ask is newer than the ask
 by construction and counts whatever it says (a reply that repeats a
 word already on screen must not vanish); only when position cannot
 tell — the ask scrolled off, or a sweep above it — does the baseline
@@ -27,14 +28,17 @@ import unicodedata
 from collections.abc import Set as AbstractSet
 from enum import StrEnum
 
-from physiclaw.common.bbox import center_of
+from physiclaw.common.bbox import Bbox, center_of, inside
 from physiclaw.common.listing import Element
 from physiclaw.common.text import fold
 
-# Incoming bubbles' centers sit left of this; our own sit right, and
-# centered system rows (timestamps, at ~0.5) fall OUTSIDE it — they
-# would otherwise read as a reply after a suspension.
-INCOMING_MAX_CX = 0.45
+# The thread begins below the status bar, whatever box the channel's
+# thread page declares for incoming bubbles (`incoming:`). The clock
+# there ticks every minute, so at a send's landing it is a row the
+# baseline never held — read as a reply, it matches no declared word.
+# Rows above this line are the phone's, never the thread's (the vision
+# layer drops the same band: `core.vision.change.STATUS_BAR_FRAC`).
+_STATUS_BAR_MAX_Y = 0.06
 
 # A right-side row is read as a wrapped LINE of our own ask only above
 # this length: a short fragment could be anything.
@@ -43,7 +47,7 @@ _OWN_FRAGMENT_MIN = 5
 # a wrapped tail can OCR left of center. The deny sweep skips the band
 # whole; the reply read skips a row there that ends the ask's text —
 # however short, since an ask's last word may be one of its own no
-# words ("…或 不用 取消。").
+# words ("…or reply no to cancel.").
 _WRAP_GAP = 0.04
 
 # A raised keyboard: a ROW of single-letter keys (this many at one
@@ -69,7 +73,7 @@ def normalize(text: str) -> str:
     """The comparison space for whole-message matching: NFKC (folds
     full-width forms), casefold, ALL whitespace removed, punctuation and
     symbols stripped from both ends (。！!?～ and friends — a trailing
-    exclamation mark must not defeat 好的). Idempotent: a word stored
+    exclamation mark must not defeat "ok"). Idempotent: a word stored
     normalized at parse reads back equal to itself."""
     t = fold(text)
     start, end = 0, len(t)
@@ -114,7 +118,7 @@ def classify_all(
 
 def any_deny(messages: list[str], yes: AbstractSet[str], no: AbstractSet[str]) -> bool:
     """Whether a deny is anywhere in `messages` — the sweep's question
-    at a later send: a 不要 said while the walk was in the app must stop
+    at a later send: a "no" said while the walk was in the app must stop
     it whatever followed."""
     return any(classify(m, yes, no) is Answer.DENY for m in messages)
 
@@ -139,11 +143,13 @@ def _is_key(label: str) -> bool:
     return len(label) == 1 and label.isascii() and label.isalpha()
 
 
-def ask_band(rows: tuple[Element, ...], own_text: str) -> tuple[float, float] | None:
+def ask_band(
+    rows: tuple[Element, ...], own_text: str, *, incoming: Bbox
+) -> tuple[float, float] | None:
     """Where OUR just-sent message sits on the thread — the y of its
     first and last recognized line — or None when we cannot find it.
 
-    Anchored on the lines that render right of center, then grown UPWARD
+    Anchored on the lines that render outside the incoming box, then grown UPWARD
     over rows that are our own text: a multi-line bubble's short leading
     lines sit inside a wide bubble and can OCR left of center, above the
     lines that anchored the band. Never grown downward — a reply typed
@@ -154,7 +160,7 @@ def ask_band(rows: tuple[Element, ...], own_text: str) -> tuple[float, float] | 
 
     None is a real answer, not a failure: the thread may have scrolled
     past it. What a caller may conclude from that is the caller's rule —
-    `new_incoming` falls back to the baseline, and the ask step refuses
+    `read_incoming` falls back to the baseline, and the ask step refuses
     to read consent it cannot place."""
     own = normalize(own_text)
     if not own:
@@ -166,8 +172,8 @@ def ask_band(rows: tuple[Element, ...], own_text: str) -> tuple[float, float] | 
         if not label:
             continue
         c = center_of(row.bbox)
-        if c is None or c[0] <= INCOMING_MAX_CX:
-            continue  # ask lines render as OUR bubbles, right of center
+        if c is None or inside(c, list(incoming), margin=0.0):
+            continue  # ask lines render as OUR bubbles, outside the incoming box
         if own in label or (len(label) >= _OWN_FRAGMENT_MIN and label in own):
             top = c[1] if top is None else min(top, c[1])
             bottom = c[1] if bottom is None else max(bottom, c[1])
@@ -193,29 +199,19 @@ def ask_band(rows: tuple[Element, ...], own_text: str) -> tuple[float, float] | 
     return (top, bottom)
 
 
-def new_incoming(
-    rows: tuple[Element, ...],
-    baseline: AbstractSet[str],
-    own_text: str,
-    *,
-    after_ask: bool = True,
-) -> list[str]:
-    """`read_incoming`'s messages alone — for readers that do not act on
-    whether the ask was placed."""
-    return read_incoming(rows, baseline, own_text, after_ask=after_ask)[0]
-
-
 def read_incoming(
     rows: tuple[Element, ...],
     baseline: AbstractSet[str],
     own_text: str,
     *,
     after_ask: bool = True,
+    incoming: Bbox,
 ) -> tuple[list[str], bool]:
     """The user's new bubbles since the baseline snapshot, in screen
     order, and whether our own ask was PLACED on the thread — the
-    positional rule below stood on it — or the baseline had to decide. Incoming = left of center (our own lines sit right, so they
-    never enter the candidate set).
+    positional rule below stood on it — or the baseline had to decide.
+    Incoming = inside the thread page's `incoming` box (our own lines
+    sit outside it, so they never enter the candidate set).
 
     `after_ask` (the default) reads THIS ask's reply: when the ask
     bubble is visible, rows above it are older than the ask (a keyboard
@@ -234,7 +230,7 @@ def read_incoming(
             r for r in rows if (c := center_of(r.bbox)) is not None and c[1] < floor
         )
     own = normalize(own_text)
-    band = ask_band(rows, own_text)
+    band = ask_band(rows, own_text, incoming=incoming)
     ask_top, ask_bottom = band if band is not None else (None, None)
     out: list[tuple[float, str]] = []
     for row in rows:
@@ -242,8 +238,10 @@ def read_incoming(
         if not label:
             continue
         c = center_of(row.bbox)
-        if c is None or c[0] > INCOMING_MAX_CX:
+        if c is None or not inside(c, list(incoming), margin=0.0):
             continue
+        if c[1] < _STATUS_BAR_MAX_Y:
+            continue  # the status bar: the phone's rows, never the thread's
         if ask_top is not None and ask_bottom is not None:
             if after_ask:
                 if c[1] <= ask_bottom:
@@ -259,7 +257,7 @@ def read_incoming(
         out.append((c[1], label))
     # Screen order top to bottom is thread order oldest to newest — the
     # last one is the answer. A bubble's rows are one message: the
-    # whole-message rule must see "买两袋，好的" whole, not its last line.
+    # whole-message rule must see "two bags then, ok" whole, not its last line.
     return _bubbles(sorted(out, key=lambda x: x[0])), band is not None
 
 
