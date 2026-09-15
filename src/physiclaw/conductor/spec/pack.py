@@ -44,6 +44,7 @@ from physiclaw.conductor.spec.model import (
     PlaybookInput,
     Scanned,
     check_name,
+    macro_resolver,
     prose,
     require_str,
 )
@@ -160,6 +161,7 @@ def load_pack(app: str) -> Pack:
     prints = tuple(prints_for_app(app, decls=pages))
     page_of = page_resolver(app, pages, prints)
     macros = _scan_macros(root / PACK_MACROS_DIRNAME, page_of)
+    shared = macro_resolver(macros.ok, macros.errors)
     return Pack(
         app=app,
         pages=pages,
@@ -171,7 +173,7 @@ def load_pack(app: str) -> Pack:
         prompts=_scan_prompts(root / PACK_PROMPTS_DIRNAME, values),
         local={
             name: Files(
-                macros=_scan_macros(root / name / PACK_MACROS_DIRNAME, page_of),
+                macros=_scan_macros(root / name / PACK_MACROS_DIRNAME, page_of, shared),
                 prompts=_scan_prompts(root / name / PACK_PROMPTS_DIRNAME, values),
             )
             for name in docs
@@ -181,10 +183,14 @@ def load_pack(app: str) -> Pack:
     )
 
 
-def _scan_macros(root: Path, pages: macro_parse.PageResolver) -> Scanned[Macro]:
+def _scan_macros(
+    root: Path,
+    pages: macro_parse.PageResolver,
+    fallback: macro_parse.MacroResolver | None = None,
+) -> Scanned[Macro]:
     """The macro files under one `macros/` root, folded from `store.scan`."""
     out: Scanned[Macro] = Scanned()
-    for entry in macro_store.scan(root, pages):
+    for entry in macro_store.scan(root, pages, fallback):
         if entry.spec is not None:
             out.ok[entry.name] = entry.spec
         else:
@@ -538,8 +544,9 @@ def disabled_macros(spec: Playbook, pack: Pack) -> list[str]:
     # One rule, no special case: each name resolves through the merged
     # view. An inline body is enabled by construction (its gate is the
     # playbook's own `enabled:`); a pack macro or a playbook's recorded
-    # file carries its own flag, and both are read here.
-    return sorted(m for m in named if not (inline.get(m) or pack.macros[m]).enabled)
+    # file carries its own flag, and both are read here — as `live`, so
+    # a hand that runs a disabled macro counts as disabled itself.
+    return sorted(m for m in named if not (inline.get(m) or pack.macros[m]).live)
 
 
 def _with_subs(spec: Playbook) -> list[Playbook]:

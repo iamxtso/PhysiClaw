@@ -112,9 +112,7 @@ def list_cmd() -> None:
         )
         return
     for e in entries:
-        tag = state_tag(
-            valid=e.spec is not None, enabled=bool(e.spec and e.spec.enabled)
-        )
+        tag = state_tag(valid=e.spec is not None, enabled=bool(e.spec and e.spec.live))
         detail = (
             (e.error or "")
             if e.spec is None
@@ -133,7 +131,8 @@ def check() -> None:
         typer.echo(step_fail(f"{e.name}: {e.error or ''}"))
     for e in entries:
         if e.spec is not None:
-            typer.echo(ok(e.name if e.spec.enabled else f"{e.name}  (disabled)"))
+            gap = e.spec.live_gap
+            typer.echo(ok(e.name if gap is None else f"{e.name}  ({gap})"))
     if not entries:
         typer.echo("No macros found.")
     _report_unreachable(entries)
@@ -171,6 +170,11 @@ def _report_unreachable(entries: list[macro_store.ScanEntry]) -> None:
                 "Set `enabled: true` in the macro file once rehearsed."
             )
         )
+    # Enabled itself, yet not live: the file's own flag is not the one
+    # to flip, so its gap is named.
+    for s in valid:
+        if s.enabled and s.live_gap is not None:
+            typer.echo(warn(f"{s.name} {s.live_gap} — enable that first."))
 
 
 @macros_app.command()
@@ -282,8 +286,12 @@ def runs_cmd(
         for e in events:
             if e["event"] == "step":
                 mark = {"ok": "✓", "skipped": "↷"}.get(e["outcome"], "✗")
+                # A step of a macro a `run` step walked is numbered under
+                # it (`3.2`) and indented, as the run's own step log is.
+                at = e.get("at") or str(e["i"])
+                indent = "    " if "." in at else "  "
                 line = (
-                    f"  {mark} {e['i']}. {e['tool']}"
+                    f"{indent}{mark} {at}. {e['tool']}"
                     f"{' ' + repr(e['name']) if e.get('name') else ''}"
                     f" [{e['outcome']}] {e.get('ms', 0)}ms"
                 )

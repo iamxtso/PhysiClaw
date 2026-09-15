@@ -20,8 +20,11 @@ Nothing branches: a decided-failed check or a tool error stops the run
 and reports where, and recovery is the agent's job with the returned
 screen to work from. The one forward jump a macro may hold (`if_page` /
 `goto` / `mark`, see `parse`) skips a span, reported here exactly like
-a `start_at` prefix — not executed, one event per step. `start_at`
-begins at a step (by handle), reporting the skipped prefix as NOT
+a `start_at` prefix — not executed, one event per step. A `run` step
+walks its macro's steps here too, in the same run context (`_walk`
+recurses once), each reported under the run step's number (`3.2`);
+its abort is the run step's abort. `start_at` begins at a step (by
+handle), reporting the skipped prefix as NOT
 executed. Server-side safety (bbox validation,
 AssistiveTouch guards, the hardware lock, auto-park) applies per step
 unchanged; this module cannot bypass it.
@@ -57,6 +60,7 @@ from physiclaw.macros.model import (
 from physiclaw.macros.steps import (
     McpCaller,
     RunContext,
+    RunStep,
     Step,
     StepOutcome,
     guard_outcome,
@@ -182,6 +186,43 @@ async def run(
     ident = f" [{rlog.run_id}]" if rlog else ""
     log_lines = _skipped_prefix(spec, start, start_at, rlog)
 
+    walked = await _walk(spec, values, ctx, rlog, start, stop)
+    ctx.ran = walked.judged
+    log_lines += walked.lines
+    if walked.abort is not None:
+        i, outcome = walked.abort
+        return await _aborted(ctx, spec, ident, log_lines, i, outcome, start)
+    log_lines += _unrun_suffix(spec, stop, stop_after, rlog)
+    return await _completed(ctx, spec, ident, log_lines, start, stop)
+
+
+@dataclass(frozen=True)
+class Walked:
+    """What one walk over a span of steps produced: its log lines, how
+    many steps it judged, and — when one stopped the run — that step's
+    index and outcome."""
+
+    lines: list[str]
+    judged: int
+    abort: tuple[int, StepOutcome] | None = None
+
+
+async def _walk(
+    spec: Macro,
+    values: dict[str, str],
+    ctx: RunContext,
+    rlog: "runlog.RunLogger | None",
+    start: int,
+    stop: int,
+    prefix: str = "",
+) -> Walked:
+    """Steps `start`-`stop` of `spec`, in order, over the one run
+    context. `prefix` is "" for the run's own steps; a `run` step's
+    walk of its macro passes its number (`"3."`), which numbers those
+    lines `3.1`, `3.2` and indents them."""
+    lines: list[str] = []
+    judged = 0
+    indent = "  " if prefix else ""
     i = start
     while i <= stop:
         # Checks are templated exactly like step arguments: a macro that
@@ -190,11 +231,14 @@ async def run(
         step = spec.steps[i - 1].substituted(values)
         ctx.reads = 0
         t_step = time.monotonic()
-        outcome = await _run_step(step, ctx)
-        ctx.ran += 1
+        if isinstance(step, RunStep):
+            outcome = await _run_callee(step, ctx, rlog, f"{prefix}{i}.")
+        else:
+            outcome = await _run_step(step, ctx)
+        judged += 1
         if outcome.outcome in _ACTUATED and step.actuates:
             ctx.gestures += 1
-        log_lines.append(_numbered(outcome.log_line, i))
+        lines.append(indent + _numbered(outcome.log_line, f"{prefix}{i}"))
         if rlog:
             rlog.step(
                 i,
@@ -208,9 +252,10 @@ async def run(
                 detail=outcome.detail,
                 screen_text=outcome.screen_text,
                 view=outcome.view,
+                at=f"{prefix}{i}" if prefix else "",
             )
         if outcome.stop:
-            return await _aborted(ctx, spec, ident, log_lines, i, outcome, start)
+            return Walked(lines, judged, (i, outcome))
         if outcome.verdict is not None:
             ctx.last_verdict = outcome.verdict
         if outcome.jump_to is not None:
@@ -219,15 +264,59 @@ async def run(
             # PAST the mark: the read that took the jump is the mark's
             # own check. A `stop_after` inside the span ends the run at
             # the jump; the suffix report then covers the rest.
-            log_lines += _jumped_span(
-                spec, i, outcome.jump_to, stop, outcome.detail, rlog
-            )
+            lines += [
+                indent + line
+                for line in _jumped_span(
+                    spec, i, outcome.jump_to, stop, outcome.detail, rlog, prefix
+                )
+            ]
             i = outcome.jump_to + 1
             continue
         i += 1
+    return Walked(lines, judged)
 
-    log_lines += _unrun_suffix(spec, stop, stop_after, rlog)
-    return await _completed(ctx, spec, ident, log_lines, start, stop)
+
+async def _run_callee(
+    step: RunStep, ctx: RunContext, rlog: "runlog.RunLogger | None", prefix: str
+) -> StepOutcome:
+    """A `run` step: its own gate first (budget, `when` / `skip_when`),
+    then its macro's steps walked whole in this run's context — the
+    view a callee's last gesture leaves is what the caller's next
+    check reads, free, as if the steps were written inline. The
+    callee's lines ride under this step's own in its `log_line`; a
+    callee abort is this step's abort, its reason kept and the
+    callee's step named in the detail."""
+    assert step.macro is not None
+    gate = await _gate(step, ctx)
+    if gate is not None:
+        return gate
+    callee = step.macro
+    # `with:` was judged against the callee's inputs at parse; this
+    # applies the defaults, as a top-level run does for its own.
+    values = resolve_inputs(callee, step.values)
+    own_reads = (
+        ctx.reads
+    )  # this step's event reports its gate's reads, not the callee's
+    walked = await _walk(callee, values, ctx, rlog, 1, len(callee.steps), prefix)
+    ctx.reads = own_reads
+    if walked.abort is not None:
+        j, out = walked.abort
+        return StepOutcome(
+            log_line="\n".join(
+                [f"✗ {step.display()} — aborted at its step {j}", *walked.lines]
+            ),
+            outcome=out.outcome,
+            detail=f"{callee.name} step {j}: {out.detail}",
+            view=out.view,
+            screen_text=out.screen_text,
+        )
+    return StepOutcome(
+        log_line="\n".join(
+            [f"✓ {step.display()} — {len(callee.steps)} steps", *walked.lines]
+        ),
+        outcome="ok",
+        view=ctx.last_view or None,
+    )
 
 
 # Step outcomes that mean the tool actually fired (or attempted to):
@@ -243,16 +332,26 @@ def _jumped_span(
     stop: int,
     why: str,
     rlog: "runlog.RunLogger | None",
+    prefix: str = "",
 ) -> list[str]:
     """The log lines for a taken jump at step `at`: the span it skipped
     — up to the mark at `target`, or the run's stop when that comes
     first — and the mark it landed on."""
-    lines = _unrun(spec, at + 1, min(target - 1, stop), f"skipped — {why}", why, rlog)
+    lines = _unrun(
+        spec, at + 1, min(target - 1, stop), f"skipped — {why}", why, rlog, prefix
+    )
     if target <= stop:
         mark = spec.steps[target - 1]
-        lines.append(f"· {target}. {mark.display()} — landed")
+        lines.append(f"· {prefix}{target}. {mark.display()} — landed")
         if rlog:
-            rlog.step(target, mark.tool, mark.name, "ok", detail="landed by the jump")
+            rlog.step(
+                target,
+                mark.tool,
+                mark.name,
+                "ok",
+                detail="landed by the jump",
+                at=f"{prefix}{target}" if prefix else "",
+            )
     return lines
 
 
@@ -263,6 +362,7 @@ def _unrun(
     line: str,
     detail: str,
     rlog: "runlog.RunLogger | None",
+    prefix: str = "",
 ) -> list[str]:
     """The report of steps `first`-`last` (1-based, inclusive) this run
     did not execute: one log line, and — the forensic trail must show
@@ -274,8 +374,15 @@ def _unrun(
     if rlog:
         for j in range(first, last + 1):
             unrun = spec.steps[j - 1]
-            rlog.step(j, unrun.tool, unrun.name, "skipped", detail=detail)
-    return [f"↷ {first}-{last}. {line}"]
+            rlog.step(
+                j,
+                unrun.tool,
+                unrun.name,
+                "skipped",
+                detail=detail,
+                at=f"{prefix}{j}" if prefix else "",
+            )
+    return [f"↷ {prefix}{first}-{prefix}{last}. {line}"]
 
 
 async def _run_step(step: Step, ctx: RunContext) -> StepOutcome:
@@ -286,6 +393,17 @@ async def _run_step(step: Step, ctx: RunContext) -> StepOutcome:
     stops. `when` / `skip_when` come before the guard so a guard cannot
     abort a run for a step that is not needed. Everything tool-specific lives behind
     `step.execute`, which is why nothing here names a tool."""
+    gate = await _gate(step, ctx)
+    if gate is not None:
+        return gate
+    return await step.execute(ctx)
+
+
+async def _gate(step: Step, ctx: RunContext) -> StepOutcome | None:
+    """What decides whether a step acts at all — the budget, its
+    `when` / `skip_when`, its guard — and the outcome that stops or
+    skips it, or None when it may act. Shared by a gesture and a `run`
+    step, whose acting is the walk of its macro."""
     if ctx.out_of_time:
         detail = (
             f"macro exceeded its {MAX_RUN_SECONDS}s budget — the app is "
@@ -338,15 +456,15 @@ async def _run_step(step: Step, ctx: RunContext) -> StepOutcome:
         detail = step.guard.check(screen)
         if detail:
             return guard_outcome(step, detail, screen.text)
+    return None
 
-    return await step.execute(ctx)
 
-
-def _numbered(line: str, i: int) -> str:
-    """Step lines carry their number after the status glyph (`✓ 3. tap …`).
-    The glyph is chosen by the step, the number only known by the loop."""
+def _numbered(line: str, label: str) -> str:
+    """Step lines carry their number after the status glyph (`✓ 3. tap …`,
+    `✓ 3.2. tap …` inside a run step). The glyph is chosen by the step,
+    the number only known by the loop."""
     glyph, _, rest = line.partition(" ")
-    return f"{glyph} {i}. {rest}"
+    return f"{glyph} {label}. {rest}"
 
 
 def _skipped_prefix(

@@ -37,8 +37,8 @@ log = logging.getLogger(__name__)
 class Channel:
     """The loaded user-channel infrastructure: thread fingerprints plus
     the qualified macros. `send`/`open` resolve only when the macro
-    exists AND is enabled — a missing `send` degrades to hand-over at
-    the ask that needs it. `boot` is the boot playbook when it is live
+    exists AND is live (enabled, and so is every macro it runs) — a
+    missing `send` degrades to hand-over at the ask that needs it. `boot` is the boot playbook when it is live
     (on disk, valid, enabled, every hand it names enabled) — else None,
     the reason logged, and the wake is a plain model session; `pack`
     is what the boot builds against."""
@@ -59,7 +59,7 @@ class Channel:
     def _live(self, name: str) -> str | None:
         key = qualified_macro(CHANNEL_APP, name)
         m = self.macros.get(key)
-        return key if m is not None and m.enabled else None
+        return key if m is not None and m.live else None
 
     @property
     def send(self) -> str | None:

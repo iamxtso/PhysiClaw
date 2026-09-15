@@ -1647,3 +1647,192 @@ async def test_starting_inside_a_span_still_meets_the_marks_check() -> None:
 
     assert result.ok is False and result.aborted_step == 4
     assert "steps 2-3 were to reach it" in result.detail
+
+
+# ---------- the run step ----------
+
+OPEN_TEXT = """name: open
+description: reach the thread
+steps:
+  - home_screen
+  - tap: "Search"
+    at: [0.3, 0.1, 0.6, 0.13]
+    require: "Chats"
+    hint: "open WeChat by hand"
+"""
+SEND_TEXT = """name: send
+description: speak
+inputs:
+  message:
+    description: text
+steps:
+  - run: open
+  - send_to_clipboard: "{message}"
+    require: "Thread"
+"""
+
+
+def _send_spec(open_text: str = OPEN_TEXT, send_text: str = SEND_TEXT):
+    open_spec = parse_macro(open_text, "open")
+    return parse_macro(send_text, "send", macros=lambda name: open_spec)
+
+
+async def test_a_run_step_walks_its_macro_in_the_same_run() -> None:
+    # No peek between open's last tap and send's guard: the callee's
+    # last view is the held screen, exactly as if the steps were inline.
+    mcp = FakeCaller(
+        [
+            _gesture("home", listing="Chats"),
+            _gesture("tapped", listing="Thread"),
+            _gesture("copied"),
+        ]
+    )
+
+    result = await run(_send_spec(), {"message": "hi"}, mcp)
+
+    assert result.ok is True
+    assert [name for name, _ in mcp.calls] == [
+        "home_screen",
+        "tap",
+        "send_to_clipboard",
+    ]
+    assert result.gestures == 3  # the callee's gestures count for the burn rule
+    text = result.blocks[0]["text"]
+    assert "all 2 steps completed" in text
+    assert "✓ 1. run open — 2 steps" in text
+    assert "  ✓ 1.1. home_screen" in text
+    assert "  ✓ 1.2. tap 'Search'" in text
+    assert "✓ 2. send_to_clipboard 'hi'" in text
+
+
+async def test_a_callee_abort_is_the_run_steps_abort_with_its_step_named() -> None:
+    mcp = FakeCaller(
+        [_gesture("home", listing="Nowhere"), _gesture("current", listing="Nowhere")]
+    )
+
+    result = await run(_send_spec(), {"message": "hi"}, mcp)
+
+    assert result.ok is False
+    assert result.aborted_step == 1 and result.reason == REASON_GUARD_FAILED
+    assert result.detail.startswith("open step 2: require 'Chats' not on screen")
+    assert "open WeChat by hand" in result.detail
+    text = result.blocks[0]["text"]
+    assert "ABORTED at step 1/2 (guard_failed)" in text
+    assert "✗ 1. run open — aborted at its step 2" in text
+    assert "  ✗ 1.2. tap 'Search' — guard: require 'Chats' not on screen" in text
+    assert "✗ 2." not in text  # the caller's own step never ran
+
+
+async def test_a_run_steps_when_gates_the_whole_macro() -> None:
+    mcp = FakeCaller(
+        [_gesture("current", changed=None, listing="Thread"), _gesture("copied")]
+    )
+    spec = _send_spec(
+        send_text=SEND_TEXT.replace(
+            "  - run: open\n", '  - run: open\n    when: "Chats"\n'
+        )
+    )
+
+    result = await run(spec, {"message": "hi"}, mcp)
+
+    assert result.ok is True
+    assert [name for name, _ in mcp.calls] == ["peek", "send_to_clipboard"]
+    assert (
+        "↷ 1. run open — skipped (its `when` does not hold)" in result.blocks[0]["text"]
+    )
+
+
+async def test_with_fills_the_callees_inputs_from_the_callers() -> None:
+    open_text = (
+        "name: open\ndescription: d\ninputs:\n  contact:\n    description: who\n"
+        'steps:\n  - send_to_clipboard: "{contact}"\n'
+    )
+    send_text = (
+        "name: send\ndescription: d\ninputs:\n  who:\n    description: who\n"
+        'steps:\n  - run: open\n    with: {contact: "to {who}"}\n'
+    )
+    mcp = FakeCaller([_gesture("copied")])
+
+    result = await run(_send_spec(open_text, send_text), {"who": "Alice"}, mcp)
+
+    assert result.ok is True
+    assert mcp.calls == [("send_to_clipboard", {"text": "to Alice"})]
+
+
+async def test_the_run_log_numbers_the_callees_steps_under_the_run_step(
+    physiclaw_home,
+) -> None:
+    from physiclaw.macros import runlog as macro_runlog
+
+    mcp = FakeCaller(
+        [
+            _gesture("home", listing="Chats"),
+            _gesture("tapped", listing="Thread"),
+            _gesture("copied"),
+        ]
+    )
+    result = await run_and_record(_send_spec(), {"message": "hi"}, mcp, caller="cli")
+
+    import json
+
+    events = [
+        json.loads(line)
+        for line in (macro_runlog.run_dir(result.run_id) / "events.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    steps = [e for e in events if e["event"] == "step"]
+    assert [(e["i"], e.get("at")) for e in steps] == [
+        (1, "1.1"),
+        (2, "1.2"),
+        (1, None),
+        (2, None),
+    ]
+    assert steps[2]["tool"] == "run" and steps[2]["name"] == "idx1-run-open"
+
+
+async def test_a_callees_default_with_a_brace_is_used_verbatim() -> None:
+    open_text = (
+        "name: open\ndescription: d\ninputs:\n  contact:\n    description: who\n"
+        '    default: "a{b}"\nsteps:\n  - send_to_clipboard: "{contact}"\n'
+    )
+    send_text = "name: send\ndescription: d\nsteps:\n  - run: open\n"
+    mcp = FakeCaller([_gesture("copied")])
+
+    result = await run(_send_spec(open_text, send_text), {}, mcp)
+
+    assert result.ok is True
+    assert mcp.calls == [("send_to_clipboard", {"text": "a{b}"})]
+
+
+async def test_the_run_steps_event_reports_its_own_gate_reads(physiclaw_home) -> None:
+    import json
+
+    from physiclaw.macros import runlog as macro_runlog
+
+    # The run step's `when` costs one peek; the callee's guard then reads
+    # the tap's own view for free — the run step's event says 1, not the
+    # callee's last step's count.
+    spec = _send_spec(
+        send_text=SEND_TEXT.replace(
+            "  - run: open\n", '  - run: open\n    when: "Chats"\n'
+        )
+    )
+    mcp = FakeCaller(
+        [
+            _gesture("current", changed=None, listing="Chats"),
+            _gesture("home", listing="Chats"),
+            _gesture("tapped", listing="Thread"),
+            _gesture("copied"),
+        ]
+    )
+    result = await run_and_record(spec, {"message": "hi"}, mcp, caller="cli")
+
+    events = [
+        json.loads(line)
+        for line in (macro_runlog.run_dir(result.run_id) / "events.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    run_step = next(e for e in events if e.get("name") == "idx1-run-open")
+    assert run_step["guard_polls"] == 1

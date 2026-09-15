@@ -13,6 +13,7 @@ it; the engine only ever sees valid AND enabled specs.
 """
 
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -27,7 +28,7 @@ from physiclaw.macros.model import (
     MacroError,
     check_name,
 )
-from physiclaw.macros.parse import PageResolver, parse_macro
+from physiclaw.macros.parse import MacroResolver, PageResolver, parse_macro
 
 log = logging.getLogger(__name__)
 
@@ -87,15 +88,18 @@ def list_names() -> set[str]:
 
 
 def scan(
-    root: Path | None = None, pages: "PageResolver | None" = None
+    root: Path | None = None,
+    pages: "PageResolver | None" = None,
+    fallback: "MacroResolver | None" = None,
 ) -> list[ScanEntry]:
     """Every macro file, sorted by name — valid or not. With no ``root``,
     unions the search path (first dir wins per name — the
     `paths.playbooks_dirs` layering rule). The CLI's view; the engine
     uses `discover_enabled`. Conductor packs point this at their private
     ``macros/`` roots, with ``pages`` the pack's page resolver a jump
-    reads through — one scanner, one traversal guard, one broad-except
-    lesson."""
+    reads through and ``fallback`` where a `run` step's name goes when
+    the folder holds no such file (`parse_folder`) — one scanner, one
+    traversal guard, one broad-except lesson."""
     if root is None:
         seen: set[str] = set()
         merged: list[ScanEntry] = []
@@ -109,7 +113,8 @@ def scan(
     if not files:
         return []
     root_real = root.resolve()
-    out: list[ScanEntry] = []
+    texts: dict[str, str] = {}
+    unread: dict[str, ScanEntry] = {}  # guarded or unreadable: excluded whole
     for md in files:
         real = md.resolve()
         if not real.is_relative_to(root_real):
@@ -118,11 +123,42 @@ def scan(
                 md.stem,
                 root,
             )
-            out.append(ScanEntry(md.stem, error="resolves outside the macros dir"))
+            unread[md.stem] = ScanEntry(
+                md.stem, error="resolves outside the macros dir"
+            )
             continue
         try:
-            out.append(
-                ScanEntry(md.stem, spec=parse_macro(read_text(real), md.stem, pages))
+            texts[md.stem] = read_text(real)
+        except OSError as e:
+            unread[md.stem] = ScanEntry(md.stem, error=str(e) or type(e).__name__)
+    parsed = parse_folder(texts, pages, fallback)
+    return [unread.get(md.stem) or parsed[md.stem] for md in files]
+
+
+def parse_folder(
+    texts: Mapping[str, str],
+    pages: "PageResolver | None" = None,
+    fallback: "MacroResolver | None" = None,
+) -> dict[str, ScanEntry]:
+    """One folder's macro files (stem → text) parsed together, in the
+    order given: each an entry with its spec or its reason. A `run`
+    step names a sibling: the resolver here parses the named file on
+    demand (each once, whichever order the folder lists them in), so
+    a caller binds the very object its callee's entry holds; a name
+    the folder lacks goes to ``fallback``; a file that reaches itself
+    through its callees is a cycle, refused with the chain. The
+    folder's whole rule, so `scan`, a pack's loader and a test over
+    texts in memory cannot drift."""
+    done: dict[str, ScanEntry] = {}
+    parsing: list[str] = []  # the chain of files being parsed, for a cycle
+
+    def entry(stem: str) -> ScanEntry:
+        if stem in done:
+            return done[stem]
+        parsing.append(stem)
+        try:
+            done[stem] = ScanEntry(
+                stem, spec=parse_macro(texts[stem], stem, pages, resolve)
             )
         except Exception as e:
             # Deliberately broad: a malformed file must be excluded WHOLE, per
@@ -131,13 +167,37 @@ def scan(
             # which used to escape all the way to `build_prompt_bundle` and
             # STUCK every wake. `BaseException` still propagates, so
             # KeyboardInterrupt and CancelledError are untouched.
-            out.append(ScanEntry(md.stem, error=str(e) or type(e).__name__))
-    return out
+            done[stem] = ScanEntry(stem, error=str(e) or type(e).__name__)
+        finally:
+            parsing.pop()
+        return done[stem]
+
+    def resolve(name: str) -> Macro:
+        if name in parsing:
+            chain = " → ".join([*parsing, name])
+            what = (
+                "a macro cannot run itself"
+                if len(parsing) == 1
+                else "macros that run each other"
+            )
+            raise MacroError(f"{chain} — {what}")
+        if name in texts:
+            e = entry(name)
+            if e.spec is None:
+                raise MacroError(f"{name}{MACRO_SUFFIX} is invalid: {e.error}")
+            return e.spec
+        if fallback is not None:
+            return fallback(name)
+        have = ", ".join(sorted(texts)) or "(none)"
+        raise MacroError(f"no macro {name!r} beside this one. Here: {have}")
+
+    return {stem: entry(stem) for stem in texts}
 
 
 def discover_enabled() -> dict[str, Macro]:
     """The macros the agent may run: the ``[macros] enabled`` config gate
-    is on AND the file is valid AND not ``enabled: false``. This is the
+    is on AND the file is valid AND live (`Macro.live`: not ``enabled:
+    false``, nor running a macro that is). This is the
     ONE agent-facing view — the prompt section, the run_macro tool, and
     the MACRO.md doctrine all key on this dict being non-empty, so an
     empty result means zero macro bytes in SYSTEM. A broken or
@@ -150,7 +210,7 @@ def discover_enabled() -> dict[str, Macro]:
     for entry in scan():
         if entry.error is not None:
             log.warning("macro %s excluded: %s", entry.name, entry.error)
-        elif entry.spec is not None and entry.spec.enabled:
+        elif entry.spec is not None and entry.spec.live:
             out[entry.spec.name] = entry.spec
     return out
 

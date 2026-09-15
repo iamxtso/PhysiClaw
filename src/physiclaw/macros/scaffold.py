@@ -213,6 +213,14 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
   nothing else on either line; spans one after another, never nested,
   though several jumps may land on one mark when they name its page
   (exits along one road). A user macro has no pages and cannot jump.
+- `run: <name>` — a macro of the same folder as one step, its inputs
+  under `with: {{input: text}}` (`{{placeholder}}`s of this macro's own
+  inputs allowed). Its steps run inside this run — one budget, one
+  gesture count, and the view its last step leaves is what the next
+  check here reads — and its abort is this step's abort, the run log
+  numbering its steps `3.1`, `3.2` under it. One level: a macro that is
+  run may not run one. `when` / `skip_when` may ride beside it; the
+  macro is live only while every macro it runs is enabled.
 - `require` / `forbid` — checked BEFORE the step fires, so they describe
   the screen the step NEEDS, never the screen the step produces (to wait
   on an app you just launched, use a `wait` carrying an `expect`).

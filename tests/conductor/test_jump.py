@@ -105,12 +105,13 @@ def test_the_shipped_packs_parse_with_their_jumps() -> None:
     channel, taobao = pb.load_pack("channel"), pb.load_pack("taobao")
 
     assert not channel.macro_errors and not taobao.macro_errors
-    # open and send have two exits onto one mark: the thread already on
-    # screen, and WeChat resumed on it after the dock tap.
-    for name in ("open", "send"):
-        gotos = [s for s in channel.macros[name].steps if isinstance(s, GotoStep)]
-        assert len(gotos) == 2 and {g.page.display() for g in gotos} == {"page thread"}
-        assert len({g.target for g in gotos}) == 1
+    # open has two exits onto one mark: the thread already on screen,
+    # and WeChat resumed on it after the dock tap. send runs open, so
+    # the jumps are written once.
+    gotos = [s for s in channel.macros["open"].steps if isinstance(s, GotoStep)]
+    assert len(gotos) == 2 and {g.page.display() for g in gotos} == {"page thread"}
+    assert len({g.target for g in gotos}) == 1
+    assert channel.macros["send"].callees() == (channel.macros["open"],)
     # launch has two exits onto one mark: resumed on the feed, and the
     # first cold launch on the feed; both name `home` and land together.
     launch = [s for s in taobao.macros["launch"].steps if isinstance(s, GotoStep)]

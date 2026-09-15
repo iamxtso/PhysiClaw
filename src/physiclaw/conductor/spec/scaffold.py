@@ -458,20 +458,17 @@ pages:
 
 # Rehearsable skeletons for the two channel macros. Steps are
 # placeholders that PARSE clean; record the real gesture path on your
-# device (spotlight/dock → your thread), then rehearse and enable.
+# device (spotlight/dock → your thread) in `open`, then rehearse and
+# enable both — `send` runs `open` as its first step, then types.
 CHANNEL_SEND_STUB = f"""\
 name: {SEND_MACRO}
-description: open the user's IM thread and send {{{{message}}}}
+description: open the user's IM thread ({OPEN_MACRO}) and send {{{{message}}}} there
 enabled: false
 inputs:
   message:
     description: the text to send to the user
 steps:
-  - home_screen
-  - tap: "the IM app's dock icon"
-    at: [0.1, 0.9, 0.2, 0.98]        # EDIT ME
-  - tap: "your user's chat-row name"
-    at: [0.1, 0.15, 0.9, 0.22]       # EDIT ME
+  - run: {OPEN_MACRO}                  # the navigation, recorded once
   - tap: "the input box (hidden)"
     at: [0.1, 0.9, 0.7, 0.96]        # EDIT ME
   - send_to_clipboard: "{{message}}"

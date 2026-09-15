@@ -22,7 +22,8 @@ from physiclaw.macros.model import (
     TextClause,
 )
 from physiclaw.macros.parse import parse_inline_macro, parse_macro
-from physiclaw.macros.steps import GotoStep, MarkStep
+from physiclaw.macros.steps import GotoStep, MarkStep, RunStep
+from physiclaw.macros.store import parse_folder
 
 VALID = """name: notify-user
 description: Tell the user something
@@ -1331,3 +1332,165 @@ def test_jumps_in_sequence_each_wire_their_own_mark() -> None:
         m.steps[7].guard is not None
         and m.steps[7].guard.hint == "step 7 were to reach it"
     )
+
+
+# ---------- the run ----------
+
+OPEN = "name: open\ndescription: reach\nsteps:\n  - home_screen\n"
+OPEN_WITH_INPUT = (
+    "name: open\ndescription: reach\ninputs:\n  contact:\n    description: who\n"
+    'steps:\n  - tap: "{contact}"\n    at: [0.1, 0.2, 0.9, 0.3]\n'
+)
+SEND = (
+    "name: send\ndescription: speak\ninputs:\n  message:\n    description: text\n"
+    'steps:\n  - run: open\n  - send_to_clipboard: "{message}"\n'
+)
+
+
+def _folder(**files: str):
+    """A resolver over sibling files — `store.parse_folder`'s, the one
+    a folder scan supplies, over texts in memory."""
+    entries = parse_folder(files)
+
+    def resolve(name: str):
+        entry = entries.get(name)
+        if entry is None:
+            raise MacroError(f"no macro {name!r} beside this one")
+        assert entry.spec is not None, entry.error
+        return entry.spec
+
+    return resolve
+
+
+def test_a_run_step_binds_its_macro_and_takes_the_handle_of_its_verb() -> None:
+    m = parse_macro(SEND, "send", macros=_folder(open=OPEN))
+
+    step = m.steps[0]
+    assert isinstance(step, RunStep)
+    assert step.name == "idx1-run-open" and step.display() == "run open"
+    assert step.macro is not None and step.macro.name == "open"
+    assert m.callees() == (step.macro,)
+
+
+def test_with_is_judged_against_the_callees_inputs_at_parse() -> None:
+    folder = _folder(open=OPEN_WITH_INPUT)
+    ok = parse_macro(
+        SEND.replace(
+            "  - run: open\n", '  - run: open\n    with: {contact: "{message}"}\n'
+        ),
+        "send",
+        macros=folder,
+    )
+    step = ok.steps[0]
+    assert isinstance(step, RunStep) and step.values == {"contact": "{message}"}
+
+    with pytest.raises(MacroError, match="missing required input 'contact'"):
+        parse_macro(SEND, "send", macros=folder)
+    with pytest.raises(MacroError, match="unknown input"):
+        parse_macro(
+            SEND.replace("  - run: open\n", "  - run: open\n    with: {who: x}\n"),
+            "send",
+            macros=folder,
+        )
+    with pytest.raises(MacroError, match="not declared under `inputs`"):
+        parse_macro(
+            SEND.replace(
+                "  - run: open\n", '  - run: open\n    with: {contact: "{nope}"}\n'
+            ),
+            "send",
+            macros=folder,
+        )
+
+
+@pytest.mark.parametrize(
+    "line, fragment",
+    [
+        ("  - run: open\n    at: [0.1, 0.1, 0.2, 0.2]\n", "unknown key"),
+        ("  - run: open\n    require: x\n", "unknown key"),
+        ("  - run: nope\n", "no macro 'nope'"),
+        ("  - run: Open\n", "lowercase"),
+    ],
+)
+def test_the_run_line_rules_are_load_errors(line: str, fragment: str) -> None:
+    with pytest.raises(MacroError, match=fragment):
+        parse_macro(
+            SEND.replace("  - run: open\n", line), "send", macros=_folder(open=OPEN)
+        )
+
+
+def test_a_run_step_may_carry_when_or_skip_when() -> None:
+    m = parse_macro(
+        SEND.replace("  - run: open\n", '  - run: open\n    when: "Chats"\n'),
+        "send",
+        macros=_folder(open=OPEN),
+    )
+    assert m.steps[0].when is not None
+
+
+def test_a_macro_cannot_run_itself() -> None:
+    (entry,) = parse_folder({"send": SEND.replace("run: open", "run: send")}).values()
+
+    assert entry.spec is None
+    assert "send → send — a macro cannot run itself" in (entry.error or "")
+
+
+def test_a_macro_parsed_alone_cannot_run_one() -> None:
+    with pytest.raises(MacroError, match="parsed alone"):
+        parse_macro(SEND, "send")
+
+
+def test_one_level_only() -> None:
+    folder = _folder(open=OPEN)
+    send = parse_macro(SEND, "send", macros=folder)
+    deep = (
+        "name: deep\ndescription: d\nsteps:\n  - run: send\n    with: {message: hi}\n"
+    )
+
+    with pytest.raises(MacroError, match="runs 'open' itself"):
+        parse_macro(deep, "deep", macros=lambda name: send)
+
+
+def test_liveness_reaches_through_a_run_step() -> None:
+    off = parse_macro(
+        OPEN.replace("description: reach\n", "description: reach\nenabled: false\n"),
+        "open",
+    )
+    send = parse_macro(SEND, "send", macros=lambda name: off)
+
+    assert send.enabled and not send.live
+    assert send.live_gap == "runs disabled macro 'open'"
+    assert off.live_gap == "disabled"
+
+
+def test_with_leaves_the_callees_defaults_to_the_run() -> None:
+    # A default is the callee's own text, never a template of the
+    # caller's inputs: it is not folded in here, where the caller's
+    # placeholders would later be filled through it.
+    open_text = OPEN_WITH_INPUT.replace(
+        "    description: who\n", '    description: who\n    default: "a{b}"\n'
+    )
+    m = parse_macro(SEND, "send", macros=_folder(open=open_text))
+
+    step = m.steps[0]
+    assert isinstance(step, RunStep) and step.values == {}
+
+
+def test_taps_reach_through_a_run_step() -> None:
+    send = parse_macro(
+        SEND.replace(
+            "  - run: open\n", '  - run: open\n    with: {contact: "{message}"}\n'
+        ),
+        "send",
+        macros=_folder(open=OPEN_WITH_INPUT),
+    )
+
+    (tap,) = send.taps()
+    assert tap.label == ("{contact}",)
+
+
+def test_an_inline_macro_may_run_a_sibling() -> None:
+    m = parse_inline_macro(
+        {"steps": [{"run": "open"}]}, "buy.go", macros=_folder(open=OPEN)
+    )
+
+    assert isinstance(m.steps[0], RunStep)

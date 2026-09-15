@@ -79,6 +79,7 @@ from physiclaw.conductor.spec.model import (
     Scanned,
     TellNode,
     check_name,
+    macro_resolver,
     prose,
     require_str,
 )
@@ -1013,6 +1014,21 @@ def _macro_resolver(
 
     page_of = page_resolver(pack.app, pack.pages, pack.prints)
 
+    pack_macro = macro_resolver(pack.macros, pack.macro_errors)
+
+    def macro_of(name: str) -> Macro:
+        """A bare name → this playbook's own file, else one of the
+        pack's shared hands — the one lookup a `do:` and an inline
+        body's `run:` share."""
+        if name in local.errors:
+            raise MacroError(
+                f"macro {name!r} ({playbook}/{PACK_MACROS_DIRNAME}/{name}.yml) "
+                f"is invalid: {local.errors[name]}"
+            )
+        if name in local.ok:
+            return inline[f"{playbook}.{name}"]
+        return pack_macro(name)
+
     def resolve(raw: Any, where: str, nid: str, role: str | None = None) -> Macro:
         slot = role or "macro"
         if isinstance(raw, dict):
@@ -1024,7 +1040,7 @@ def _macro_resolver(
                     "already holds — rename one"
                 )
             try:
-                spec = parse_inline_macro(raw, mname, page_of)
+                spec = parse_inline_macro(raw, mname, page_of, macro_of)
             except MacroError as e:
                 raise PlaybookError(f"{where}: inline `{slot}`: {e}") from e
             inline[mname] = spec
@@ -1035,26 +1051,10 @@ def _macro_resolver(
                 "mapping with `steps:`"
             )
         mname = require_str(raw, f"{where}: `{slot}`")
-        if mname in local.errors:
-            raise PlaybookError(
-                f"{where}: macro {mname!r} ({playbook}/{PACK_MACROS_DIRNAME}/"
-                f"{mname}.yml) is invalid: {local.errors[mname]}"
-            )
-        if mname in local.ok:
-            return inline[f"{playbook}.{mname}"]
-        if mname in pack.macro_errors:
-            raise PlaybookError(
-                f"{where}: pack macro {mname!r} is invalid: {pack.macro_errors[mname]}"
-            )
-        if mname not in pack.macros:
-            available = ", ".join(sorted({*pack.macros, *local.ok})) or "(none)"
-            raise PlaybookError(
-                f"{where}: {slot} {mname!r} not found in this pack's "
-                f"{PACK_MACROS_DIRNAME}/ or {playbook}/{PACK_MACROS_DIRNAME}/ — "
-                f"playbooks reference only their own pack's macros. "
-                f"Available: {available}"
-            )
-        return pack.macros[mname]
+        try:
+            return macro_of(mname)
+        except MacroError as e:
+            raise PlaybookError(f"{where}: {slot} {e}") from e
 
     return resolve
 

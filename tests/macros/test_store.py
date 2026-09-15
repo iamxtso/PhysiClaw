@@ -282,10 +282,10 @@ def test_a_file_the_loader_cannot_survive_is_excluded_not_fatal(mocker) -> None:
     _write("boom")
     real = store_mod.parse_macro
 
-    def _explode(text: str, stem: str, pages=None):
+    def _explode(text: str, stem: str, pages=None, macros=None):
         if stem == "boom":
             raise RecursionError("maximum recursion depth exceeded")
-        return real(text, stem, pages)
+        return real(text, stem, pages, macros)
 
     mocker.patch.object(store_mod, "parse_macro", side_effect=_explode)
 
@@ -305,3 +305,91 @@ def test_scan_still_lets_keyboard_interrupt_through(mocker) -> None:
 
     with pytest.raises(KeyboardInterrupt):
         scan()
+
+
+# ---------- a folder's `run` steps ----------
+
+OPEN_TEXT = "name: open\ndescription: reach\nsteps:\n  - home_screen\n"
+SEND_TEXT = (
+    "name: send\ndescription: speak\nsteps:\n  - run: open\n  - send_to_clipboard: hi\n"
+)
+
+
+def test_scan_resolves_a_run_step_in_its_own_folder_whatever_the_file_order() -> None:
+    # `send` sorts after `open`, `a-send` before it: both bind.
+    _write("open", OPEN_TEXT)
+    _write("send", SEND_TEXT)
+    _write("a-send", SEND_TEXT.replace("name: send", "name: a-send"))
+
+    entries = {e.name: e for e in scan()}
+
+    for name in ("send", "a-send"):
+        spec = entries[name].spec
+        assert spec is not None and spec.callees()[0].name == "open"
+    # One parse per file: the two callers share the one `open`.
+    assert entries["send"].spec.callees()[0] is entries["a-send"].spec.callees()[0]
+
+
+def test_a_missing_or_broken_callee_is_the_callers_load_error() -> None:
+    _write("send", SEND_TEXT)
+    _write("open", "name: open\ndescription: d\nsteps: []\n")
+
+    entries = {e.name: e for e in scan()}
+
+    assert entries["send"].spec is None
+    assert "`run`: open.yml is invalid: " in (entries["send"].error or "")
+
+
+def test_macros_that_run_each_other_are_both_refused() -> None:
+    _write("a", "name: a\ndescription: d\nsteps:\n  - run: b\n")
+    _write("b", "name: b\ndescription: d\nsteps:\n  - run: a\n")
+
+    entries = {e.name: e for e in scan()}
+
+    assert entries["a"].spec is None and entries["b"].spec is None
+    assert "macros that run each other" in (entries["b"].error or "")
+
+
+def test_the_fallback_resolver_takes_a_name_the_folder_lacks(tmp_path) -> None:
+    from physiclaw.macros.parse import parse_macro
+
+    shared = parse_macro(OPEN_TEXT, "open")
+    (tmp_path / "send.yml").write_text(SEND_TEXT, encoding="utf-8")
+
+    (entry,) = scan(tmp_path, fallback=lambda name: shared)
+
+    assert entry.spec is not None and entry.spec.callees()[0] is shared
+    (alone,) = scan(tmp_path)
+    assert alone.spec is None and "no macro 'open' beside this one" in (
+        alone.error or ""
+    )
+
+
+def test_the_agent_sees_a_caller_only_while_its_callee_is_enabled() -> None:
+    _write("open", OPEN_TEXT + "enabled: false\n")
+    _write("send", SEND_TEXT)
+
+    assert "send" not in discover_enabled()
+
+    _write("open", OPEN_TEXT)
+    assert "send" in discover_enabled()
+
+
+def test_an_unreadable_file_is_excluded_not_fatal(mocker) -> None:
+    _write("demo")
+    _write("boom")
+    real = store_mod.read_text
+
+    def _explode(path):
+        if path.stem == "boom":
+            raise OSError("permission denied")
+        return real(path)
+
+    mocker.patch.object(store_mod, "read_text", side_effect=_explode)
+
+    entries = {e.name: e for e in scan()}
+
+    assert entries["boom"].spec is None and "permission denied" in (
+        entries["boom"].error or ""
+    )
+    assert entries["demo"].spec is not None

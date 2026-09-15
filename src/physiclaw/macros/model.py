@@ -167,6 +167,13 @@ GOTO = "goto"
 MARK = "mark"
 JUMP_KEYS = frozenset({IF_PAGE, GOTO, MARK})
 
+# A macro's one reuse: `- run: <name>` runs a macro of the same folder
+# as one step, its inputs under `with:` (the rules: `parse`'s module
+# docstring; the walk: `runner._run_callee`). Neither key is an MCP
+# tool; the step is a kind of its own (`steps.RunStep`).
+RUN = "run"
+WITH = "with"
+
 # Abort-header marker for a run that stopped before ANY gesture actuated
 # (a first-guard miss, a wait that timed out): the phone did not move, so
 # a retry replays nothing. One spelling, three consumers: the runner
@@ -513,16 +520,46 @@ class Macro:
     steps: tuple["Step", ...]
 
     def taps(self) -> tuple[MacroTap, ...]:
-        """Every tap the macro records — the ONE reader of which steps
-        tap something, shared by the guards that judge a macro by its
-        targets: their labels at parse, their boxes on a live screen."""
-        return tuple(
-            MacroTap(
-                label=label_readings(step.args), bbox=tuple(step.args[TARGET_BBOX])
-            )
-            for step in self.steps
-            if step.tool in gesture_vocab.PRESS_TOOLS and hasattr(step, "args")
-        )
+        """Every tap the macro records, the macros it runs included —
+        the ONE reader of which steps tap something, shared by the
+        guards that judge a macro by its targets: their labels at
+        parse, their boxes on a live screen."""
+        out: list[MacroTap] = []
+        for step in self.steps:
+            if step.runs is not None:
+                out.extend(step.runs.taps())
+            elif step.tool in gesture_vocab.PRESS_TOOLS and hasattr(step, "args"):
+                out.append(
+                    MacroTap(
+                        label=label_readings(step.args),
+                        bbox=tuple(step.args[TARGET_BBOX]),
+                    )
+                )
+        return tuple(out)
+
+    def callees(self) -> tuple["Macro", ...]:
+        """The macros this one runs (`- run: <name>`), in step order."""
+        return tuple(step.runs for step in self.steps if step.runs is not None)
+
+    @property
+    def live_gap(self) -> str | None:
+        """What keeps a wake from running this macro, in a few words —
+        None when nothing does. The ONE liveness rule (the playbook's
+        `pack.live_gap` is its twin): the agent's discovery, the
+        channel's send/open, the pack's readiness lint and `macros
+        check` all read it, so a macro that runs a disabled macro is
+        disabled everywhere at once. Rehearsal (`macros run`)
+        deliberately ignores it."""
+        if not self.enabled:
+            return "disabled"
+        for c in self.callees():
+            if c.live_gap is not None:
+                return f"runs disabled macro {c.name!r}"
+        return None
+
+    @property
+    def live(self) -> bool:
+        return self.live_gap is None
 
 
 def check_name(name: str, where: str = "name", extra: str = "") -> None:

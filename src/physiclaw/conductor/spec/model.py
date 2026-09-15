@@ -79,6 +79,7 @@ The loader (`pack.py`) turns files into these; the compiler (`route.py`)
 and its lints turn a `route:` into the nodes.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, Generic, Protocol, TypeVar
 
@@ -93,7 +94,8 @@ from physiclaw.conductor.spec.limits import (
 )
 from physiclaw.conductor.spec.pages import AnchorDecl, Landmark, PageDecl, PagePrint
 from physiclaw.contract.dto import Thinking
-from physiclaw.macros.model import MACRO_SUFFIX, Macro, MacroInput
+from physiclaw.macros.model import MACRO_SUFFIX, Macro, MacroError, MacroInput
+from physiclaw.macros.parse import MacroResolver
 
 # The three readings a page's `recover:` may key its hands by: the page
 # itself under an overlay, the phone's lock screen (where taps do not
@@ -507,6 +509,27 @@ class Files:
 
     macros: Scanned[Macro] = field(default_factory=Scanned)
     prompts: Scanned[str] = field(default_factory=Scanned)
+
+
+def macro_resolver(ok: Mapping[str, Macro], errors: Mapping[str, str]) -> MacroResolver:
+    """A name → one of the pack's shared macros, or why not: the
+    lookup a playbook's bare `macro:` makes, a playbook folder's file
+    falls back to for its `run:`, and an inline body's `run:` ends in.
+    One wording for "broken" and "not here"."""
+
+    def resolve(name: str) -> Macro:
+        if name in errors:
+            raise MacroError(f"pack macro {name!r} is invalid: {errors[name]}")
+        if name not in ok:
+            available = ", ".join(sorted(ok)) or "(none)"
+            raise MacroError(
+                f"{name!r} not found in this pack's {paths.PACK_MACROS_DIRNAME}/ — "
+                f"playbooks reference only their own pack's macros. "
+                f"Available: {available}"
+            )
+        return ok[name]
+
+    return resolve
 
 
 @dataclass(frozen=True)

@@ -20,6 +20,8 @@ recursive-descent style, sharing the scalar terminals at the bottom:
                    [require], [forbid], [expect [hint]]}
                 | {if_page: name, goto: mark}                # a jump, forward
                 | {mark: mark}                                  # where it lands
+                | {run: name, [with: {id: text}], [when | skip_when]}
+                                                                # a macro of the same folder
     verb      ::= tap | double_tap | long_press    object = label, at REQUIRED
                 | swipe                            object = up|down|left|right, at REQUIRED,
                                                   [size] [speed] off the ladder
@@ -57,8 +59,11 @@ they name its page: exits along one road), forward only, a page (never
 a text) as the condition; the mark checks, when walked to, that the
 span did reach the page. A page is the
 pack's to read, so ``if_page`` parses only through the ``pages`` resolver a
-pack loader supplies. A macro's robustness comes from staying a dumb
-replay of a rehearsed path.
+pack loader supplies. The one reuse is ``run: <name>``: a macro of the
+same folder runs as one step, its inputs under ``with:``, resolved
+through the ``macros`` resolver the folder's scan supplies — one level
+deep, so a reader follows at most one hop. A macro's robustness comes
+from staying a dumb replay of a rehearsed path.
 
 A step carries no name: its handle (`idx3-tap-paste`) is derived here
 from its position and its verb line (`model.step_handle`), so every
@@ -81,6 +86,7 @@ from ruamel.yaml.error import YAMLError
 
 from physiclaw.common import bbox, gesture_vocab
 from physiclaw.common.placeholders import resolve_placeholders
+from physiclaw.macros.inputs import resolve_inputs
 from physiclaw.macros.model import (
     ALLOWED_STEP_TOOLS,
     ARGLESS_TOOLS,
@@ -98,9 +104,11 @@ from physiclaw.macros.model import (
     MAX_STEPS,
     MAX_WAIT_SECONDS,
     OBJECT_ARG,
+    RUN,
     TARGET_BBOX,
     WAIT,
     WAIT_SECONDS_ARG,
+    WITH,
     Bbox,
     Clause,
     Macro,
@@ -114,7 +122,14 @@ from physiclaw.macros.model import (
     handle,
     step_handle,
 )
-from physiclaw.macros.steps import GestureStep, GotoStep, MarkStep, Step, WaitStep
+from physiclaw.macros.steps import (
+    GestureStep,
+    GotoStep,
+    MarkStep,
+    RunStep,
+    Step,
+    WaitStep,
+)
 from physiclaw.macros.template import TemplateError, placeholders
 
 # The key vocabulary of each mapping production, in grammar order.
@@ -145,6 +160,15 @@ _SWIPE_STEP_KEYS = _STEP_KEYS | _SWIPE_LADDER.keys()
 # pages the pack does declare. Without one (a user macro, `macros
 # check` outside a pack) there are no pages, so there is no jump.
 PageResolver = Callable[[str], Clause]
+
+# A macro of the same folder, as the ONE thing a `run` step may name:
+# the resolver a folder's scan supplies turns the name into the parsed
+# `Macro` (parsing that file first if need be), or raises MacroError
+# naming the macros the folder does hold. Without one (a macro parsed
+# alone) there are no siblings, so there is no `run`.
+MacroResolver = Callable[[str], Macro]
+# The run line's own keys; `when` / `skip_when` may ride beside them.
+_RUN_STEP_KEYS = frozenset({RUN, WITH, "when", "skip_when"})
 
 
 def _press_object(tool: str, obj: Any, where: str, step: dict) -> dict:
@@ -202,12 +226,18 @@ assert _OBJECTS.keys() == OBJECT_ARG.keys()
 _yaml = YAML(typ="safe", pure=True)
 
 
-def parse_macro(text: str, stem: str, pages: PageResolver | None = None) -> Macro:
+def parse_macro(
+    text: str,
+    stem: str,
+    pages: PageResolver | None = None,
+    macros: MacroResolver | None = None,
+) -> Macro:
     """Parse + validate one macro file; `stem` is its file name without
     the suffix, which `name:` must equal. `pages` is the pack's page
-    resolver (`PageResolver`), which a jump's `if_page` needs. Raises
-    MacroError with a message that names the offending field — never a
-    partially-valid spec."""
+    resolver (`PageResolver`), which a jump's `if_page` needs; `macros`
+    the folder's macro resolver (`MacroResolver`), which a `run` step
+    needs. Raises MacroError with a message that names the offending
+    field — never a partially-valid spec."""
     text = resolve_placeholders(text, MacroError)
     try:
         data = _yaml.load(io.StringIO(text))
@@ -237,7 +267,7 @@ def parse_macro(text: str, stem: str, pages: PageResolver | None = None) -> Macr
         raise MacroError("`enabled` must be true or false")
 
     inputs = parse_inputs(data.get("inputs", {}))
-    steps = _parse_steps(data.get("steps"), {i.name for i in inputs}, pages)
+    steps = _parse_steps(data.get("steps"), {i.name for i in inputs}, pages, macros)
     return Macro(
         name=name,
         description=description,
@@ -257,7 +287,10 @@ _INLINE_KEYS = frozenset(_TOP_KEYS) - _IDENTITY_KEYS
 
 
 def parse_inline_macro(
-    data: Any, name: str, pages: PageResolver | None = None
+    data: Any,
+    name: str,
+    pages: PageResolver | None = None,
+    macros: MacroResolver | None = None,
 ) -> Macro:
     """A macro embedded where a name was expected (a playbook move's
     `macro:` mapping) → a validated `Macro` under the caller-synthesized
@@ -279,7 +312,7 @@ def parse_inline_macro(
             "belong to a directory macro"
         )
     inputs = parse_inputs(data.get("inputs", {}))
-    steps = _parse_steps(data.get("steps"), {i.name for i in inputs}, pages)
+    steps = _parse_steps(data.get("steps"), {i.name for i in inputs}, pages, macros)
     return Macro(
         name=name,
         description=f"inline macro {name}",
@@ -329,7 +362,10 @@ def parse_inputs(raw: Any) -> tuple[MacroInput, ...]:
 
 
 def _parse_steps(
-    raw: Any, input_names: set[str], pages: PageResolver | None
+    raw: Any,
+    input_names: set[str],
+    pages: PageResolver | None,
+    macros: MacroResolver | None,
 ) -> list[Step]:
     """The step list: shape and size here, each step in `_parse_step`,
     then the checks that only the WHOLE list can answer (the jump's
@@ -339,7 +375,8 @@ def _parse_steps(
     if len(raw) > MAX_STEPS:
         raise MacroError(f"too many steps ({len(raw)} > {MAX_STEPS})")
     out = [
-        _parse_step(i, step, input_names, pages) for i, step in enumerate(raw, start=1)
+        _parse_step(i, step, input_names, pages, macros)
+        for i, step in enumerate(raw, start=1)
     ]
     out = _check_jump(out)
     _check_wait_budget(out)
@@ -347,16 +384,20 @@ def _parse_steps(
 
 
 def _parse_step(
-    i: int, step: Any, input_names: set[str], pages: PageResolver | None
+    i: int,
+    step: Any,
+    input_names: set[str],
+    pages: PageResolver | None,
+    macros: MacroResolver | None,
 ) -> Step:
     """One step: the verb and its object, `at`, its checks — in
     the order that yields the most specific error first (an unknown key
     beats a bad verb beats a malformed check).
 
-    Three spellings: a bare word for an argless verb (`- home_screen`),
+    Four spellings: a bare word for an argless verb (`- home_screen`),
     a mapping whose ONE verb key carries the object (`- tap: "Paste"`)
-    beside the qualifiers, or one of the jump's two lines (`- if_page: …` /
-    `goto: …`, `- mark: …`)."""
+    beside the qualifiers, one of the jump's two lines (`- if_page: …` /
+    `goto: …`, `- mark: …`), or a run line (`- run: open`)."""
     where = f"step {i}"
     if isinstance(step, str):
         return _argless(i, step)
@@ -367,6 +408,8 @@ def _parse_step(
     keys = set(map(str, step.keys()))
     if keys & JUMP_KEYS:
         return _parse_jump(i, step, keys, pages)
+    if RUN in keys:
+        return _parse_run(i, step, keys, input_names, macros)
     verbs = sorted(keys & ALLOWED_STEP_TOOLS)
     allowed = _SWIPE_STEP_KEYS if gesture_vocab.SWIPE in verbs else _STEP_KEYS
     unknown = sorted(keys - allowed)
@@ -613,6 +656,71 @@ def _mark_name(raw: Any, where: str) -> str:
     name = _require_str(raw, where)
     check_name(name, where)
     return name
+
+
+# ---------- the run ----------
+
+
+def _parse_run(
+    i: int,
+    step: dict,
+    keys: set[str],
+    input_names: set[str],
+    macros: MacroResolver | None,
+) -> Step:
+    """`- run: <name>` with `with: {input: text}`: a macro of the same
+    folder as one step. The callee is resolved and bound NOW, so a
+    missing or broken callee (a cycle included — the resolver's to
+    refuse) is this file's load error, never a run-time surprise;
+    `with` is judged against the callee's declared inputs the way a
+    run judges its own (unknown, missing, non-string), its texts vetted
+    for the caller's placeholders; the callee's defaults are applied at
+    run time, verbatim, never filled. One level: a callee that runs a
+    macro itself is refused."""
+    where = f"step {i}"
+    unknown = sorted(keys - _RUN_STEP_KEYS)
+    if unknown:
+        raise MacroError(
+            f"{where}: unknown key(s): {', '.join(unknown)} — a run line is "
+            "`run: <name>` with `with: {input: text}` and `when` / `skip_when`"
+        )
+    name = _require_str(step[RUN], f"{where}: `run`")
+    check_name(name, f"{where}: `run`")
+    if macros is None:
+        raise MacroError(
+            f"{where}: `run` names a macro of the same folder, and this macro "
+            "was parsed alone — a folder's scan resolves it"
+        )
+    try:
+        callee = macros(name)
+    except MacroError as e:
+        raise MacroError(f"{where}: `run`: {e}") from e
+    nested = callee.callees()
+    if nested:
+        raise MacroError(
+            f"{where}: `run: {name}` — it runs {nested[0].name!r} itself, and a "
+            "macro that is run may not run one (one level, so a reader follows "
+            "one hop)"
+        )
+    raw_with = step.get(WITH, {})
+    if not isinstance(raw_with, dict):
+        raise MacroError(f"{where}: `with` must be a mapping of {name}'s inputs")
+    values = {
+        str(k): _require_str(v, f"{where}: `with` {k!r}") for k, v in raw_with.items()
+    }
+    _check_placeholders(values, input_names, f"{where}: `with`")
+    try:
+        resolve_inputs(callee, values)  # the callee's contract, judged now
+    except MacroError as e:
+        raise MacroError(f"{where}: `with` for {name}: {e}") from e
+    skip_when, when = _parse_skip_when(step, where, input_names)
+    return RunStep(
+        name=handle(i, RUN, name),
+        skip_when=skip_when,
+        when=when,
+        macro=callee,
+        values=values,
+    )
 
 
 def _check_jump(steps: list[Step]) -> list[Step]:

@@ -6,7 +6,7 @@ sits above `model` (pure clause algebra) and below `runner` (which owns
 the loop and the run-wide state). The split is what keeps `model`
 importable from anywhere.
 
-Four kinds, and the difference is not cosmetic:
+Five kinds, and the difference is not cosmetic:
 
     GestureStep   one MCP call — the rehearsed physical action
     WaitStep      an in-process sleep, then one assertion
@@ -14,6 +14,8 @@ Four kinds, and the difference is not cosmetic:
                   mark or walks on
     MarkStep      where the jump lands; walked to, its guard (the goto's
                   page) checks the span reached it
+    RunStep       another macro of the same folder, run as one step —
+                  the runner walks its steps in the same run context
 
 `expect` lives on `WaitStep` alone, as a field rather than a validation
 rule, so "expect is wait-only" is a fact about the type instead of a
@@ -43,9 +45,11 @@ from physiclaw.macros.model import (
     REASON_EXPECT_FAILED,
     REASON_GUARD_FAILED,
     REASON_TOOL_ERROR,
+    RUN,
     TARGET_LABEL,
     WAIT,
     Clause,
+    Macro,
     MacroGuard,
     Screen,
     label_readings,
@@ -243,6 +247,13 @@ class Step(ABC):
         """Whether an `ok` outcome means the phone was touched — what the
         run's gesture count (the engine's burn rule) is made of."""
         return False
+
+    @property
+    def runs(self) -> Macro | None:
+        """The macro this step runs — only a `RunStep` has one. The
+        model's readers (`Macro.taps`, `Macro.callees`) reach through
+        it without naming the step kind."""
+        return None
 
 
 @dataclass(frozen=True)
@@ -493,6 +504,56 @@ class MarkStep(Step):
 
     def substituted(self, values: dict[str, str]) -> "Step":
         return replace(self, guard=sub(self.guard, values))
+
+
+@dataclass(frozen=True)
+class RunStep(Step):
+    """Another macro as one step: `- run: <name>` with its inputs under
+    `with:`. The callee is bound at parse, so the runner never looks a
+    name up mid-run; the runner walks its steps itself, in this run's
+    context (`runner._run_callee`), so `execute` is never reached.
+
+    `values` are the `with:` texts as written, `{name}` placeholders
+    of the CALLER's inputs included; `substituted` fills them as it
+    fills a gesture's arguments, and the runner resolves the result
+    against the callee's declared inputs — its defaults applied
+    verbatim, never filled — as a top-level run resolves its own."""
+
+    macro: Macro | None = None
+    values: dict[str, str] = field(default_factory=dict)
+
+    @property
+    def tool(self) -> str:
+        return RUN
+
+    @property
+    def object(self) -> str:
+        assert self.macro is not None
+        return self.macro.name
+
+    @property
+    def runs(self) -> Macro | None:
+        return self.macro
+
+    @property
+    def log_args(self) -> dict[str, Any]:
+        return self.values
+
+    @property
+    def declared_seconds(self) -> int:
+        assert self.macro is not None
+        return sum(s.declared_seconds for s in self.macro.steps)
+
+    async def execute(self, ctx: RunContext) -> StepOutcome:
+        raise AssertionError("the runner walks a run step's macro itself")
+
+    def substituted(self, values: dict[str, str]) -> "Step":
+        return replace(
+            self,
+            values=substitute(self.values, values),
+            skip_when=sub(self.skip_when, values),
+            when=sub(self.when, values),
+        )
 
 
 def guard_outcome(step: Step, detail: str, screen_text: str) -> StepOutcome:

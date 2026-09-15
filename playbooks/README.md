@@ -129,8 +129,15 @@ A pack macro may also read a page whole: `- if_page: thread` with
 `goto: type` skips forward to `- mark: type` while the page already
 shows, so the steps between (the ones that reach it) are not replayed;
 walked to, the mark checks the page arrived. Jumps follow one
-another, forward only, never one inside another. The channel's `open` and `send` and Taobao's `launch`
-are written this way.
+another, forward only, never one inside another. The channel's `open`
+and Taobao's `launch` are written this way.
+
+A macro may run another of its folder as one step: `- run: open`, its
+inputs under `with:`. The steps run inside the same run (one budget,
+one held view), each numbered under the run step in the log, and an
+abort there is the run step's abort. One level only, and a macro is
+live only while every macro it runs is enabled. The channel's `send`
+runs `open`, then types.
 
 Adaptation notes and the rehearsal checklist ride as comments in the
 files.

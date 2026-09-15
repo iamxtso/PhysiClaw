@@ -27,11 +27,11 @@ pages:
     incoming: [0.0, 0.0, 0.45, 1.0]
 
 # Adapting to your device
-# - `open`/`send` navigate via WeChat's search, never by chat-list
-#   position, and skip the navigation when the thread already shows or
-#   WeChat resumes on it after the dock tap;
-#   both abort on a guard mismatch, and `send` refuses to
-#   type unless the thread title matches — never message the wrong chat.
+# - `open` navigates via WeChat's search, never by chat-list position,
+#   and skips the navigation when the thread already shows or WeChat
+#   resumes on it after the dock tap; `send` runs it first, then types.
+#   Both abort on a guard mismatch, and `send` refuses to type unless
+#   the thread title matches — never message the wrong chat.
 # - Recorded on an English-system WeChat (guards accept Contacts and
 #   联系人). Rehearse once; re-record the search/paste taps if yours
 #   differs, then `physiclaw playbooks pages calibrate channel` and enable

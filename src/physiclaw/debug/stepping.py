@@ -501,7 +501,7 @@ def _macro_item(name: str, source: str, spec: Macro | None, error: str | None) -
     item: dict = {
         "name": name,
         "source": source,
-        "enabled": bool(spec and spec.enabled),
+        "enabled": bool(spec and spec.live),
         "error": error,
     }
     if spec is not None:

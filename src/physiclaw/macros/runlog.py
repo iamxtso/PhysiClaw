@@ -22,7 +22,9 @@ Event lines share ``ts``/``run``/``macro``/``event``:
            args (post-substitution), verdict, guard_polls, ms, image
            (filename under images/); on a guard failure also `detail` +
            `screen_text` (what the OCR haystack actually contained — the
-           number-one debug question)
+           number-one debug question); a step of a macro a `run` step
+           walked also carries `at`, its number in the run's log (`3.2`),
+           `i` being its index in that macro
     end    ok, aborted_step, reason, detail, ms
 
 Fail-open everywhere: a logging failure must never abort a physical run.
@@ -108,6 +110,7 @@ class RunLogger:
         detail: str = "",
         screen_text: str = "",
         view: list[dict] | None = None,
+        at: str = "",
     ) -> None:
         fields: dict[str, Any] = {
             "i": i,
@@ -119,6 +122,8 @@ class RunLogger:
             "guard_polls": guard_polls,
             "ms": ms,
         }
+        if at:
+            fields["at"] = at
         if detail:
             fields["detail"] = detail
         if screen_text:
