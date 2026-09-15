@@ -1,3 +1,4 @@
+kind: macro
 name: open-shangou
 description: the home feed's 闪购外卖 tab — the door to 淘宝闪购 and to 天猫超市's store
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/open-shangou

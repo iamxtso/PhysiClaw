@@ -1,3 +1,4 @@
+kind: macro
 name: cold-launch
 description: quit the Taobao in front and launch it cold — past the opening ad, onto the feed's 推荐 tab, settled
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/cold-launch

@@ -1,6 +1,7 @@
 # taobao/buy-together — several marketplace items in ONE order: `add`
 # once per item, then one `checkout`. Starts anywhere (each round cold
 # launches). Ends on the paid page, the buyer told.
+kind: entry
 name: buy-together
 description: buy several items on 淘宝 (Taobao) in ONE order by courier — the default for a list of products naming no store
 enabled: false  # rehearse on YOUR device, then enable

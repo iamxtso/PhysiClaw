@@ -167,6 +167,7 @@ done:
 """
 
 PACK_MACRO = """\
+kind: macro
 name: {name}
 description: test leg
 inputs:
@@ -187,7 +188,10 @@ def compose_pack_doc(
     """The manifest (`APP.yml`) from the fixtures' pieces: meta, a
     `pages:` appendix, optional landmarks. Playbooks are files beside
     it (`write_pack` writes them), never manifest content."""
-    doc = f"app: {app}\ndescription: test pack\npages:\n{indent(pages, '  ')}\n"
+    doc = (
+        f"kind: manifest\napp: {app}\ndescription: test pack\n"
+        f"pages:\n{indent(pages, '  ')}\n"
+    )
     if landmarks:
         doc += f"landmarks:\n{indent(landmarks, '  ')}\n"
     return doc
@@ -202,9 +206,9 @@ def write_pack(
     landmarks: str | None = None,
 ):
     """Write a pack under the (fixture-scoped) playbooks dir — the
-    manifest, one file per playbook keyed by its id (a door's
-    `<name>/PLAYBOOK.yml`, a part's `<door>/<part>.yml`), the pack
-    macros; returns its root."""
+    manifest, one file per playbook keyed by its id (an entry's
+    `<name>/PLAYBOOK.yml`, or `<entry>/<name>.yml` for one it runs),
+    the pack macros; returns its root."""
     from physiclaw.common import paths
 
     root = paths.playbooks_dir() / app
@@ -222,29 +226,29 @@ def write_pack(
 
 
 def write_playbook(root, name: str, text: str):
-    """One playbook under a pack root — a door's `<name>/PLAYBOOK.yml`,
-    or a part's `<door>/<part>.yml` for a dotted `<door>.<part>`. A
-    playbook names itself (its own name: the folder's, or the part
-    file's stem); fixtures written before that rule get the header the
-    file implies. Returns the door's folder."""
+    """One playbook under a pack root — an entry's `<name>/PLAYBOOK.yml`,
+    or `<entry>/<name>.yml` for a dotted `<entry>.<name>`. A playbook
+    says what it is and names itself; a fixture that writes only the
+    body gets both header lines its position implies. Returns the
+    entry's folder."""
     from physiclaw.common import paths
     from physiclaw.common.text import write_text
 
-    if not text.startswith("name:"):
-        text = f"name: {paths.own_name(name)}\n{text}"
+    if not text.startswith("kind:"):
+        text = f"kind: {paths.kind_of(name)}\nname: {paths.own_name(name)}\n{text}"
     path = root / paths.playbook_file(name)
     path.parent.mkdir(parents=True, exist_ok=True)
     write_text(path, text)
     return path.parent
 
 
-def write_leaf(root, playbook: str | None, kind: str, name: str, text: str):
-    """One leaf file under a pack root — `<root>/[<playbook>/]<kind>/<name>` —
+def write_leaf(root, playbook: str | None, leaf: str, name: str, text: str):
+    """One leaf file under a pack root — `<root>/[<playbook>/]<leaf>/<name>` —
     the layout's two leaf folders (`macros`, `prompts`) at either level.
     `name` carries its suffix. Returns the path."""
     from physiclaw.common.text import write_text
 
-    folder = (root / playbook if playbook else root) / kind
+    folder = (root / playbook if playbook else root) / leaf
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / name
     write_text(path, text)
@@ -293,6 +297,7 @@ thread:
 """
 
 CHANNEL_OPEN = """\
+kind: macro
 name: open
 description: open the thread
 steps:
@@ -301,6 +306,7 @@ steps:
 """
 
 CHANNEL_SEND = """\
+kind: macro
 name: send
 description: send to the user
 inputs:

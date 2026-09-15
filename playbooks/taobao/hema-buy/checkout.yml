@@ -1,6 +1,7 @@
-# taobao/hema-buy.checkout — the 盒马 cart to ONE paid order; a part of
-# `hema-buy`, its last move. Starts on the storefront's home, where the rounds end.
+# taobao/hema-buy.checkout — the 盒马 cart to ONE paid order; run by
+# `hema-buy` as its last move. Starts on the storefront's home, where the rounds end.
 # Ends on the paid page.
+kind: playbook
 name: checkout
 description: pay for the lines in the 盒马 (Hema) cart inside Taobao in ONE order
 enabled: false  # rehearse on YOUR device, then enable

@@ -1,3 +1,4 @@
+kind: macro
 name: nudge
 description: shift the marketplace cart's list a finger's width up — the first line's checkbox under the floating button moves clear of it
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/buy-together.nudge

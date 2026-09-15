@@ -10,6 +10,8 @@ from pathlib import Path
 
 from physiclaw.common.bbox import BANDS
 from physiclaw.common.paths import (
+    KIND_MACRO,
+    KIND_MANIFEST,
     PACK_FILENAME,
     PACK_MACROS_DIRNAME,
     PLAYBOOK_FILENAME,
@@ -111,6 +113,7 @@ MANIFEST_TEMPLATE = """\
 # (<name>/PLAYBOOK.yml, referenced as {app}/<name>), and the recorded
 # hands routes share live in macros/<name>.yml. Every section here is
 # optional; an empty manifest is a valid pack.
+kind: manifest       # what this file is; the pack marker, never a route
 app: {app}           # which app this pack automates = the directory name
 description: EDIT ME — what this pack automates, and when to adopt it
 
@@ -205,6 +208,8 @@ PLAYBOOK_TEMPLATE = """\
 # Values: the manifest's placeholders fill at install, {{inputs.x}} /
 # {{node.field}} / {{ask.total}} when the walk reaches the move, {{x}}
 # inside a macro from its `with:`. Reference: ~/.physiclaw/playbooks/README.md.
+kind: entry              # the workflow the boot may offer; a playbook this
+                         # one runs is `kind: playbook` in a file beside it
 name: {playbook}         # = this folder's name; referenced as {app}/{playbook}
 description: EDIT ME — one line saying what task this playbook does
 # A valid playbook is enabled by default; this scaffold starts off.
@@ -319,23 +324,25 @@ One directory per app, self-contained — everything its playbooks use:
       macros/<n>.yml       the pack's hands, shared by every route
                            (same format as ~/.physiclaw/macros/, never
                            shown to the model's macro list).
-      <name>/              one DOOR per folder — the whole workflow the
-        PLAYBOOK.yml       boot may offer; the folder is the name
-                           (referenced as <app>/<name>, and `name:`
-                           inside must agree) and the body is the
-                           playbook: name, description, enabled,
-                           inputs, route (page → move → page → move),
-                           and optionally pages (this route's own, the
-                           manifest's shape) and returns.
-        <part>.yml         a PART of the door, the same body: walked by
-                           the door's `run: <part>` only, never offered
-                           (referenced as <app>/<name>.<part>).
-        macros/<n>.yml     this door's own recorded hands, its parts'
-                           too (dispatch <app>/<name>.<n>): `macro: <n>`
+      <name>/              one ENTRY per folder — the whole workflow
+        PLAYBOOK.yml       the boot may offer (`kind: entry`); the
+                           folder is the name (referenced as
+                           <app>/<name>, and `name:` inside must agree)
+                           and the body is the playbook: kind, name,
+                           description, enabled, inputs, route (page →
+                           move → page → move), and optionally pages
+                           (this route's own, the manifest's shape) and
+                           returns.
+        <n>.yml            a playbook the entry runs (`kind: playbook`),
+                           the same body: walked by its `run: <n>` only,
+                           never offered (referenced as
+                           <app>/<name>.<n>).
+        macros/<n>.yml     the entry's recorded hands, shared by what it
+                           runs (dispatch <app>/<name>.<n>): `macro: <n>`
                            here; the pack's is `macro: app.macros.<n>`.
-        prompts/<n>.md     this door's prose for the model, verbatim
+        prompts/<n>.md     the entry's prose for the model, verbatim
                            (`prompt: prompts.<n>`; the pack's: `app.prompts.<n>`).
-        README.md          the door's notes for people. Never loaded.
+        README.md          the entry's notes for people. Never loaded.
 
 Validate everything: `physiclaw playbooks check`. Scaffold a pack:
 `physiclaw playbooks init <app>` — or start from a shared template
@@ -355,16 +362,16 @@ name EARLIER agent outputs or the quoting step's own last answer, and
 `ask` with `approve: payment` — the total the user consented to is the
 fire-time bound.
 
-A `run: <part>` walks one of the door's parts (`<part>.yml` beside
-its PLAYBOOK.yml) as one move: `with:` fills its inputs,
+A `run: <n>` walks one of the playbooks beside this entry (`<n>.yml`
+beside its PLAYBOOK.yml) as one move: `with:` fills its inputs,
 `each: {{<input>: <move>.<field>}}` walks it once per line of a list
 an earlier agent returned, `miss: skip` records a failed round and
 goes on, `revise: <agent>` re-plans from that agent when a reply the
 ask's words miss comes back, and `limit: {{rounds, revisions}}` bounds
-both. The part declares `returns: {{field: template}}`, read
-downstream as `{{<run>.field}}` — the lines of its finished rounds. A
-part is never offered on its own and never runs a playbook itself:
-only a door runs, one level deep.
+both. It declares `returns: {{field: template}}`, read downstream as
+`{{<run>.field}}` — the lines of its finished rounds. It is never
+offered on its own and never runs a playbook itself: only an entry
+runs, one level deep.
 
 What the playbook declares is what runs — no more, no less. An
 `agent` step is the model's, inside the author's fence: `prompt:` is
@@ -452,6 +459,7 @@ Macro format: see ~/.physiclaw/macros/README.md (identical grammar).
 # ---------- the channel pack (conductor infrastructure) ----------
 
 CHANNEL_PACK_STUB = """\
+kind: manifest
 app: {im}
 description: >-
   The user-channel pack — the conductor's route to YOUR user's IM
@@ -477,6 +485,7 @@ pages:
 # device (spotlight/dock → your thread) in `open`, then rehearse and
 # enable both — `send` runs `open` as its first step, then types.
 CHANNEL_SEND_STUB = f"""\
+kind: {KIND_MACRO}
 name: {SEND_MACRO}
 description: open the user's IM thread ({OPEN_MACRO}) and send {{{{message}}}} there
 enabled: false
@@ -497,6 +506,7 @@ steps:
 """
 
 CHANNEL_OPEN_STUB = f"""\
+kind: {KIND_MACRO}
 name: {OPEN_MACRO}
 description: open the user's IM thread (read only, no send)
 enabled: false
@@ -518,6 +528,7 @@ CHANNEL_BOOT_STUB = """\
 # playbook the baton. A route like any other: edit the hands and the
 # limits, step it (physiclaw playbooks step {app}/{boot}),
 # replay it over a recorded wake. Live once `{open}` is enabled.
+kind: entry
 name: {boot}
 description: reach the user's thread and read the request there
 enabled: true
@@ -697,6 +708,7 @@ def init_pack(app: str) -> Path:
 # ---------- the ios pack (OS states the conductor must name) ----------
 
 IOS_PACK_STUB = f"""\
+kind: {KIND_MANIFEST}
 app: {IOS_APP}
 description: >-
   iOS system states the conductor must name — no playbooks, no macros.

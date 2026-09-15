@@ -58,7 +58,9 @@ yaml_loader = YAML(typ="safe", pure=True)
 # Never a route: each playbook is its own `<name>/PLAYBOOK.yml` beside the
 # manifest (`load_playbook_docs`), so `playbooks:` is refused with the
 # reason.
-_PACK_TOP_KEYS = frozenset({"app", "description", "placeholders", "pages", "landmarks"})
+_PACK_TOP_KEYS = frozenset(
+    {"kind", "app", "description", "placeholders", "pages", "landmarks"}
+)
 
 
 def load_yaml(
@@ -111,6 +113,9 @@ def load_pack_doc(app: str, error_cls: type[Exception]) -> dict | None:
             "it (the file body is the playbook: name, description, enabled, "
             "inputs, route)"
         )
+    gap = paths.kind_gap(data.get("kind"), paths.KIND_MANIFEST)
+    if gap is not None:
+        raise error_cls(f"{app}/{PACK_FILENAME}: {gap}")
     # `thread:` (how the user's thread is read) is the channel's section.
     keys = _PACK_TOP_KEYS | ({"thread"} if app == paths.CHANNEL_DIRNAME else set())
     unknown = sorted(set(map(str, data.keys())) - keys)
@@ -129,24 +134,24 @@ def load_playbook_docs(
     values: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Every playbook of a pack as raw documents, plus what would not
-    load, by id with the reason. A DOOR is `<app>/<name>/PLAYBOOK.yml`,
-    one folder per door beside the manifest, keyed by the folder name
-    (referenced as `<app>/<name>`); a PART is any other `<part>.yml` in
-    a door's folder, keyed `<door>.<part>` (referenced as
-    `<app>/<door>.<part>`) and listed right after its door. A bad file
-    excludes itself, never the pack: `scan_playbooks` reports it as an
-    invalid entry. Folder and file names follow the move-name grammar,
-    so one the grammar refuses is an error entry too; a `_` or `.`
-    prefix is the one skip convention every artifact lister shares (a
-    draft the author parks beside the pack). Strays are error entries so
-    they never vanish silently: a `*.yml` at pack level that is not the
-    manifest (a route that belongs in a folder, keyed by its file name
-    so it can never shadow the folder it should be), a folder with no
-    PLAYBOOK.yml that is not `macros/` or `prompts/`, and a folder
-    inside a door that is not one of those two (a part is a file).
-    `root` is the pack's directory when the caller already resolved it;
-    `values` the placeholder values when the caller read them (one read
-    per pack load)."""
+    load, by id with the reason. An ENTRY is `<app>/<name>/PLAYBOOK.yml`,
+    one folder per entry beside the manifest, keyed by the folder name
+    (referenced as `<app>/<name>`); any other `<name>.yml` in that
+    folder is a playbook the entry runs, keyed `<entry>.<name>`
+    (referenced as `<app>/<entry>.<name>`) and listed right after it. A
+    bad file excludes itself, never the pack: `scan_playbooks` reports
+    it as an invalid entry. Folder and file names follow the move-name
+    grammar, so one the grammar refuses is an error entry too; a `_` or
+    `.` prefix is the one skip convention every artifact lister shares
+    (a draft the author parks beside the pack). Strays are error entries
+    so they never vanish silently: a `*.yml` at pack level that is not
+    the manifest (a route that belongs in a folder, keyed by its file
+    name so it can never shadow the folder it should be), a folder with
+    no PLAYBOOK.yml that is not `macros/` or `prompts/`, and a folder
+    inside an entry that is not one of those two (what an entry runs is
+    a file). `root` is the pack's directory when the caller already
+    resolved it; `values` the placeholder values when the caller read
+    them (one read per pack load)."""
     root = paths.pack_root(app) if root is None else root
     name_check = bind(error_cls)[3]
     if values is None:
@@ -160,7 +165,8 @@ def load_playbook_docs(
     def read(playbook: str, path: Path, role: str) -> None:
         """One file into `docs` under its id, or into `errors` with the
         reason — the id's own name checked against the move-name
-        grammar (the folder's for a door, the file stem for a part)."""
+        grammar (the folder's for an entry, the file stem for a playbook
+        it runs)."""
         where = f"{app}/{paths.playbook_file(playbook)}"
         try:
             name_check(paths.own_name(playbook), f"{where}: {role}")
@@ -191,18 +197,18 @@ def load_playbook_docs(
                 f"{app}/{name}/: a folder with no {PLAYBOOK_FILENAME} is not a playbook"
             )
             continue
-        read(name, path, "door folder name")
-        for part in paths.leaf_files(folder, paths.PLAYBOOK_SUFFIX):
-            if part.name != PLAYBOOK_FILENAME:
-                read(f"{name}.{part.stem}", part, "part file name")
+        read(name, path, "entry folder name")
+        for sibling in paths.leaf_files(folder, paths.PLAYBOOK_SUFFIX):
+            if sibling.name != PLAYBOOK_FILENAME:
+                read(f"{name}.{sibling.stem}", sibling, "playbook file name")
         for sub in paths.leaf_dirs(folder):
             if sub.name not in RESERVED_PACK_DIRS:
                 # Keyed by the offending PATH, as the pack-level stray is:
-                # a part of the same name may be valid beside it, and must
-                # not be reported invalid in its place.
+                # a playbook of the same name may be valid beside it, and
+                # must not be reported invalid in its place.
                 errors[f"{name}/{sub.name}/"] = (
-                    f"{app}/{name}/{sub.name}/: a part of a door is a file beside "
-                    f"its {PLAYBOOK_FILENAME} — "
+                    f"{app}/{name}/{sub.name}/: what an entry runs is a file "
+                    f"beside its {PLAYBOOK_FILENAME} — "
                     f"{paths.playbook_file(f'{name}.{sub.name}')}"
                 )
     return docs, errors

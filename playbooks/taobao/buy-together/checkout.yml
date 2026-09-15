@@ -1,7 +1,8 @@
 # taobao/buy-together.checkout — the marketplace cart to ONE paid order:
-# tick the lines, 结算, confirm the order page's total, pay; a part of
-# `buy-together`, its last move.
+# tick the lines, 结算, confirm the order page's total, pay; run by
+# `buy-together` as its last move.
 # Starts anywhere (cold launch). Ends on the paid page.
+kind: playbook
 name: checkout
 description: pay for the items in the 淘宝 (Taobao) cart in ONE order
 enabled: false  # rehearse on YOUR device, then enable

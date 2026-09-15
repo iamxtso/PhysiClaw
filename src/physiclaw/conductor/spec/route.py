@@ -28,9 +28,9 @@ from physiclaw.common.paths import (
     PACK_MACROS_DIRNAME,
     PACK_PROMPTS_DIRNAME,
     PROMPT_SUFFIX,
-    door_of,
-    part_of,
+    entry_of,
     playbook_file,
+    run_by,
 )
 from physiclaw.conductor.spec import context, lints, match, reply
 from physiclaw.conductor.spec.calls import AGENT_TOOLS, CONTRACT_FIELDS, RESERVED_KEYS
@@ -144,7 +144,7 @@ _RECOVER_KEYS = _HAND_KEYS | set(RECOVER_READINGS)
 # to the route. Page-declaration fields come from `pages.py`'s ONE
 # spelling (PAGE_DECL_FIELDS) — their content is validated there; they
 # appear here only so the unknown-key check names them as legal.
-ENTRY_KINDS = ("page", "start", "do", "agent", "ask", "tell", "run", "select")
+LINE_KINDS = ("page", "start", "do", "agent", "ask", "tell", "run", "select")
 _ENTRY_KEYS = {
     "page": {"page", *PAGE_RECOVERY_FIELDS, *PAGE_DECL_FIELDS},
     "start": {"start", "macro", "on_fail"},
@@ -211,17 +211,17 @@ class _Ctx:
     prompts_local: Scanned[str] = field(default_factory=Scanned)
     prompts_pack: Scanned[str] = field(default_factory=Scanned)
     prompts_used: set[str] = field(default_factory=set)
-    # The door's parts, parsed on demand for a `run` entry (by id,
-    # `<door>.<part>`) — None where the caller has no pack of playbooks
-    # to offer (a playbook parsed from bare text).
+    # The playbooks this entry runs, parsed on demand for a `run` line
+    # (by id, `<entry>.<name>`) — None where the caller has no pack of
+    # playbooks to offer (a playbook parsed from bare text).
     resolve_playbook: Callable[[str], Playbook] | None = None
 
     @property
-    def door(self) -> str:
-        """The folder this file sits in — the playbook itself for a
-        door, its door for a part. The leaf files beside this one are
-        the door's (`macros/`, `prompts/`)."""
-        return door_of(self.playbook)
+    def entry(self) -> str:
+        """The folder this file sits in — the playbook itself for an
+        entry, its entry for a playbook that entry runs. The leaf files
+        beside this one are the entry's (`macros/`, `prompts/`)."""
+        return entry_of(self.playbook)
 
     def payloads_with_total(self) -> dict[str, tuple[str, ...]]:
         """The refs a payment step may quote: every recorded return
@@ -264,11 +264,11 @@ def compile_route(
     own = _own_pages(pages, pack)
     entries, wp_ids, start, page_names = _shape(raw, pack, set(own))
     local = pack.local_for(playbook)
-    # The door's recorded hands enter the dispatch table here, once,
-    # under their `<door>.<name>` spelling (a part reads its door's
-    # folder) — the inline bodies the route embeds join them as the
-    # compile pass meets them.
-    inline = _local_registry(door_of(playbook), pack, local.macros)
+    # The entry's recorded hands enter the dispatch table here, once,
+    # under their `<entry>.<name>` spelling (the playbooks it runs read
+    # the same folder) — the inline bodies the route embeds join them as
+    # the compile pass meets them.
+    inline = _local_registry(entry_of(playbook), pack, local.macros)
     ctx = _Ctx(
         playbook,
         pack,
@@ -285,7 +285,7 @@ def compile_route(
     subs: dict[int, Playbook] = {}
     for i, (kind, name, _entry) in enumerate(entries):
         if kind == "run":
-            subs[i] = _sub_playbook(ctx, f"route entry {i + 1}", name)
+            subs[i] = _sub_playbook(ctx, f"route line {i + 1}", name)
             ctx.payloads[name] = tuple(subs[i].returns)
     moves: list[Node] = []
     seen: dict[str, int] = {}
@@ -301,15 +301,15 @@ def compile_route(
                 assert rpage is not None
                 if "." in rpage:
                     raise PlaybookError(
-                        f"route entry {pos}: {rpage!r} is a reserved built-in "
+                        f"route line {pos}: {rpage!r} is a reserved built-in "
                         "— packs declare recovery for their own pages only"
                     )
-                declared = _parse_recover(ctx, fields, f"route entry {pos}", rpage)
+                declared = _parse_recover(ctx, fields, f"route line {pos}", rpage)
                 recovers[rpage] = _declared_once(
-                    recovers.get(rpage), declared, f"route entry {pos}", rpage
+                    recovers.get(rpage), declared, f"route line {pos}", rpage
                 )
             continue
-        where = f"route entry {pos}"
+        where = f"route line {pos}"
         check_name(name, f"{where}: `{kind}`")
         if name == INPUTS_ROOT:
             raise PlaybookError(
@@ -323,7 +323,7 @@ def compile_route(
             )
         if name in seen:
             raise PlaybookError(
-                f"{where}: duplicate move name {name!r} (entry {seen[name]} "
+                f"{where}: duplicate move name {name!r} (line {seen[name]} "
                 "already uses it) — refs address moves by name, so they "
                 "must be unique"
             )
@@ -393,17 +393,17 @@ def compile_route(
 
 
 def _sub_playbook(ctx: _Ctx, where: str, name: str) -> Playbook:
-    """The part a `run` names — `<name>.yml` beside this door's
+    """The playbook a `run` names — `<name>.yml` beside this entry's
     PLAYBOOK.yml, parsed against the same pack by the resolver the pack
     loader wired (a playbook parsed from bare text has none to offer).
-    Only a door runs: a part is a file, with no folder for parts of its
-    own, so a run goes one level deep by shape."""
+    Only an ENTRY runs: what it runs is a file, with no folder for
+    playbooks of its own, so a run goes one level deep by shape."""
     if ctx.resolve_playbook is None:
-        raise PlaybookError(f"{where}: `run` names a part, but none are loaded")
-    if part_of(ctx.playbook) is not None:
+        raise PlaybookError(f"{where}: `run` names a playbook, but none are loaded")
+    if run_by(ctx.playbook) is not None:
         raise PlaybookError(
-            f"{where}: a part cannot run a playbook — only its door "
-            f"({playbook_file(ctx.door)}) runs"
+            f"{where}: only an entry runs a playbook — this file is one that "
+            f"{playbook_file(ctx.entry)} runs"
         )
     check_name(name, f"{where}: `run`")
     return ctx.resolve_playbook(f"{ctx.playbook}.{name}")
@@ -420,10 +420,10 @@ def _parse_run(
     sub: Playbook,
     earlier: list[Node],
 ) -> RunNode:
-    """A `run` move: a part of this door walked as one move. Its frame
-    is derived like a `do`'s — it starts where the part starts (cold,
-    or on the page before it) and lands on the part's last page, which
-    the route must name next."""
+    """A `run` move: a playbook beside this entry walked as one move.
+    Its frame is derived like a `do`'s — it starts where that playbook
+    starts (cold, or on the page before it) and lands on its last page,
+    which the route must name next."""
     if not sub.end:
         raise PlaybookError(
             f"{where}: playbook {sub.name!r} ends on a move — a playbook run "
@@ -563,7 +563,7 @@ def _shape(
     the start page id, the set of page ids on the route)."""
     if not isinstance(raw, list) or not raw:
         raise PlaybookError("`route` must be a non-empty list")
-    entries = [_classify_entry(i, e) for i, e in enumerate(raw, start=1)]
+    entries = [_classify_line(i, e) for i, e in enumerate(raw, start=1)]
     first_page = next((i for i, (k, _, _) in enumerate(entries) if k == "page"), None)
     if first_page is None:
         raise PlaybookError(
@@ -584,7 +584,7 @@ def _shape(
         # acting agent fails in `_parse_agent`, having no page to start on.
         if kind not in ("agent", "start", "tell", "run"):
             raise PlaybookError(
-                f"route entry {i + 1}: only pure-text `agent` steps (no "
+                f"route line {i + 1}: only pure-text `agent` steps (no "
                 "tools), `start`, a `tell` and a self-starting `run` may "
                 f"precede the first page — a `{kind}` needs a screen the "
                 "route has not reached yet"
@@ -618,17 +618,17 @@ def _shape(
     return entries, wp_ids, start, page_names
 
 
-def _classify_entry(i: int, entry: Any) -> tuple[str, str, dict]:
-    """(kind, name, entry) for one route entry — the kind is its leading
+def _classify_line(i: int, entry: Any) -> tuple[str, str, dict]:
+    """(kind, name, entry) for one route line — the kind is its leading
     key, the value the name; exactly one kind key, and only that kind's
     field vocabulary beside it."""
-    where = f"route entry {i}"
+    where = f"route line {i}"
     if not isinstance(entry, dict):
         raise PlaybookError(f"{where} must be a mapping")
-    kinds = [k for k in ENTRY_KINDS if k in entry]
+    kinds = [k for k in LINE_KINDS if k in entry]
     if len(kinds) != 1:
         raise PlaybookError(
-            f"{where} must carry exactly one of {', '.join(ENTRY_KINDS)} "
+            f"{where} must carry exactly one of {', '.join(LINE_KINDS)} "
             f"(got: {', '.join(map(str, sorted(entry))) or '(empty)'})"
         )
     kind = kinds[0]
@@ -681,7 +681,7 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
     reserved built-ins stay `ios.<page>` / `channel.<page>` and can only
     be referenced, never declared here. So a bare `page:` with no
     declaration in the file is an error, never a lookup elsewhere."""
-    where = f"route entry {pos}"
+    where = f"route line {pos}"
     r = parse_ref(name)
     shared = r is not None and r.shared
     reserved = not shared and "." in name
@@ -1056,22 +1056,23 @@ def _grant(ctx: _Ctx, value: Any, where: str, nid: str) -> _Grant:
 
 def _dispatch(*parts: str) -> str:
     """One dot-joined dispatch name, the macro namespace's one speller:
-    `<door>.<file>` for a recorded hand, `<playbook>.<move>[.<role>]`
-    for an inline body (a part's playbook id carries its door, so its
-    bodies can never claim its door's name). `check_name` rejects dots,
-    so neither can collide with a pack macro."""
+    `<entry>.<file>` for a recorded hand, `<playbook>.<move>[.<role>]`
+    for an inline body (a run-only playbook's id carries its entry, so
+    its bodies can never claim the entry's name). `check_name` rejects
+    dots, so neither can collide with a pack macro."""
     return ".".join(parts)
 
 
-def _local_registry(door: str, pack: Pack, local: Scanned[Macro]) -> dict[str, Macro]:
-    """The route's inline registry, opened with the door's recorded
-    hands — its parts' too: each `<door>/macros/<name>.yml` dispatches
-    as `<door>.<name>` — an inline body written down — referenced or not
-    (a stepping tool, an agent's `give:` may name it). A pack hand of
-    the same name is no clash: a bare reference is always the file
-    beside this one, the pack's is `app.macros.<name>`."""
+def _local_registry(entry: str, pack: Pack, local: Scanned[Macro]) -> dict[str, Macro]:
+    """The route's inline registry, opened with the entry's recorded
+    hands — the playbooks it runs share them: each
+    `<entry>/macros/<name>.yml` dispatches as `<entry>.<name>` — an
+    inline body written down — referenced or not (a stepping tool, an
+    agent's `give:` may name it). A pack hand of the same name is no
+    clash: a bare reference is always the file beside this one, the
+    pack's is `app.macros.<name>`."""
     return {
-        _dispatch(door, name): replace(spec, name=_dispatch(door, name))
+        _dispatch(entry, name): replace(spec, name=_dispatch(entry, name))
         for name, spec in local.ok.items()
     }
 
@@ -1088,14 +1089,15 @@ def _macro_resolver(
     macro reports its cause, an unknown one lists what exists) — so
     the slots can never drift. Returns the resolved Macro; its `.name`
     is the dispatch name either way. A bare name is the file beside
-    this one — the DOOR's `macros/`, which is a part's too (already in
-    `inline`, dispatch `app/<door>.<name>`) — and `app.macros.<name>`
-    one of the pack's (dispatch `app/<name>`). An inline body is named
-    for the file that writes it (`app/<door>.<part>.<move>`), so a
-    part's can never claim its door's name."""
+    this one — the ENTRY's `macros/`, shared by the playbooks it runs
+    (already in `inline`, dispatch `app/<entry>.<name>`) — and
+    `app.macros.<name>` one of the pack's (dispatch `app/<name>`). An
+    inline body is named for the file that writes it
+    (`app/<entry>.<playbook>.<move>`), so one can never claim the
+    entry's name."""
 
-    door = door_of(playbook)
-    folder = f"{door}/{PACK_MACROS_DIRNAME}/"
+    entry = entry_of(playbook)
+    folder = f"{entry}/{PACK_MACROS_DIRNAME}/"
     page_of = page_resolver(pack.app, pack.pages, pack.prints)
     pack_macro = macro_resolver(pack.macros, pack.macro_errors)
 
@@ -1110,7 +1112,7 @@ def _macro_resolver(
                 f"macro {ref!r} ({folder}{ref}.yml) is invalid: {local.errors[ref]}"
             )
         if ref in local.ok:
-            return inline[_dispatch(door, ref)]
+            return inline[_dispatch(entry, ref)]
         raise MacroError(
             _not_here("macro", ref, folder, local.ok)
             + _pack_hint(
@@ -1171,7 +1173,7 @@ def _prompt_text(ctx: _Ctx, raw: str, where: str) -> str:
     local = not r.shared
     files = ctx.prompts_local if local else ctx.prompts_pack
     folder = (
-        f"{ctx.door}/{PACK_PROMPTS_DIRNAME}/" if local else f"{PACK_PROMPTS_DIRNAME}/"
+        f"{ctx.entry}/{PACK_PROMPTS_DIRNAME}/" if local else f"{PACK_PROMPTS_DIRNAME}/"
     )
     name = r.name
     check_name(name, f"{where}: `prompt` ({ref})")

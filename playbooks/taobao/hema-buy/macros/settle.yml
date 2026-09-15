@@ -1,3 +1,4 @@
+kind: macro
 name: settle
 description: press 去结算 (or 领券结算) on the 盒马 cart, whose footer sits higher than the other storefronts' (the pack's `settle` is theirs)
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-buy.settle

@@ -28,6 +28,7 @@ from physiclaw.conductor.walk.micro import READ_REPLY, DecisionRequest, MicroOut
 from physiclaw.conductor.walk.step import Paused
 
 LEG = """\
+kind: playbook
 name: leg
 description: one leg — open, then search
 inputs:
@@ -46,6 +47,7 @@ route:
 """
 
 FLOW = """\
+kind: entry
 name: flow
 description: runs a leg then reports
 inputs:
@@ -61,8 +63,8 @@ route:
 
 
 def _pack(**playbooks: str):
-    """The pack on disk, written by playbook id: `flow` is the door and
-    `flow.leg` its part — a part is a file beside the door's."""
+    """The pack on disk, written by playbook id: `flow` is the entry and
+    `flow.leg` one it runs, a file beside the entry's."""
     write_pack(playbooks={"flow.leg": LEG, **playbooks})
     return pb.load_pack("demo")
 
@@ -80,7 +82,7 @@ def test_a_run_is_a_move_framed_like_a_do() -> None:
     run, tell = spec.nodes
     assert isinstance(run, RunNode) and isinstance(tell, TellNode)
     assert run.id == "leg" and run.sub.name == "flow.leg"
-    assert run.sub.part_of == "flow" and spec.part_of is None
+    assert run.sub.run_by == "flow" and spec.run_by is None
     assert run.enter == "" and run.self_starting  # the leg cold-starts itself
     assert run.verify == "results"  # …and lands on the leg's last page
     assert run.args == {"what": "{inputs.keyword}"}
@@ -89,13 +91,14 @@ def test_a_run_is_a_move_framed_like_a_do() -> None:
 
 
 def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
-    spec = _parse(LEG, name="leg")
+    spec = _parse(LEG, name="flow.leg")
 
     assert spec.returns == {"did": "searched {inputs.what}"}
     assert spec.end == "results"
     with pytest.raises(PlaybookError, match="`returns.did`"):
         _parse(
-            LEG.replace('"searched {inputs.what}"', '"searched {nope.x}"'), name="leg"
+            LEG.replace('"searched {inputs.what}"', '"searched {nope.x}"'),
+            name="flow.leg",
         )
 
 
@@ -118,10 +121,14 @@ def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
             "    miss: skip\n  - page: app.pages.results\n  - tell",
             "`miss: skip` goes with `each`",
         ),
-        # A run names a part beside the door — never the door itself…
-        ("run: leg", "run: flow", "no part 'flow' of 'flow'"),
-        # …nor a part the door does not have.
-        ("run: leg", "run: wing", "no part 'wing' of 'flow' — a part is flow/wing.yml"),
+        # A run names a playbook beside the entry — never the entry itself…
+        ("run: leg", "run: flow", "no playbook 'flow' of 'flow'"),
+        # …nor one the entry does not have.
+        (
+            "run: leg",
+            "run: wing",
+            "no playbook 'wing' of 'flow' — it would be flow/wing.yml",
+        ),
     ],
 )
 def test_run_shape_lints(old, new, fragment) -> None:
@@ -136,14 +143,14 @@ def test_a_leg_that_ends_on_a_move_cannot_be_run() -> None:
         _parse(FLOW, flow_leg=leg)
 
 
-def test_a_part_cannot_run_a_playbook() -> None:
-    # A part is a file: it has no folder for parts of its own, so only
-    # a door runs — one level deep by shape, said at the part's `run`.
+def test_only_an_entry_runs_a_playbook() -> None:
+    # What an entry runs is a FILE: it has no folder for playbooks of
+    # its own, so a run goes one level deep by shape, said at its `run`.
     nested = LEG.replace(
         "  - page: app.pages.results\n",
         "  - page: app.pages.results\n  - run: flow\n  - page: app.pages.results\n",
     )
-    with pytest.raises(PlaybookError, match="a part cannot run a playbook"):
+    with pytest.raises(PlaybookError, match="only an entry runs a playbook"):
         _parse(FLOW, flow_leg=nested)
 
 
@@ -251,6 +258,7 @@ def test_a_suspension_inside_a_round_resumes_inside_it() -> None:
 # ---------- each: one round per item ----------
 
 EACH = """\
+kind: entry
 name: flow
 description: one leg per item
 inputs:
@@ -383,6 +391,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
 
 
 RECOVERING_LEG = """\
+kind: playbook
 name: leg
 description: a leg that decides a keyword, then searches
 inputs:
@@ -436,6 +445,7 @@ def test_a_recover_hand_inside_a_round_never_re_derives_the_rounds_answer() -> N
 # ---------- revise: an uncovered reply re-plans ----------
 
 PAY = """\
+kind: playbook
 name: pay
 description: confirm the lines
 inputs:
@@ -453,6 +463,7 @@ route:
 """
 
 REVISING = """\
+kind: entry
 name: flow
 description: legs, then a confirmation that may revise them
 inputs:
@@ -625,28 +636,28 @@ def test_a_reply_sent_before_the_ask_landed_revises_at_the_landing() -> None:
     assert p.gate.replies == ["再加 eggs"]
 
 
-# ---------- a part: the file beside the door, walked by its run only ----------
+# ---------- a playbook the entry runs: the file beside it ----------
 
 
-def test_a_part_is_off_the_boot_menu_but_its_doors_run_walks_it() -> None:
+def test_a_run_only_playbook_is_off_the_boot_menu_but_its_entry_walks_it() -> None:
     pack = _pack(flow=FLOW)
     spec = pb.parse_playbook(LEG, "flow.leg", pack)
     flow = pb.parse_playbook(FLOW, "flow", pack)
-    assert spec.part_of == "flow" and flow.part_of is None
+    assert spec.run_by == "flow" and flow.run_by is None
 
     found = activation.discover()
 
     assert "demo/flow" in found.entries and "demo/flow.leg" not in found.entries
-    assert "demo/flow.leg (a part of flow)" in found.roster
-    assert isinstance(flow.nodes[0], RunNode) and flow.nodes[0].sub.part_of == "flow"
+    assert "demo/flow.leg (run by flow)" in found.roster
+    assert isinstance(flow.nodes[0], RunNode) and flow.nodes[0].sub.run_by == "flow"
     assert lints.unrun_playbooks([spec, flow]) == []
     assert lints.unrun_playbooks([spec]) == [
-        "flow.leg is a part no `run:` of flow names — the boot never offers a "
-        "part, so nothing walks it"
+        "flow.leg is run by no `run:` of flow — the boot offers only an entry, "
+        "so nothing walks it"
     ]
 
 
-def test_a_parts_name_is_its_file_stem_and_scope_is_no_key() -> None:
+def test_a_run_only_playbooks_name_is_its_file_stem_and_scope_is_no_key() -> None:
     write_pack(
         playbooks={"flow.leg": LEG.replace("name: leg", "name: wing"), "flow": FLOW}
     )
@@ -664,10 +675,10 @@ def test_a_parts_name_is_its_file_stem_and_scope_is_no_key() -> None:
         )
 
 
-def test_a_part_reads_its_doors_leaf_folders() -> None:
-    # A part is a file in the door's folder, so the files beside it are
-    # the DOOR's: a bare `macro:` and `prompt:` reach them, and the hand
-    # dispatches under the door, not the part.
+def test_a_run_only_playbook_reads_its_entrys_leaf_folders() -> None:
+    # It is a file in the entry's folder, so the files beside it are the
+    # ENTRY's: a bare `macro:` and `prompt:` reach them, and the hand
+    # dispatches under the entry.
     from conductor_fakes import write_local_macro, write_prompt
 
     leg = LEG.replace("macro: app.macros.add-cart", "macro: hand").replace(
@@ -686,7 +697,7 @@ def test_a_part_reads_its_doors_leaf_folders() -> None:
     assert spec.prompts_used == frozenset({"flow/prompts/note.md"})
 
 
-def test_a_part_naming_no_file_of_its_door_says_the_doors_folder() -> None:
+def test_naming_no_file_of_its_entry_says_the_entrys_folder() -> None:
     leg = LEG.replace("macro: app.macros.add-cart", "macro: hand")
     write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
 
@@ -695,7 +706,103 @@ def test_a_part_naming_no_file_of_its_door_says_the_doors_folder() -> None:
     assert "no macro 'hand' in flow/macros/" in (entries["flow.leg"].error or "")
 
 
-def test_a_folder_inside_a_door_is_not_a_part() -> None:
+CLAIMING_ENTRY = """\
+kind: entry
+name: flow
+description: an entry with a page named for the file beside it
+route:
+  - start: app
+    macro: app.macros.open-app
+  - page: app.pages.leg
+    recover: {macro: {steps: [{peek: null}]}}
+  - do: search
+    macro: app.macros.add-cart
+    with: {message: "x"}
+  - page: app.pages.results
+"""
+
+CLAIMING_LEG = """\
+kind: playbook
+name: leg
+description: one leg with a move named for a hand's role
+route:
+  - start: app
+    macro: app.macros.open-app
+  - page: app.pages.home
+  - do: recover
+    macro: {steps: [{peek: null}]}
+  - page: app.pages.results
+"""
+
+
+def test_two_files_cannot_claim_one_inline_dispatch_name() -> None:
+    # An inline body is `<playbook id>.<move>[.<role>]`, and a run-only
+    # playbook's id carries a dot: the entry's page `leg` writes its
+    # hand inline as `flow.leg.recover`, and `leg.yml`'s own move
+    # `recover` spells the same. The walk dispatches by name, so the
+    # second file is refused rather than silently merged over the first.
+    write_pack(
+        playbooks={"flow.leg": CLAIMING_LEG, "flow": CLAIMING_ENTRY},
+        pages=PAGES + 'leg:\n  anchors: ["Leg"]\n',
+    )
+
+    entries = {e.name: e for e in pb.scan_playbooks("demo")}
+
+    assert entries["flow"].spec is not None, entries["flow"].error
+    assert "inline macro 'flow.leg.recover' is already 'flow'" in (
+        entries["flow.leg"].error or ""
+    )
+
+
+# ---------- `kind:`, checked against where the file sits ----------
+
+
+def test_a_file_declares_what_it_is_and_the_kind_must_match_its_place() -> None:
+    write_pack(playbooks={"flow.leg": LEG, "flow": FLOW})
+    entries = {e.name: e for e in pb.scan_playbooks("demo")}
+    assert entries["flow"].spec is not None and entries["flow.leg"].spec is not None
+
+    # An entry's file claiming to be one of the playbooks it runs.
+    write_pack(
+        playbooks={
+            "flow.leg": LEG,
+            "flow": FLOW.replace("kind: entry", "kind: playbook"),
+        }
+    )
+    assert {e.name: e for e in pb.scan_playbooks("demo")}["flow"].error == (
+        "flow/PLAYBOOK.yml: `kind: playbook` sits where `kind: entry` belongs "
+        "— `kind: playbook` lives in <entry>/<name>.yml, beside the entry that "
+        "runs it"
+    )
+
+
+def test_a_macro_in_a_playbooks_place_is_told_where_it_belongs() -> None:
+    # The whole point of the field: a misplaced file names its own folder
+    # instead of failing on a key the other grammar does not know.
+    root = write_pack(playbooks={"flow.leg": LEG, "flow": FLOW})
+    (root / "flow" / "hand.yml").write_text(
+        "kind: macro\nname: hand\ndescription: d\nsteps:\n  - peek\n", encoding="utf-8"
+    )
+
+    assert {e.name: e for e in pb.scan_playbooks("demo")}["flow.hand"].error == (
+        "flow/hand.yml: `kind: macro` sits where `kind: playbook` belongs — "
+        "`kind: macro` lives in macros/<name>.yml"
+    )
+
+
+def test_a_kind_that_is_no_kind_at_all_is_refused() -> None:
+    write_pack(
+        playbooks={
+            "flow.leg": LEG,
+            "flow": FLOW.replace("kind: entry", "kind: route"),
+        }
+    )
+    assert "is not one of manifest, entry, playbook, macro" in (
+        {e.name: e for e in pb.scan_playbooks("demo")}["flow"].error or ""
+    )
+
+
+def test_a_folder_inside_an_entry_is_not_a_playbook() -> None:
     root = write_pack(playbooks={"flow.leg": LEG, "flow": FLOW})
     (root / "flow" / "wing").mkdir()
     (root / "flow" / "wing" / "PLAYBOOK.yml").write_text(LEG, encoding="utf-8")
@@ -703,7 +810,7 @@ def test_a_folder_inside_a_door_is_not_a_part() -> None:
     entries = {e.name: e for e in pb.scan_playbooks("demo")}
 
     assert entries["flow/wing/"].error == (
-        "demo/flow/wing/: a part of a door is a file beside its PLAYBOOK.yml "
+        "demo/flow/wing/: what an entry runs is a file beside its PLAYBOOK.yml "
         "— flow/wing.yml"
     )
 
@@ -934,6 +1041,7 @@ def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
 
 
 ADDING_LEG = """\
+kind: playbook
 name: leg
 description: a leg whose move has an effect the phone keeps
 inputs:
@@ -987,7 +1095,7 @@ def test_a_hand_after_a_landed_move_never_runs_that_move_again() -> None:
     assert p.ledger.rounds["leg[milk]"]["done"] == "missed"
 
 
-def test_a_broken_part_is_named_in_the_doors_error() -> None:
+def test_a_broken_playbook_is_named_in_its_entrys_error() -> None:
     leg = LEG.replace(
         "description: one leg — open, then search\n",
         "description: one leg — open, then search\nenabled: maybe\n",
@@ -998,11 +1106,11 @@ def test_a_broken_part_is_named_in_the_doors_error() -> None:
 
     assert entries["flow.leg"].error == "`enabled` must be true or false"
     assert entries["flow"].error == (
-        "part 'flow.leg' (run by 'flow'): `enabled` must be true or false"
+        "playbook 'flow.leg' (run by 'flow'): `enabled` must be true or false"
     )
 
 
-def test_a_run_of_a_disabled_part_is_not_live() -> None:
+def test_a_run_of_a_disabled_playbook_is_not_live() -> None:
     leg = LEG.replace(
         "description: one leg — open, then search\n",
         "description: one leg — open, then search\nenabled: false\n",
@@ -1011,7 +1119,7 @@ def test_a_run_of_a_disabled_part_is_not_live() -> None:
     pack = pb.load_pack("demo")
 
     assert pb.live_gap(pb.parse_playbook(FLOW, "flow", pack), pack) == (
-        "runs disabled part 'flow.leg'"
+        "runs disabled playbook 'flow.leg'"
     )
 
 

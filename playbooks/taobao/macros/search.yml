@@ -1,3 +1,4 @@
+kind: macro
 name: search
 description: type a keyword into the home-feed search bar and run the search
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/search

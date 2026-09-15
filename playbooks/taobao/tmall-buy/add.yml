@@ -1,6 +1,7 @@
-# taobao/tmall-buy.add — one item into the 天猫超市 store cart; a part of
-# `tmall-buy`, run once per item after the door opens the store. Starts and ends
+# taobao/tmall-buy.add — one item into the 天猫超市 store cart; run by
+# `tmall-buy`, once per item, after it opens the store. Starts and ends
 # on the store's page, so the rounds chain without a relaunch.
+kind: playbook
 name: add
 description: put one item in the 天猫超市 (Tmall Supermarket) store cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable

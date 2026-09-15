@@ -1,3 +1,4 @@
+kind: macro
 name: cashier
 description: the cashier's button after an order is submitted (立即支付 / 确认支付) — pressed only while one shows
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/cashier

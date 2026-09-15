@@ -11,7 +11,8 @@ from physiclaw.agent.engine.assemble import build_prompt_bundle, format_triggers
 from physiclaw.agent.runtime.hook import Trigger
 from physiclaw.common import paths
 
-MACRO = """name: notify-user
+MACRO = """kind: macro
+name: notify-user
 description: Ping the user
 enabled: true
 

@@ -1,3 +1,4 @@
+kind: macro
 name: send
 description: reach the <<CONTACT>> WeChat thread (open) and send {message} there
 enabled: false

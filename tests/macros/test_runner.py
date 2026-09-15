@@ -53,7 +53,10 @@ def _gesture(
 
 
 def _spec(text: str, name: str = "demo"):
-    return parse_macro(text, name)
+    """One macro FILE parsed. The fixtures carry the body; `kind: macro`
+    is what the file's place in `macros/` requires, added here so the
+    runner's cases read as steps."""
+    return parse_macro(f"kind: macro\n{text}", name)
 
 
 TWO_STEPS = """name: demo
@@ -801,7 +804,7 @@ async def test_run_and_record_keeps_stats_of_disabled_macros() -> None:
     paths.macros_dir().mkdir(parents=True, exist_ok=True)
     for name in ("demo", "resting"):
         (paths.macros_dir() / f"{name}.yml").write_text(
-            f"name: {name}\ndescription: d\nsteps:\n  - peek\n",
+            f"kind: macro\nname: {name}\ndescription: d\nsteps:\n  - peek\n",
             encoding="utf-8",
         )
     macro_stats.record("resting", ok=True, known_names={"demo", "resting"})
@@ -1673,8 +1676,8 @@ steps:
 
 
 def _send_spec(open_text: str = OPEN_TEXT, send_text: str = SEND_TEXT):
-    open_spec = parse_macro(open_text, "open")
-    return parse_macro(send_text, "send", macros=lambda name: open_spec)
+    open_spec = parse_macro(f"kind: macro\n{open_text}", "open")
+    return parse_macro(f"kind: macro\n{send_text}", "send", macros=lambda n: open_spec)
 
 
 async def test_a_run_step_walks_its_macro_in_the_same_run() -> None:

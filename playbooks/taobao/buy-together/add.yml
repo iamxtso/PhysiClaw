@@ -1,7 +1,8 @@
 # taobao/buy-together.add — one item into the marketplace cart: search,
-# pick, 加入购物车; a part of `buy-together`, run once per item.
+# pick, 加入购物车; run by `buy-together`, once per item.
 # Starts anywhere (cold launch, the reset between rounds). Ends on the
 # item page with the item in the cart.
+kind: playbook
 name: add
 description: put one item in the 淘宝 (Taobao) cart by keyword, nothing paid
 enabled: false  # rehearse on YOUR device, then enable

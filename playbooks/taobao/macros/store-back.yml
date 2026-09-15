@@ -1,3 +1,4 @@
+kind: macro
 name: store-back
 description: pop toward the 天猫超市闪购 storefront from its item, results or search-entry page — the item page and the search-entry page (history + keyboard) take their own top-left arrow, the results page a swipe
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/store-back

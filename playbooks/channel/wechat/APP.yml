@@ -2,6 +2,7 @@
 # read, and the placeholders; the hands (open/send) are recorded beside
 # it in macros/<name>.yml, and boot/ beside it is the walk every wake
 # plays first.
+kind: manifest
 app: wechat
 description: >-
   The user-channel pack for WeChat — reach YOUR user's thread by in-app

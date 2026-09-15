@@ -6,7 +6,8 @@ from dataclasses import dataclass
 
 from physiclaw.macros.model import Clause, MacroError, Screen
 
-JUMP = """name: send
+JUMP = """kind: macro
+name: send
 description: reach the thread unless already there, then type
 steps:
   - if_page: thread

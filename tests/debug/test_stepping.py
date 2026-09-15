@@ -243,7 +243,7 @@ def test_at_abandons_a_pending_ask(pack) -> None:
 def test_catalog_lists_the_channel_boot_with_its_activate_step(pack) -> None:
     from conductor_fakes import write_channel
 
-    write_channel("name: open\ndescription: d\nsteps:\n  - home_screen\n")
+    write_channel("kind: macro\nname: open\ndescription: d\nsteps:\n  - home_screen\n")
     from physiclaw.conductor.spec import scaffold
 
     scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel" / "wechat")
@@ -266,7 +266,7 @@ def test_stepping_the_boot_reads_the_staged_reply_as_the_request(pack, mocker) -
     from physiclaw.conductor.walk.micro import MicroOutcome, MicroResult
     from physiclaw.debug import thread as vthread
 
-    write_channel("name: open\ndescription: d\nsteps:\n  - home_screen\n")
+    write_channel("kind: macro\nname: open\ndescription: d\nsteps:\n  - home_screen\n")
     scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel" / "wechat")
     seen: list = []
 

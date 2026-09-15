@@ -13,6 +13,7 @@ from physiclaw.conductor.spec import pack as pb
 from physiclaw.conductor.spec.model import PlaybookError
 
 SEND = """\
+kind: macro
 name: send
 description: reach, then speak
 inputs:

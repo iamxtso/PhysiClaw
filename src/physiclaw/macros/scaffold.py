@@ -40,6 +40,7 @@ def render_init(name: str) -> str:
 # editing (`tests/macros/test_scaffold.py` pins that, including that
 # it deliberately stops before Send).
 INIT_TEMPLATE = """\
+kind: macro                    # what this file is; a hand lives in macros/
 name: {name}                   # must equal the file name
 description: Open WeChat, paste a message into your user's chat, stop before Send
 
@@ -160,6 +161,8 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
 
 ## Format
 
+- `kind` (required) — `macro`: what this file is, checked against where it
+  sits. A file carrying another kind is told which folder it belongs in.
 - `name` (required) — must equal the file name; lowercase/digits/hyphens.
 - `description` (required) — tells the agent when to use it. It, and each
   input's `description` / `example`, must be ONE line of at most

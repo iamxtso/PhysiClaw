@@ -85,6 +85,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
 from physiclaw.common import bbox, gesture_vocab
+from physiclaw.common.paths import KIND_MACRO, kind_gap
 from physiclaw.common.placeholders import resolve_placeholders
 from physiclaw.macros.inputs import resolve_inputs
 from physiclaw.macros.model import (
@@ -134,7 +135,7 @@ from physiclaw.macros.steps import (
 from physiclaw.macros.template import TemplateError, placeholders
 
 # The key vocabulary of each mapping production, in grammar order.
-_TOP_KEYS = {"name", "description", "enabled", "inputs", "steps"}
+_TOP_KEYS = {"kind", "name", "description", "enabled", "inputs", "steps"}
 _INPUT_KEYS = {"description", "default", "example"}
 # A step is one verb key plus these qualifiers.
 _QUALIFIER_KEYS = {
@@ -234,7 +235,7 @@ def parse_macro(
     macros: MacroResolver | None = None,
 ) -> Macro:
     """Parse + validate one macro file; `stem` is its file name without
-    the suffix, which `name:` must equal. `pages` is the pack's page
+    the suffix, which `name:` must equal, under `kind: macro`. `pages` is the pack's page
     resolver (`PageResolver`), which a jump's `if_page` needs; `macros`
     the folder's macro resolver (`MacroResolver`), which a `run` step
     needs. Raises MacroError with a message that names the offending
@@ -248,6 +249,12 @@ def parse_macro(
         raise MacroError("a macro file must be a YAML mapping (key: value pairs)")
 
     reject_aliases(data)
+
+    # `kind:` FIRST: a file in the wrong folder is named for what it is,
+    # never refused for a key the other grammar happens not to know.
+    gap = kind_gap(data.get("kind"), KIND_MACRO)
+    if gap is not None:
+        raise MacroError(gap)
 
     unknown = sorted(set(data.keys()) - _TOP_KEYS)
     if unknown:
@@ -278,12 +285,13 @@ def parse_macro(
     )
 
 
-# What an embedded body must NOT carry: `name` (the caller synthesizes
-# it), `description` (the node it sits on is the context), `enabled` (an
-# inline macro goes live with its playbook, never on its own). The inline
-# vocabulary is derived by subtraction so a key added to the macro-file
-# grammar reaches the inline form without a second edit.
-_IDENTITY_KEYS = frozenset({"name", "description", "enabled"})
+# What an embedded body must NOT carry: `kind` (it is not a file, so
+# nothing places it), `name` (the caller synthesizes it), `description`
+# (the node it sits on is the context), `enabled` (an inline macro goes
+# live with its playbook, never on its own). The inline vocabulary is
+# derived by subtraction so a key added to the macro-file grammar
+# reaches the inline form without a second edit.
+_IDENTITY_KEYS = frozenset({"kind", "name", "description", "enabled"})
 _INLINE_KEYS = frozenset(_TOP_KEYS) - _IDENTITY_KEYS
 
 
@@ -309,8 +317,8 @@ def parse_inline_macro(
     if unknown:
         raise MacroError(
             f"unknown key(s): {', '.join(unknown)} — an inline macro takes "
-            "only `steps` and `inputs`; name, description and enabled "
-            "belong to a directory macro"
+            f"only `steps` and `inputs`; {', '.join(sorted(_IDENTITY_KEYS))} "
+            "belong to a macro FILE"
         )
     inputs = parse_inputs(data.get("inputs", {}))
     steps = _parse_steps(data.get("steps"), {i.name for i in inputs}, pages, macros)

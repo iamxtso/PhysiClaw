@@ -38,15 +38,15 @@ from physiclaw.conductor.spec.pages import PageDecl, PagePrint
 
 
 def unrun_playbooks(specs: list[Playbook]) -> list[str]:
-    """`playbooks check`'s line for a part no `run:` of its door names —
-    the boot never offers a part and nothing walks it, so it is dead
-    until one does."""
+    """`playbooks check`'s line for a playbook no `run:` of its entry
+    names — the boot never offers one, so nothing walks it and it is
+    dead until a `run:` does."""
     run = {r.sub.name for spec in specs for r in spec.runs}
     return [
-        f"{spec.name} is a part no `run:` of {spec.part_of} names — the boot "
-        "never offers a part, so nothing walks it"
+        f"{spec.name} is run by no `run:` of {spec.run_by} — the boot offers "
+        "only an entry, so nothing walks it"
         for spec in specs
-        if spec.part_of is not None and spec.name not in run
+        if not spec.offered and spec.name not in run
     ]
 
 

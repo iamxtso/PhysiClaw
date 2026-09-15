@@ -1,6 +1,7 @@
-# taobao/hema-buy.add — one item into the 盒马 cart; a part of `hema-buy`,
-# run once per item after the door enters the storefront. Starts and ends
+# taobao/hema-buy.add — one item into the 盒马 cart; run by `hema-buy`,
+# once per item, after it enters the storefront. Starts and ends
 # on the storefront's home, so the rounds chain without a relaunch.
+kind: playbook
 name: add
 description: put one item in the 盒马 (Hema) cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable
@@ -45,6 +46,6 @@ route:
   - page: app.pages.store-detail  # the item page: 加入购物车 and the 店铺 tab
 
   - do: back-to-store             # the item page's arrow, then the results' — lands on hema-home
-    macro: back                 # this door's own hand
+    macro: back                 # this entry's own hand
 
   - page: app.pages.hema-home

@@ -1,4 +1,4 @@
-"""The step executor — what every route entry kind implements, and the
+"""The step executor — what every route line kind implements, and the
 `Walk` contract a step may rely on.
 
 The walk (`program.py`) owns the cursor, the one action in flight, the

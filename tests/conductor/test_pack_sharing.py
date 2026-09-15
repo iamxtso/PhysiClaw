@@ -18,6 +18,7 @@ from physiclaw.conductor.spec.pack import qualified_all
 from physiclaw.conductor.spec.pages import prints_for_app
 
 MANIFEST = """\
+kind: manifest
 app: shop
 description: two tasks in one app
 placeholders:
@@ -41,6 +42,7 @@ pages:
 """
 
 BUY = """\
+kind: entry
 name: buy
 description: buy something
 inputs:
@@ -64,6 +66,7 @@ route:
 """
 
 TRACK = """\
+kind: entry
 name: track
 description: track an order
 route:
@@ -84,7 +87,7 @@ def _write_pack(app: str, manifest: str, **playbooks: str):
     """A pack the fixtures share: two recorded hands, the manifest, and
     the playbook files given by name."""
     root = paths.playbooks_dir() / app
-    (root / "macros").mkdir(parents=True)
+    (root / "macros").mkdir(parents=True, exist_ok=True)
     for name in ("launch", "search"):
         (root / "macros" / f"{name}.yml").write_text(
             PACK_MACRO.format(name=name), encoding="utf-8"
@@ -99,6 +102,16 @@ def _write_pack(app: str, manifest: str, **playbooks: str):
 def shop():
     write_placeholder_values({"CONTACT": "Alice"})
     return _write_pack("shop", MANIFEST, buy=BUY, track=TRACK)
+
+
+def test_the_manifest_says_what_it_is_too() -> None:
+    _write_pack("shop", MANIFEST.replace("kind: manifest\n", ""), buy=BUY)
+    with pytest.raises(PlaybookError, match="shop/APP.yml: no `kind:`"):
+        pb.load_pack("shop")
+
+    _write_pack("shop", MANIFEST.replace("kind: manifest", "kind: entry"), buy=BUY)
+    with pytest.raises(PlaybookError, match="`kind: entry` sits where"):
+        pb.load_pack("shop")
 
 
 def test_both_playbooks_parse_against_the_one_manifest(shop) -> None:
@@ -243,6 +256,7 @@ def test_activation_menu_is_one_line_per_playbook_and_check_flags_twins(shop) ->
 # ---------- a playbook's own recorded hands ----------
 
 LOCAL_BUY = """\
+kind: entry
 name: buy
 description: buy with its own recorded search
 route:

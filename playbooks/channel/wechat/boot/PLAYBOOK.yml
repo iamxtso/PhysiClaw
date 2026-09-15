@@ -3,6 +3,7 @@
 # playbook the baton. A route like any other: edit the hands and the
 # limits, step it (physiclaw playbooks step channel/boot),
 # replay it over a recorded wake. Live once `open` is enabled.
+kind: entry
 name: boot
 description: reach the user's thread and read the request there
 enabled: true

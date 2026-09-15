@@ -6,13 +6,13 @@ marketplace, by courier: `buy` buys one item off the 立即购买 sheet;
 storefronts inside the app, each with its own cart and order page:
 `hema-buy` for 盒马 groceries (fresh food, ~30 min), `tmall-buy` for
 天猫超市 staples (packaged food, household goods, ~4 h), `shangou-buy`
-for 淘宝闪购 takeout from one restaurant or shop (~30 min). A door that
-buys several items runs its two parts, the files beside its
-PLAYBOOK.yml: `add.yml` once per item, then `checkout.yml`
-(`taobao/buy-together.add` to rehearse one); `shangou-buy` adds every
-dish inside one store visit instead and has none.
+for 淘宝闪购 takeout from one restaurant or shop (~30 min). An entry that
+buys several items runs the two playbooks beside its PLAYBOOK.yml:
+`add.yml` once per item, then `checkout.yml` (`taobao/buy-together.add`
+to rehearse one); `shangou-buy` adds every dish inside one store visit
+instead and runs none.
 
-## Which door
+## Which entry
 
 The boot reads the request and picks by description: a store named
 (盒马, 天猫超市 / 猫超, 外卖 / 闪购, a café or restaurant) decides; fresh
@@ -37,17 +37,17 @@ taobao` on your phone so one OCR miss does not read a page unknown.
 
 ## Rehearsal
 
-`macros/` holds the hands more than one door shares — `launch` (which
+`macros/` holds the hands more than one entry shares — `launch` (which
 runs `foreground` and `cold-launch`), `search`, `cashier` (the
 marketplace and storefront pay hands run it), the `store-*` and
 `shangou-*` hands two storefronts share, and `hema-recover`, which a
-manifest page's `recover:` names. A hand only one door uses lives in
-that door's own `macros/` and is written bare there:
+manifest page's `recover:` names. A hand only one entry uses lives in
+that entry's own `macros/` and is written bare there:
 `hema-buy/macros/{back,open-cart,settle}.yml`,
 `buy-together/macros/nudge.yml`, `tmall-buy/macros/open-tmall.yml`
 (`hema-buy`'s `settle` is 盒马's, the pack's is the other storefronts').
 Each ships disabled and needs `physiclaw macros run taobao/<name>` —
-a door's is `taobao/<door>.<name>` — on your device before a playbook
+an entry's is `taobao/<entry>.<name>` — on your device before a playbook
 that uses it is live.
 
 ## Traps

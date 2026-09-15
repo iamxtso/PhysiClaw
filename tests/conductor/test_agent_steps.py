@@ -1334,7 +1334,7 @@ def test_a_granted_macro_tapping_a_target_is_refused_at_run_time() -> None:
         None,
         "macros",
         "pay-bar.yml",
-        "name: pay-bar\ndescription: the bar\nsteps:\n"
+        "kind: macro\nname: pay-bar\ndescription: the bar\nsteps:\n"
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
@@ -1367,7 +1367,7 @@ def test_a_granted_playbook_local_macro_is_named_as_it_dispatches() -> None:
         paths.playbooks_dir() / "demo",
         "walk",
         "pay-bar",
-        "name: pay-bar\ndescription: the bar\nsteps:\n"
+        "kind: macro\nname: pay-bar\ndescription: the bar\nsteps:\n"
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(

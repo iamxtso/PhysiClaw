@@ -1,7 +1,8 @@
 # taobao/tmall-buy — staples from 天猫超市 inside Taobao, several items
 # in ONE order (~4 h): open the store once through 闪购's search,
-# its part `add` per item, then its part `checkout`. Starts anywhere. Ends on
+# `add` per item then `checkout`, the playbooks beside it. Starts anywhere. Ends on
 # the paid page, the buyer told.
+kind: entry
 name: tmall-buy
 description: >-
   buy supermarket staples from 天猫超市 (猫超) inside 淘宝, one order in ~4 h:

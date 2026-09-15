@@ -1,5 +1,6 @@
 # taobao/buy — one item from a keyword to a paid order, by courier.
 # Starts anywhere (cold launch). Ends on the paid page, the buyer told.
+kind: entry
 name: buy                       # = this folder's name; referenced as taobao/buy
 description: buy one item on 淘宝 (Taobao) by keyword, shipped by courier — the default for a product that names no store
 enabled: false  # rehearse on YOUR device, then enable

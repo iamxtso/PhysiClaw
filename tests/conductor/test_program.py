@@ -33,7 +33,6 @@ from conductor_fakes import (
     thread_screen as _thread,
 )
 
-from physiclaw.common import paths as paths_mod
 from physiclaw.conductor.drive import build, setup
 from physiclaw.conductor.spec import channel, limits, lints
 from physiclaw.conductor.spec.model import PlaybookError
@@ -603,10 +602,7 @@ def test_session_setup_builds_no_boot_without_an_enabled_playbook() -> None:
     # Nothing to offer, nothing to boot for — no wake pays the boot's
     # turns to read a thread no playbook could answer.
     write_channel(CHANNEL_OPEN)
-    write_pack(playbooks={"flow": FLOW.replace("enabled: true", "enabled: false")})
-    (paths_mod.playbooks_dir() / "demo" / "flow" / "PLAYBOOK.yml").write_text(
-        "name: flow\nenabled: false\n" + FLOW, encoding="utf-8"
-    )
+    write_pack(playbooks={"flow": "enabled: false\n" + FLOW})
 
     prog, hidden = setup.session_setup()
 

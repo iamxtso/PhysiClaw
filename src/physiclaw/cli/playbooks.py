@@ -897,11 +897,11 @@ def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> 
     which playbooks the boot will not offer, and why — the reason from
     `pack.live_gap`, the one rule the wake roster and `require_live`
     also read. Rehearse them (`playbooks run`), then enable."""
-    from physiclaw.conductor.spec.pack import live_gap, offered
+    from physiclaw.conductor.spec.pack import live_gap
 
     for e in entries:
-        if e.spec is None or not offered(e.spec):
-            continue  # a part is never offered; its door's gap says if it is off
+        if e.spec is None or not e.spec.offered:
+            continue  # never offered; its entry's gap says if it is off
         if (gap := live_gap(e.spec, pack)) is not None:
             typer.echo(warn(f"{app}/{e.name}: the boot will not offer it — {gap}."))
 

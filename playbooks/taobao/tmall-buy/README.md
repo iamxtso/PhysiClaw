@@ -2,9 +2,8 @@
 
 Supermarket staples from 天猫超市 inside Taobao, several items in one
 order. The walk launches Taobao, opens the 闪购外卖 tab, searches 天猫超市
-there and opens its store card (`open-tmall`), then the part `add` runs
-once per item from the store's page and the part `checkout` finishes,
-with a revision path back to `parse` as in `buy-together`.
+there and opens its store card (`open-tmall`), then `add` runs once per
+item from the store's page and `checkout` finishes, with a revision path back to `parse` as in `buy-together`.
 
 ## Device
 

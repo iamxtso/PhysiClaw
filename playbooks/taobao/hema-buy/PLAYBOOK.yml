@@ -1,7 +1,8 @@
 # taobao/hema-buy — groceries from 盒马 inside Taobao, several items in
-# ONE order (~30 min): enter the storefront once, its part `add` per
-# item, then its part `checkout`. Starts anywhere. Ends on the paid page, the
-# buyer told.
+# ONE order (~30 min): enter the storefront once, then run `add` per item
+# and `checkout`, the playbooks beside this file. Starts anywhere. Ends
+# on the paid page, the buyer told.
+kind: entry
 name: hema-buy
 description: >-
   buy groceries from 盒马 (Hema) inside 淘宝, one order in ~30 min: fresh food,

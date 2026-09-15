@@ -116,9 +116,9 @@ RECOVER_READINGS = (READING_COVERED, READING_ELSEWHERE, READING_LOCKED)
 # The one irreversible class: money. A payment move is entered only as
 # the fall-through of an `ask` with `approve: payment` (`lints.py`).
 IRREVERSIBLE_CLASSES = ("payment",)
-# A route entry's `on_fail:` — once its own means are spent, `handover`
+# A route line's `on_fail:` — once its own means are spent, `handover`
 # (also when unsaid) briefs the model, `stop` ends the session by the
-# walk's own hand. The playbook decides, entry by entry (README).
+# walk's own hand. The playbook decides, line by line (README).
 ON_FAIL_STOP = "stop"
 ON_FAIL_MODES = ("handover", ON_FAIL_STOP)
 # A `run`'s `miss:` — the third exit word, legal on a run with `each`
@@ -307,7 +307,7 @@ class RunNode:
     at any ask INSIDE this run re-runs the walk from there, at most
     `revise_limit` times."""
 
-    id: str  # the run's own word, which is the part's name (`run: add`)
+    id: str  # the run's own word, which is the playbook's name (`run: add`)
     args: dict  # `with:` — ref templates, filled at run time
     sub: "Playbook"
     enter: str  # "" when the playbook opens with its own `start`
@@ -440,14 +440,24 @@ class Playbook:
     end: str = ""
 
     @property
-    def part_of(self) -> str | None:
-        """The door this playbook is a part of — None when it IS a door.
-        Where the file sits says who may launch it: a door
-        (`<name>/PLAYBOOK.yml`) the boot offers for a request; a part
-        (`<door>/<name>.yml`, id `<door>.<name>`) only its door walks,
-        by `run:` — and `playbooks run`, to rehearse it — never the
-        agent, never another pack."""
-        return paths.part_of(self.name)
+    def run_by(self) -> str | None:
+        """The entry whose `run:` walks this playbook — None when it IS
+        an entry. Where the file sits says who may launch it: an entry
+        (`<name>/PLAYBOOK.yml`, `kind: entry`) the boot offers for a
+        request; a playbook beside it (`<entry>/<name>.yml`, `kind:
+        playbook`, id `<entry>.<name>`) only that entry walks, by `run:`
+        — and `playbooks run`, to rehearse it — never the agent, never
+        another pack."""
+        return paths.run_by(self.name)
+
+    @property
+    def offered(self) -> bool:
+        """Whether the boot may launch this playbook at all — an entry,
+        yes; one an entry runs, never. The STRUCTURAL rule, apart from
+        readiness (`pack.live_gap`): such a playbook cannot be enabled
+        into being offered, so everything that filters the menu reads
+        this, not a gap string."""
+        return self.run_by is None
 
     @property
     def runs(self) -> tuple["RunNode", ...]:
@@ -590,9 +600,9 @@ class Pack:
     landmarks: dict[str, Landmark] = field(default_factory=dict)
 
     def local_for(self, playbook: str) -> Files:
-        """A playbook's own leaf folders — its door's for a part — empty
-        when it has none."""
-        return self.local.get(paths.door_of(playbook), Files())
+        """A playbook's own leaf folders — its entry's, for a playbook
+        that entry runs — empty when it has none."""
+        return self.local.get(paths.entry_of(playbook), Files())
 
     def file_errors(self) -> list[tuple[str, str]]:
         """Every leaf file that would not load, as (pack-relative path,

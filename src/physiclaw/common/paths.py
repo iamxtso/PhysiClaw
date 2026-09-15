@@ -57,6 +57,7 @@ import functools
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from physiclaw.common.text import read_text
 
@@ -71,12 +72,12 @@ SOURCE_LAYER: bool = "PHYSICLAW_HOME" not in os.environ
 
 # The pack layout's fixed names. A folder with APP.yml is a pack (the
 # app's manifest: what its playbooks share); a folder inside it with
-# PLAYBOOK.yml is a playbook (the route) — a DOOR, the whole workflow
-# the boot may offer. Any other `<part>.yml` beside it is one of the
-# door's PARTS: walked only by that door's `run:`, never offered. The
-# two reserved subfolders hold leaf files — recorded hands and the
-# model's prose — at either level, and are never mistaken for a
-# playbook; a door's leaf folders serve its parts too.
+# PLAYBOOK.yml is an ENTRY: the whole workflow the boot may offer for a
+# request. Any other `<name>.yml` beside it is one of the playbooks that
+# entry runs, walked by its `run:` and never offered. The two reserved
+# subfolders hold leaf files — recorded hands and the model's prose — at
+# either level, and are never mistaken for a playbook; an entry's leaf
+# folders serve the playbooks beside it too.
 PACK_FILENAME = "APP.yml"
 PLAYBOOK_FILENAME = "PLAYBOOK.yml"
 PLAYBOOK_SUFFIX = ".yml"
@@ -86,42 +87,89 @@ RESERVED_PACK_DIRS = frozenset({PACK_MACROS_DIRNAME, PACK_PROMPTS_DIRNAME})
 PROMPT_SUFFIX = ".md"
 
 
+# What a file IS, declared by its first line and checked against where
+# it sits (`kind_gap`): the pack's manifest, an entry (the workflow the
+# boot may offer), one of the playbooks that entry runs, or a recorded
+# hand. Position still decides how a file is parsed — `kind:` is the
+# file saying so itself, so a misplaced one names the folder it wants.
+# (Not the studio job kind or an agent grant's kind — those name other
+# things in other layers; this one names a FILE.)
+KIND_MANIFEST = "manifest"
+KIND_ENTRY = "entry"
+KIND_PLAYBOOK = "playbook"
+KIND_MACRO = "macro"
+# Every kind with where it lives, for the sentence a misplaced file
+# gets. The one listing: `FILE_KINDS` reads its keys, so a kind added
+# here cannot be admitted without a home to name.
+KIND_HOMES = {
+    KIND_MANIFEST: f"the pack's {PACK_FILENAME}",
+    KIND_ENTRY: f"<name>/{PLAYBOOK_FILENAME}",
+    KIND_PLAYBOOK: f"<entry>/<name>{PLAYBOOK_SUFFIX}, beside the entry that runs it",
+    KIND_MACRO: f"{PACK_MACROS_DIRNAME}/<name>{PLAYBOOK_SUFFIX}",
+}
+FILE_KINDS = tuple(KIND_HOMES)
+
+
+def kind_gap(declared: Any, want: str) -> str | None:
+    """What is wrong with a file's `kind:` — None when it matches where
+    the file sits. ONE wording for the three parsers, each raising it as
+    its own error: absent, not a kind at all, or a kind that belongs in
+    another folder (then the sentence names that folder)."""
+    if declared is None:
+        return f"no `kind:` — a file here starts `kind: {want}`"
+    if not isinstance(declared, str) or declared not in FILE_KINDS:
+        return f"`kind: {declared}` is not one of {', '.join(FILE_KINDS)}"
+    if declared != want:
+        return (
+            f"`kind: {declared}` sits where `kind: {want}` belongs — "
+            f"`kind: {declared}` lives in {KIND_HOMES[declared]}"
+        )
+    return None
+
+
 def split_playbook(playbook: str) -> tuple[str, str | None]:
-    """A playbook id read once: `(door, part)` — `("hema-buy", "add")`
-    for `hema-buy.add`, `("buy", None)` for a door. THE parse of the id;
-    `door_of`, `own_name`, `part_of` and `playbook_file` are its faces,
-    so the dot means one thing everywhere."""
-    door, sep, part = playbook.partition(".")
-    return door, part if sep else None
+    """A playbook id read once: `(entry, name)` — `("hema-buy", "add")`
+    for `hema-buy.add`, `("buy", None)` for an entry itself. THE parse
+    of the id; `entry_of`, `own_name`, `run_by`, `kind_of` and
+    `playbook_file` are its faces, so the dot means one thing
+    everywhere."""
+    entry, sep, name = playbook.partition(".")
+    return entry, name if sep else None
 
 
-def door_of(playbook: str) -> str:
-    """The door a playbook id names — itself for a door, the folder for
-    a part (`hema-buy.add` → `hema-buy`). A part's leaf folders are its
-    door's."""
+def entry_of(playbook: str) -> str:
+    """The entry a playbook id belongs to — itself for an entry, the
+    folder for one of the playbooks it runs (`hema-buy.add` →
+    `hema-buy`). An entry's leaf folders are theirs too."""
     return split_playbook(playbook)[0]
 
 
-def part_of(playbook: str) -> str | None:
-    """The door a PART belongs to — None when the id is a door's. The
-    predicate too: `if part_of(name)` is "this is a part"."""
-    door, part = split_playbook(playbook)
-    return door if part is not None else None
+def run_by(playbook: str) -> str | None:
+    """The entry whose `run:` walks this playbook — None when the id is
+    an entry's own. The predicate too: `if run_by(name)` is "the boot
+    never offers this"."""
+    entry, name = split_playbook(playbook)
+    return entry if name is not None else None
 
 
 def own_name(playbook: str) -> str:
-    """A playbook id's own name — the folder's for a door, the file
-    stem for a part — the name its file declares."""
-    door, part = split_playbook(playbook)
-    return part if part is not None else door
+    """A playbook id's own name — the folder's for an entry, the file
+    stem for a playbook it runs — the name its file declares."""
+    entry, name = split_playbook(playbook)
+    return name if name is not None else entry
+
+
+def kind_of(playbook: str) -> str:
+    """The `kind:` a playbook id's file must declare."""
+    return KIND_PLAYBOOK if run_by(playbook) else KIND_ENTRY
 
 
 def playbook_file(playbook: str) -> str:
     """A playbook id's file, pack-relative: `hema-buy/PLAYBOOK.yml` for
-    a door, `hema-buy/add.yml` for its part."""
-    door, part = split_playbook(playbook)
-    leaf = PLAYBOOK_FILENAME if part is None else f"{part}{PLAYBOOK_SUFFIX}"
-    return f"{door}/{leaf}"
+    an entry, `hema-buy/add.yml` for a playbook it runs."""
+    entry, name = split_playbook(playbook)
+    leaf = PLAYBOOK_FILENAME if name is None else f"{name}{PLAYBOOK_SUFFIX}"
+    return f"{entry}/{leaf}"
 
 
 # The one skip convention every artifact lister shares: a `_` or `.`
@@ -147,7 +195,7 @@ def leaf_files(root: Path, suffix: str) -> list[Path]:
 
 def leaf_dirs(root: Path) -> list[Path]:
     """``<root>/*/``, sorted, minus the skip convention — `leaf_files`'
-    twin for the folder walk (a pack's playbook folders, a door's
+    twin for the folder walk (a pack's entry folders, an entry's
     subfolders). An absent root is no folders."""
     if not root.is_dir():
         return []

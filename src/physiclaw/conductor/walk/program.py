@@ -12,7 +12,7 @@ flight (`turns.py`), the page verdict every step judges against, the
 declared recovery toward a page (`recover.py`), the money state an ask
 binds and a payment move spends, the terminal moments, and the record
 they write (`record.py`). What each STEP does is its executor's
-(`step.py` is the contract), one per route entry kind: `step_do`,
+(`step.py` is the contract), one per route line kind: `step_do`,
 `step_agent`, `step_ask`, `step_tell`, `step_activate`.
 
 What the playbook declares is what runs: the walk opens with one peek,
@@ -111,7 +111,7 @@ class Phase(StrEnum):
     DONE = "done"  # the last word is minted: brief, or crash — quiet from here
 
 
-# The executor for each route entry kind (`Node` is a closed union).
+# The executor for each route line kind (`Node` is a closed union).
 _STEP_FOR: dict[type, type[Step]] = {
     DoNode: DoStep,
     AgentNode: AgentStep,
