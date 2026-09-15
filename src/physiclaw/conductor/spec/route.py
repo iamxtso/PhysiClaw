@@ -24,6 +24,7 @@ from typing import Any, TypeVar
 from physiclaw.common import gesture_vocab
 from physiclaw.common.bbox import parse_within
 from physiclaw.common.paths import (
+    PACK_FILENAME,
     PACK_MACROS_DIRNAME,
     PACK_PROMPTS_DIRNAME,
     PROMPT_SUFFIX,
@@ -105,10 +106,13 @@ from physiclaw.contract.dto import THINKING_LEVELS, Thinking
 from physiclaw.macros.model import (
     LANDMARKS_KIND,
     MACROS_KIND,
+    PAGES_KIND,
     PROMPTS_KIND,
     Macro,
     MacroError,
     MacroInput,
+    app_ref,
+    app_refs,
     checked_readings,
     parse_ref,
 )
@@ -121,7 +125,7 @@ from physiclaw.macros.parse import parse_inline_macro
 _AGENT_LIMIT_KEYS = {"calls", "scrolls"}
 
 # The declared-recovery hand, in a macro step's own shape: a bare
-# gesture, `{tap: landmarks.<name>}`, or `{macro: <name>}`. Closed
+# gesture, `{tap: app.landmarks.<name>}`, or `{macro: app.macros.<name>}`. Closed
 # vocabulary — a recover hand resets state, it does not navigate (the
 # route does that). A page declares one hand for any deviation, or one
 # per reading (`covered:` / `elsewhere:` / `locked:`), plus its own
@@ -130,10 +134,6 @@ BARE_HANDS = tuple(sorted(gesture_vocab.NAV_TOOLS | {gesture_vocab.UNLOCK_PHONE}
 _HAND_KEYS = {"tap", "macro"}
 _RECOVER_KEYS = _HAND_KEYS | set(RECOVER_READINGS)
 
-# What an agent may be granted by name (`give:`): a landmark it may tap
-# blind, or a macro it may run — the reference kinds of `parse_ref`.
-GRANT_LANDMARKS = LANDMARKS_KIND
-GRANT_MACROS = MACROS_KIND
 
 # Route entry vocabularies. An entry's KIND is its leading key and the
 # value is the entry's name — the map-key-is-the-name doctrine, applied
@@ -202,7 +202,7 @@ class _Ctx:
         default_factory=lambda: {"ask": ("replies",)}
     )
     # The prompt files an agent step may name — this route's own
-    # (`prompts.<name>`) and the pack's (`<pack>.prompts.<name>`) — and
+    # (`prompts.<name>`) and the pack's (`app.prompts.<name>`) — and
     # the files it did read, pack-relative (`buy/prompts/pick.md`).
     prompts_local: Scanned[str] = field(default_factory=Scanned)
     prompts_pack: Scanned[str] = field(default_factory=Scanned)
@@ -630,46 +630,78 @@ def _classify_entry(i: int, entry: Any) -> tuple[str, str, dict]:
 
 
 def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) -> str:
-    """One page waypoint's id. Own-pack pages are written bare (the route
-    IS the pack's context); the reserved built-ins stay dotted
-    (`ios.<page>`/`channel.<page>`) and can only be referenced, never
-    declared here."""
+    """One page waypoint's id. Three spellings: a bare name is a page
+    declared beside a waypoint of THIS route (there, and at every later
+    waypoint of the route); `app.pages.<name>` is the manifest's; the
+    reserved built-ins stay `ios.<page>` / `channel.<page>` and can only
+    be referenced, never declared here. So a bare `page:` with no
+    declaration in the file is an error, never a lookup elsewhere."""
     where = f"route entry {pos}"
-    if "." in name:
-        app, _, page = name.partition(".")
-        if app not in RESERVED_APPS:
-            raise PlaybookError(
-                f"{where}: page {name!r} — waypoints name this pack's pages "
-                f"bare, or a reserved namespace "
-                f"({', '.join(sorted(RESERVED_APPS))}).<page>"
-            )
-        check_name(page, f"{where}: page")
-        if not entry.keys().isdisjoint(PAGE_DECL_FIELDS):
-            raise PlaybookError(
-                f"{where}: {name!r} is a reserved built-in — it cannot be "
-                "declared from a pack"
-            )
-        return name
-    check_name(name, f"{where}: `page`")
-    decl = route_decl(entry)
-    if decl is not None and name not in pack.pages:
+    r = parse_ref(name)
+    shared = r is not None and r.shared
+    reserved = not shared and "." in name
+    page = (
+        r.name
+        if r is not None and shared
+        else name.partition(".")[2]
+        if reserved
+        else name
+    )
+    declares = route_decl(entry) is not None
+    owner = pack.route_pages.get(page)
+    if r is not None and shared and r.kind != PAGES_KIND:
+        raise PlaybookError(
+            f"{where}: page {name!r} — the manifest's pages are `{app_ref(PAGES_KIND, '<name>')}`"
+        )
+    if reserved and name.partition(".")[0] not in RESERVED_APPS:
+        raise PlaybookError(
+            f"{where}: page {name!r} — a waypoint names a page declared in this "
+            f"route bare, the manifest's as `{app_ref(PAGES_KIND, '<page>')}`, or a "
+            f"reserved namespace ({', '.join(sorted(RESERVED_APPS))}).<page>"
+        )
+    check_name(page, f"{where}: `page`")
+    if declares and shared:
+        raise PlaybookError(
+            f"{where}: {name!r} carries a declaration — a page declared beside "
+            f"its waypoint is this route's own, written bare: `page: {page}`"
+        )
+    if declares and reserved:
+        raise PlaybookError(
+            f"{where}: {name!r} is a reserved built-in — it cannot be declared from a pack"
+        )
+    if shared and owner is not None:
+        hint = (
+            f"write `page: {page}`"
+            if page in declared
+            else f"a route's page is its own — move it to {PACK_FILENAME} to share it"
+        )
+        raise PlaybookError(
+            f"{where}: page {page!r} is declared beside a waypoint of {owner!r}, "
+            f"not in {PACK_FILENAME} — {hint}"
+        )
+    if shared and page not in pack.pages:
+        manifest = [n for n in pack.pages if n not in pack.route_pages]
+        raise PlaybookError(
+            f"{where}: page {page!r} is not declared in {PACK_FILENAME}. "
+            f"Declared: {app_refs(PAGES_KIND, manifest)}"
+        )
+    if declares and page not in pack.pages:
         # Validate the in-place declaration's CONTENT here too, so the
         # text door (`parse_playbook` — tests, tooling) enforces the
         # same page grammar the pack door does via `collect_page_decls`;
         # a playbook green at one door must not go red at the other.
         # (The pack door already parsed it when the pack knows the page.)
         try:
-            parse_pages_data({name: decl}, pack.app)
+            parse_pages_data({page: route_decl(entry)}, pack.app)
         except PagesError as e:
             raise PlaybookError(f"{where}: {e}") from e
-    elif name not in pack.pages and name not in declared:
-        known = ", ".join(sorted(pack.pages)) or "(none)"
+    if not shared and not reserved and not declares and page not in declared:
         raise PlaybookError(
-            f"{where}: page {name!r} is not declared — declare it here "
-            "(anchors beside the waypoint), in this pack's `pages:` "
-            f"section, or on another route. Declared: {known}"
+            f"{where}: page {page!r} is not declared in this route — declare it "
+            f"beside a waypoint (anchors under `page:`)"
+            + _pack_hint(PAGES_KIND, page, page in pack.pages and owner is None)
         )
-    return name
+    return name if reserved else page
 
 
 # ---------- shared field rules ----------
@@ -924,13 +956,15 @@ def _context_entries(entry: dict, where: str) -> list[str]:
 
 
 def _landmark_name(ctx: _Ctx, value: Any, where: str) -> str:
-    """A `landmarks.<name>` reference resolved to its bare name — ONE
-    spelling for `give:` entries and a recover hand's `tap:`. The name
+    """An `app.landmarks.<name>` reference resolved to its bare name —
+    ONE spelling for `give:` entries and a recover hand's `tap:`. The name
     half rides the shared name grammar (`check_name`), so a landmark
     reference can never drift from the section's own naming rule."""
     r = parse_ref(value) if isinstance(value, str) else None
-    if r is None or r.pack is not None or r.kind != GRANT_LANDMARKS:
-        raise PlaybookError(f"{where}: {value!r} must look like `landmarks.<name>`")
+    if r is None or not r.is_app(LANDMARKS_KIND):
+        raise PlaybookError(
+            f"{where}: {value!r} must look like `{app_ref(LANDMARKS_KIND, '<name>')}`"
+        )
     name = r.name
     check_name(name, where)
     if name not in ctx.pack.landmarks:
@@ -954,30 +988,30 @@ class _Grant:
 
 
 def _grant(ctx: _Ctx, value: Any, where: str, nid: str) -> _Grant:
-    """One `give:` entry: a `landmarks.<name>` the episode may tap blind,
-    or a macro it may run — `macros.<name>` for this route's own hand,
-    `<pack>.macros.<name>` for the pack's — argument-less, like every
+    """One `give:` entry: an `app.landmarks.<name>` the episode may tap
+    blind, or a macro it may run — `macros.<name>` for this route's own
+    hand, `app.macros.<name>` for the pack's — argument-less, like every
     helper hand, and never spelled like a fixed answer (`done`,
     `escalate`, a verb) that the episode legend already owns. A macro's
     name is its dispatch name (`_argless_macro`)."""
     r = parse_ref(value) if isinstance(value, str) else None
-    root = ctx.pack.folder
-    own = r is not None and r.pack is None and r.kind in (GRANT_LANDMARKS, GRANT_MACROS)
-    shared = r is not None and r.pack == root and r.kind == GRANT_MACROS
+    own = r is not None and not r.shared and r.kind == MACROS_KIND
+    shared = r is not None and (r.is_app(LANDMARKS_KIND) or r.is_app(MACROS_KIND))
     if r is None or not (own or shared):
         raise PlaybookError(
-            f"{where}: {value!r} must look like `landmarks.<name>`, "
-            f"`macros.<name>` (this route's own) or `{root}.macros.<name>` (the pack's)"
+            f"{where}: {value!r} must look like `macros.<name>` (this route's own "
+            f"hand), `{app_ref(MACROS_KIND, '<name>')}` or "
+            f"`{app_ref(LANDMARKS_KIND, '<name>')}` (the pack's)"
         )
     if r.name in RESERVED_KEYS:
         raise PlaybookError(
             f"{where}: {r.name!r} is a fixed episode answer — a granted "
             "landmark or macro cannot be spelled like one"
         )
-    if r.kind == GRANT_LANDMARKS:
-        return _Grant(GRANT_LANDMARKS, _landmark_name(ctx, value, where))
+    if r.kind == LANDMARKS_KIND:
+        return _Grant(LANDMARKS_KIND, _landmark_name(ctx, value, where))
     macro = _argless_macro(value if shared else r.name, "give", where, nid, ctx.resolve)
-    return _Grant(GRANT_MACROS, macro.name, macro)
+    return _Grant(MACROS_KIND, macro.name, macro)
 
 
 # ---------- macros ----------
@@ -991,7 +1025,7 @@ def _local_registry(
     an inline body written down — referenced or not (a stepping tool,
     an agent's `give:` may name it). A pack hand of the same name is no
     clash: a bare reference is always the route's own, the pack's is
-    `<pack>.macros.<name>`."""
+    `app.macros.<name>`."""
     return {
         f"{playbook}.{name}": replace(spec, name=f"{playbook}.{name}")
         for name, spec in local.ok.items()
@@ -1011,17 +1045,17 @@ def _macro_resolver(
     the slots can never drift. Returns the resolved Macro; its `.name`
     is the dispatch name either way. A bare name is this playbook's
     own file (already in `inline`, dispatch `app/<playbook>.<name>`),
-    `<pack>.macros.<name>` one of the pack's (dispatch `app/<name>`)."""
+    `app.macros.<name>` one of the pack's (dispatch `app/<name>`)."""
 
     page_of = page_resolver(pack.app, pack.pages, pack.prints)
-    pack_macro = macro_resolver(pack.macros, pack.macro_errors, pack.folder)
+    pack_macro = macro_resolver(pack.macros, pack.macro_errors)
 
     def macro_of(ref: str) -> Macro:
         """The one lookup a `do:`, a hand, a grant and an inline body's
         `run:` share."""
         r = parse_ref(ref)
-        if r is not None and r.pack is not None:
-            return pack_macro(ref)
+        if r is not None and r.shared:
+            return pack_macro(ref)  # `app.macros.<name>`, or its own refusal
         if ref in local.errors:
             raise MacroError(
                 f"macro {ref!r} ({playbook}/{PACK_MACROS_DIRNAME}/{ref}.yml) "
@@ -1032,7 +1066,7 @@ def _macro_resolver(
         raise MacroError(
             _not_here("macro", ref, f"{playbook}/{PACK_MACROS_DIRNAME}/", local.ok)
             + _pack_hint(
-                pack, GRANT_MACROS, ref, ref in pack.macros or ref in pack.macro_errors
+                MACROS_KIND, ref, ref in pack.macros or ref in pack.macro_errors
             )
         )
 
@@ -1072,27 +1106,22 @@ def _not_here(kind: str, name: str, folder: str, have: "Mapping[str, Any]") -> s
     return f"no {kind} {name!r} in {folder} ({listed})"
 
 
-def _pack_hint(pack: Pack, kind: str, name: str, exists: bool) -> str:
+def _pack_hint(kind: str, name: str, exists: bool) -> str:
     """The clause that names the pack's spelling when a bare name only
     the pack holds was written — "" otherwise."""
-    return f" — the pack's is `{pack.folder}.{kind}.{name}`" if exists else ""
+    return f" — the pack's is `{app_ref(kind, name)}`" if exists else ""
 
 
 def _prompt_text(ctx: _Ctx, raw: str, where: str) -> str:
     """An agent's `prompt:` — the prose itself, `prompts.<name>` for this
-    route's `prompts/<name>.md`, or `<pack>.prompts.<name>` for the
+    route's `prompts/<name>.md`, or `app.prompts.<name>` for the
     pack's. Resolved here, at parse, so the node carries text either
     way and nothing downstream knows which form the author chose."""
     ref = raw.strip()
     r = parse_ref(ref) if not any(c.isspace() for c in ref) else None
     if r is None or r.kind != PROMPTS_KIND:
         return raw
-    if r.pack is not None and r.pack != ctx.pack.folder:
-        raise PlaybookError(
-            f"{where}: `prompt` names {ref}, but this pack's prompts are "
-            f"`{ctx.pack.folder}.{PROMPTS_KIND}.<name>`"
-        )
-    local = r.pack is None
+    local = not r.shared
     files = ctx.prompts_local if local else ctx.prompts_pack
     folder = (
         f"{ctx.playbook}/{PACK_PROMPTS_DIRNAME}/"
@@ -1110,9 +1139,7 @@ def _prompt_text(ctx: _Ctx, raw: str, where: str) -> str:
         raise PlaybookError(
             f"{where}: `prompt` names {ref}, but "
             + _not_here("file", f"{name}{PROMPT_SUFFIX}", folder, files.ok)
-            + _pack_hint(
-                ctx.pack, PROMPTS_KIND, name, local and name in ctx.prompts_pack.ok
-            )
+            + _pack_hint(PROMPTS_KIND, name, local and name in ctx.prompts_pack.ok)
         )
     ctx.prompts_used.add(f"{folder}{name}{PROMPT_SUFFIX}")
     return files.ok[name]
@@ -1263,7 +1290,7 @@ def _parse_agent(
         f"{where}: `give`",
         lambda g: _grant(ctx, g, f"{where}: `give` entry", nid),
     )
-    give = tuple(g.name for g in grants if g.root == GRANT_LANDMARKS)
+    give = tuple(g.name for g in grants if g.root == LANDMARKS_KIND)
     granted = tuple(g.macro for g in grants if g.macro is not None)
     macros = tuple(m.name for m in granted)
     shared = sorted(set(give) & set(macros))
@@ -1521,12 +1548,12 @@ def _inherited_hands(ctx: _Ctx) -> dict[str, Recovery]:
 
 def manifest_recovers(pack: Pack, raw: dict[str, dict]) -> dict[str, Recovery]:
     """The manifest's `pages: <name>: recover:` hands, resolved with the
-    pack's own resolver — a bare name is the pack's macro, since
-    nothing sits beside a manifest but its `macros/`. The one hand
-    grammar (`_parse_recover`), the pack's one resolver. A manifest
+    pack's own resolver — `app.macros.<name>` and `app.landmarks.<name>`,
+    the one spelling everywhere. The one hand grammar
+    (`_parse_recover`), the pack's one resolver. A manifest
     carries settings, never bodies: an inline `macro: {steps: ...}` is
     refused. Raises PlaybookError naming the page."""
-    pack_macro = macro_resolver(pack.macros, pack.macro_errors, pack.folder)
+    pack_macro = macro_resolver(pack.macros, pack.macro_errors)
 
     def resolve(value: Any, where: str, nid: str, role: str | None = None) -> Macro:
         try:
@@ -1562,7 +1589,7 @@ def _parse_recover(ctx: _Ctx, fields: dict, where: str, page: str) -> Recovery:
     """A page's `recover:`, `tries:` and `on_fail:` (the
     `PAGE_RECOVERY_FIELDS` slice of its mapping, in a route waypoint or
     the manifest alike). `recover:` is one hand for any deviation (a
-    bare gesture, `{tap: landmarks.<name>}`, or `{macro: <name>}`), or
+    bare gesture, `{tap: app.landmarks.<name>}`, or `{macro: app.macros.<name>}`), or
     one per reading (`covered:` the page itself under a sheet or popup,
     `locked:` the phone's lock screen, `elsewhere:` any other screen);
     `tries:` beside it is the page's own bound under the walk-wide
@@ -1621,23 +1648,23 @@ def _parse_recover(ctx: _Ctx, fields: dict, where: str, page: str) -> Recovery:
 
 def _parse_hand(ctx: _Ctx, raw: Any, where: str, page: str) -> RecoverHand:
     """One recovery hand, in a step's shape: a bare gesture that takes no
-    object (`go_back`), `{tap: landmarks.<name>}` (the declared spot, as
-    declared), or `{macro: <name>}` (argument-less)."""
+    object (`go_back`), `{tap: app.landmarks.<name>}` (the declared spot,
+    as declared), or `{macro: app.macros.<name>}` (argument-less)."""
     if isinstance(raw, str):
         if raw == "tap":
             raise PlaybookError(
-                f"{where}: a tap names its spot — `{{tap: landmarks.<name>}}`"
+                f"{where}: a tap names its spot — `{{tap: app.landmarks.<name>}}`"
             )
         if raw not in BARE_HANDS:
             raise PlaybookError(
                 f"{where}: {raw!r} is not a hand — one of {', '.join(BARE_HANDS)}, "
-                "{tap: landmarks.<name>}, or {macro: <name>}"
+                "{tap: app.landmarks.<name>}, or {macro: app.macros.<name>}"
             )
         return RecoverHand(tool=raw)
     if not isinstance(raw, dict) or len(raw) != 1 or not set(raw) <= _HAND_KEYS:
         raise PlaybookError(
             f"{where} is one hand — a bare gesture ({', '.join(BARE_HANDS)}), "
-            "{tap: landmarks.<name>}, or {macro: <name>}"
+            "{tap: app.landmarks.<name>}, or {macro: app.macros.<name>}"
         )
     if "macro" in raw:
         return RecoverHand(

@@ -33,39 +33,39 @@ route:
     message: "收到，正在天猫超市为你挑选：\n{parse.items}"
 
   - start: app
-    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
+    macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
 
   - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
-    macro: taobao.macros.open-shangou
+    macro: app.macros.open-shangou
 
-  - page: shangou-home            # 闪购外卖 over 我的闪购
+  - page: app.pages.shangou-home  # 闪购外卖 over 我的闪购
 
   - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "天猫超市"}
-    macro: taobao.macros.shangou-search
+    macro: app.macros.shangou-search
 
-  - page: shangou-results         # the 闪购 search header's slogan
+  - page: app.pages.shangou-results  # the 闪购 search header's slogan
 
   - do: open-store                # the first card, 天猫超市闪购
     macro: open-tmall
 
-  - page: tmall-home              # the store: 天猫超市闪购 over 全部商品
+  - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
 
   - run: tmall-add                # store search, pick, 加入购物车, back to the store; one
     each: {item: parse.items}     # round per item; a line already in the cart is not
     miss: skip                    # re-added, an item not found is skipped
     limit: {rounds: 4}
 
-  - page: tmall-home
+  - page: app.pages.tmall-home
 
   - run: tmall-checkout           # the cart sheet, tick, settle, confirm, pay
     with: {lines: "{tmall-add.line}"}
     revise: parse                 # a reply the ask's words miss re-plans from `parse`
     limit: {revisions: 2}
 
-  - page: paid
+  - page: app.pages.paid
 
   - tell: report
     message: "天猫超市已下单并完成支付：\n{tmall-add.line}"

@@ -1,0 +1,101 @@
+"""The `app.` root: everything a pack declares in APP.yml or ships
+beside it is referenced as `app.<kind>.<name>`; a bare name is beside
+the referring file. Pages: a route's own page is declared beside a
+waypoint and written bare in that route only."""
+
+from __future__ import annotations
+
+import pytest
+from conductor_fakes import write_pack
+
+from physiclaw.conductor.spec import pack as pb
+from physiclaw.conductor.spec.model import PlaybookError
+
+ROUTE = """\
+description: one move
+inputs:
+  keyword:
+    description: k
+route:
+  - page: app.pages.home
+  - do: open
+    macro: app.macros.open-app
+    with: {message: "{inputs.keyword}"}
+  - page: app.pages.home
+"""
+
+
+def _entry(app: str, name: str):
+    pack = pb.load_pack(app)
+    return next(e for e in pb.scan_playbooks(app, pack) if e.name == name)
+
+
+def test_a_manifest_page_is_app_pages_and_a_bare_name_is_refused_with_the_hint() -> (
+    None
+):
+    write_pack(
+        "demo",
+        playbooks={
+            "buy": ROUTE.replace("- page: app.pages.home\n", "- page: home\n", 1)
+        },
+    )
+
+    err = _entry("demo", "buy").error or ""
+    assert "page 'home' is not declared in this route" in err
+    assert "the pack's is `app.pages.home`" in err
+
+
+def test_a_route_declared_page_is_bare_and_its_own() -> None:
+    own = ROUTE.replace(
+        "  - page: app.pages.home\n  - do: open",
+        '  - page: mine\n    anchors: ["Mine"]\n  - do: open',
+        1,
+    ).replace("  - page: app.pages.home\n", "  - page: mine\n")
+    other = ROUTE.replace("app.pages.home", "app.pages.mine")
+    write_pack("demo", playbooks={"buy": own, "track": other})
+
+    assert _entry("demo", "buy").error is None
+    err = _entry("demo", "track").error or ""
+    assert "declared beside a waypoint of 'buy'" in err and "move it to APP.yml" in err
+
+
+def test_a_declaration_under_an_app_pages_waypoint_is_refused() -> None:
+    text = ROUTE.replace(
+        "  - page: app.pages.home\n  - do: open",
+        '  - page: app.pages.home\n    anchors: ["X"]\n  - do: open',
+        1,
+    )
+    write_pack("demo", playbooks={"buy": text})
+
+    assert "written bare: `page: home`" in (_entry("demo", "buy").error or "")
+
+
+def test_a_manifest_hand_and_a_landmark_use_the_app_root_too() -> None:
+    from conductor_fakes import PAGES
+
+    write_pack(
+        "demo",
+        playbooks={"buy": ROUTE},
+        pages=PAGES.rstrip("\n")
+        + '\nextra:\n  anchors: ["Extra"]\n  recover: {macro: open-app}\n',
+    )
+    with pytest.raises(PlaybookError, match=r"app\.macros\.<name>"):
+        pb.load_pack("demo")
+
+    text = ROUTE.replace(
+        "  - page: app.pages.home\n",
+        "  - page: app.pages.home\n    recover: {tap: landmarks.back}\n",
+        1,
+    )
+    write_pack(
+        "demo",
+        playbooks={"buy": text},
+        landmarks='back:\n  label: "b"\n  at: [0.1, 0.1, 0.2, 0.2]\n',
+    )
+    assert "app.landmarks.<name>" in (_entry("demo", "buy").error or "")
+
+
+def test_a_pack_cannot_be_named_app() -> None:
+    write_pack("app", playbooks={})
+    with pytest.raises(PlaybookError, match="reference word"):
+        pb.load_pack("app")

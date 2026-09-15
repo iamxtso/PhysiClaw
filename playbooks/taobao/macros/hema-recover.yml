@@ -8,7 +8,7 @@ steps:
   - tap: "the ✕ under a 盒马 promo card"
     at: [0.44, 0.68, 0.56, 0.75]
     when: ["开心收下", "立即抢购", "天天特惠"]
-  - if_page: hema-home
+  - if_page: app.pages.hema-home
     goto: back
   - go_back
   - wait: 2

@@ -37,14 +37,14 @@ route:
     miss: skip                    # not re-added, an item not found is skipped
     limit: {rounds: 4}
 
-  - page: detail                  # the item page the last round ended on
+  - page: app.pages.detail        # the item page the last round ended on
 
   - run: checkout                 # the cart, tick, 结算, confirm, pay
     with: {lines: "{add.line}"}   # every done round's line; a missed item has none
     revise: parse                 # a reply the words miss re-plans from `parse`
     limit: {revisions: 2}
 
-  - page: paid
+  - page: app.pages.paid
 
   - tell: report
     message: "已下单并完成支付：\n{add.line}"

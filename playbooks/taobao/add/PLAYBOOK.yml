@@ -13,26 +13,26 @@ returns:
 
 route:
   - agent: parse
-    prompt: taobao.prompts.item-keyword  # the product words, no quantity or unit
+    prompt: app.prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
   - start: app
-    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
+    macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
 
   - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}
-    macro: taobao.macros.search
+    macro: app.macros.search
 
-  - page: results                 # the filter row (综合 / 销量)
+  - page: app.pages.results       # the filter row (综合 / 销量)
 
   - agent: pick
     prompt: prompts.pick-to-cart  # rows to a listing, the sheet's spec and quantity, 加入购物车
     tools: [tap, scroll, back]
-    give: [landmarks.close]       # the ✕ of a promo card over the page
+    give: [app.landmarks.close]       # the ✕ of a promo card over the page
     never_tap:
       - {label: ["立即购买", "领券购买"], within: bottom}
       - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}
@@ -45,4 +45,4 @@ route:
     on_fail: stop                 # alone, a pick that cannot finish ends the session;
                                   # under `miss: skip` the round is recorded as missed
 
-  - page: detail                  # the item page: 加入购物车 and 立即购买 in the footer
+  - page: app.pages.detail        # the item page: 加入购物车 and 立即购买 in the footer

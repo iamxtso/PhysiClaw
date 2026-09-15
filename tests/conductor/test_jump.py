@@ -20,7 +20,7 @@ HOP = """\
 name: hop
 description: reach results unless already there
 steps:
-  - if_page: results
+  - if_page: app.pages.results
     goto: there
   - tap: "search"
     at: [0.1, 0.1, 0.2, 0.2]
@@ -50,7 +50,8 @@ def test_a_pack_macro_reads_its_pack_page_through_the_conductors_matcher() -> No
 def test_a_jump_to_a_page_the_pack_does_not_declare_is_the_macros_error() -> None:
     root = write_pack(playbooks={})
     (root / "macros" / "hop.yml").write_text(
-        HOP.replace("if_page: results", "if_page: cart"), encoding="utf-8"
+        HOP.replace("if_page: app.pages.results", "if_page: app.pages.cart"),
+        encoding="utf-8",
     )
 
     pack = pb.load_pack("demo")
@@ -63,16 +64,16 @@ def test_an_inline_macro_may_jump_on_its_pack_page() -> None:
     flow = """\
 description: one move with an inline jump
 route:
-  - page: home
+  - page: app.pages.home
   - do: hop
     macro:
       steps:
-        - if_page: results
+        - if_page: app.pages.results
           goto: there
         - tap: "search"
           at: [0.1, 0.1, 0.2, 0.2]
         - mark: there
-  - page: results
+  - page: app.pages.results
 """
     write_pack(playbooks={"flow": flow})
 

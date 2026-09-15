@@ -4,7 +4,7 @@ enabled: false
 steps:
   # Already on the thread (a reply was just read there): nothing to
   # reach — the jump skips every navigation step below.
-  - if_page: thread
+  - if_page: app.pages.thread
     goto: done
   - home_screen
   - wait: 1
@@ -14,7 +14,7 @@ steps:
     at: [0.348, 0.893, 0.510, 0.973]
   - wait: 2
   # Resumed on the thread (a walk leaves WeChat there): nothing to reach.
-  - if_page: thread
+  - if_page: app.pages.thread
     goto: done
   - go_back                                  # in another thread -> pops to the chat list; on the list -> harmless edge bounce
   # Search is position-independent: the chat list reorders itself

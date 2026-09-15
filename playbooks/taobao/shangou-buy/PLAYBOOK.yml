@@ -36,20 +36,20 @@ route:
     message: "收到，正在淘宝闪购为你点单：{parse.store}\n{parse.dishes}"
 
   - start: app
-    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
+    macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
 
   - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
-    macro: taobao.macros.open-shangou
+    macro: app.macros.open-shangou
 
-  - page: shangou-home            # 闪购外卖 over 我的闪购
+  - page: app.pages.shangou-home  # 闪购外卖 over 我的闪购
 
   - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "{parse.store}"}
-    macro: taobao.macros.shangou-search
+    macro: app.macros.shangou-search
 
-  - page: shangou-results         # the 闪购 search header's slogan
+  - page: app.pages.shangou-results  # the 闪购 search header's slogan
 
   # One episode: open the store's card, then add every dish. Which card
   # is the store is a reading of names the results reorder, so it is
@@ -68,13 +68,13 @@ route:
     think: low
     on_fail: stop
 
-  - page: shangou-store           # the store's menu: 外送 / 自取 up top
+  - page: app.pages.shangou-store  # the store's menu: 外送 / 自取 up top
 
   - do: settle                    # 去结算 on the store's cart bar, to the order page
     on_fail: stop                 # nothing is paid yet
-    macro: taobao.macros.settle
+    macro: app.macros.settle
 
-  - page: shangou-order           # 外卖到家 over the 立即支付 button
+  - page: app.pages.shangou-order  # 外卖到家 over the 立即支付 button
 
   # The order page pays from its own button, which carries the total.
   - ask: confirm-pay
@@ -88,7 +88,7 @@ route:
     rounds: 3
     think: off
     on_fail: stop
-    resume: taobao.macros.foreground  # the ask left the app — come back where it was
+    resume: app.macros.foreground  # the ask left the app — come back where it was
 
   - do: pay
     irreversible: payment
@@ -103,7 +103,7 @@ route:
           when: ["确认支付"]
         - wait: 4
 
-  - page: paid
+  - page: app.pages.paid
 
   - tell: report
     message: "闪购已下单并完成支付：{parse.store}\n{order.added}"

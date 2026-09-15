@@ -670,7 +670,7 @@ def _parse_run(
     macros: MacroResolver | None,
 ) -> Step:
     """`- run: <name>` with `with: {input: text}`: a macro of the same
-    folder — or `<pack>.macros.<name>`, one of the pack's — as one
+    folder — or `app.macros.<name>`, one of the pack's — as one
     step. The callee is resolved and bound NOW, so a
     missing or broken callee (a cycle included — the resolver's to
     refuse) is this file's load error, never a run-time surprise;
@@ -688,7 +688,7 @@ def _parse_run(
         )
     name = _require_str(step[RUN], f"{where}: `run`")
     ref = parse_ref(name)
-    if ref is None or ref.pack is None:  # the pack's form is the resolver's to judge
+    if ref is None or not ref.shared:  # the pack's form is the resolver's to judge
         check_name(name, f"{where}: `run`")
     if macros is None:
         raise MacroError(

@@ -80,22 +80,22 @@ route:
     macro:
       steps:
         - home_screen
-  - page: home
+  - page: app.pages.home
     recover: force_quit
   - do: search
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{parse.keyword}"}
-  - page: results
-    recover: {tap: landmarks.back}
+  - page: app.pages.results
+    recover: {tap: app.landmarks.back}
   - agent: pick
     prompt: |
       Add the right item to the cart, then finish on the done page.
     tools: [tap, scroll]
-    give: [landmarks.back]
+    give: [app.landmarks.back]
     returns:
       total: the audited total
     limit: {calls: 5, scrolls: 1}
-  - page: done
+  - page: app.pages.done
 """
 
 HOME = make_screen(("Files", 0.5, 0.1)).text
@@ -153,12 +153,12 @@ def _parse(text: str):
         # An agent with neither hands nor fields can do nothing.
         (("    returns:\n      keyword: the search keyword\n", ""), "can do nothing"),
         # An acting agent must be framed by pages.
-        (("  - page: done\n", ""), "followed by the page"),
+        (("  - page: app.pages.done\n", ""), "followed by the page"),
         # start must sit immediately before the first page.
         (
             (
                 "  - start: app\n",
-                "  - page: home\n  - start: app\n",
+                "  - page: app.pages.home\n  - start: app\n",
             ),
             "immediately before the first page",
         ),
@@ -182,7 +182,8 @@ def test_route_shape_lints(mutate, fragment) -> None:
 def test_give_may_grant_a_pack_macro() -> None:
     spec = _parse(
         AGENTED.replace(
-            "give: [landmarks.back]", "give: [landmarks.back, demo.macros.add-cart]"
+            "give: [app.landmarks.back]",
+            "give: [app.landmarks.back, app.macros.add-cart]",
         )
     )
     pick = spec.nodes[3]
@@ -194,7 +195,7 @@ def test_give_may_grant_a_pack_macro() -> None:
 @pytest.mark.parametrize(
     "grant, fragment",
     [
-        ("demo.macros.nope", "not found in this pack"),
+        ("app.macros.nope", "not found in this pack"),
         ("macros.nope", "no macro 'nope' in walk/macros/"),
         ("macros.done", "fixed episode answer"),
         ("gestures.back", "must look like"),
@@ -203,7 +204,7 @@ def test_give_may_grant_a_pack_macro() -> None:
 def test_give_grants_are_checked(grant, fragment) -> None:
     write_pack(
         playbooks={
-            "walk": AGENTED.replace("give: [landmarks.back]", f"give: [{grant}]")
+            "walk": AGENTED.replace("give: [app.landmarks.back]", f"give: [{grant}]")
         },
         landmarks=BACK_LANDMARK,
         macros=("open-app", "add-cart", "done"),
@@ -213,17 +214,19 @@ def test_give_grants_are_checked(grant, fragment) -> None:
 
 
 def test_give_is_optional() -> None:
-    _parse(AGENTED.replace("    give: [landmarks.back]\n", ""))
+    _parse(AGENTED.replace("    give: [app.landmarks.back]\n", ""))
 
 
 def test_agent_give_must_name_a_declared_landmark() -> None:
-    text = AGENTED.replace("give: [landmarks.back]", "give: [landmarks.cart]")
+    text = AGENTED.replace("give: [app.landmarks.back]", "give: [app.landmarks.cart]")
     with pytest.raises(PlaybookError, match="not declared under\n?.*`landmarks`"):
         _parse(text)
 
 
 def test_recover_tap_requires_a_landmark_target() -> None:
-    text = AGENTED.replace("    recover: {tap: landmarks.back}\n", "    recover: tap\n")
+    text = AGENTED.replace(
+        "    recover: {tap: app.landmarks.back}\n", "    recover: tap\n"
+    )
     with pytest.raises(PlaybookError, match="landmarks.<name>"):
         _parse(text)
 
@@ -523,7 +526,7 @@ def test_episode_taps_an_icon_by_its_listed_box() -> None:
 def test_episode_runs_a_granted_macro_by_name() -> None:
     from physiclaw.conductor.walk.step_agent import KIND_MACRO
 
-    _write(AGENTED.replace("give: [landmarks.back]", "give: [demo.macros.add-cart]"))
+    _write(AGENTED.replace("give: [app.landmarks.back]", "give: [app.macros.add-cart]"))
     p = _program(name="walk", user_said="买牛奶")
     h = _history()
     _feed(h, p.advance(h), ELSEWHERE)
@@ -622,7 +625,9 @@ def test_declared_recover_hand_runs_then_walk_resumes() -> None:
     search = p.advance(h)
     _feed(h, search, HOME)  # search did NOT land on results
 
-    hand = p.advance(h)  # results' declared hand: tap landmarks.back — no re-peek first
+    hand = p.advance(
+        h
+    )  # results' declared hand: tap app.landmarks.back — no re-peek first
     assert hand is not None and hand.tool_names() == ["note", "tap"]
     _feed(h, hand, RESULTS)  # the hand restored the page
 
@@ -634,8 +639,8 @@ def test_page_without_recover_hands_over_in_declared_mode() -> None:
     # `done` declares no recover; failing to reach it (episode fence
     # aside) → the walk hands over instead of climbing a hidden ladder.
     no_recover = AGENTED.replace(
-        "  - page: results\n    recover: {tap: landmarks.back}\n",
-        "  - page: results\n",
+        "  - page: app.pages.results\n    recover: {tap: app.landmarks.back}\n",
+        "  - page: app.pages.results\n",
     )
     _write(no_recover)
     p = _program(name="walk", user_said="买牛奶")
@@ -719,11 +724,11 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - ask: gate
     approve: payment
     total_label: "合计"
@@ -731,14 +736,14 @@ route:
     yes: ["好的"]
     no: ["不用"]
     resume:
-      macro: demo.macros.open-app
+      macro: app.macros.open-app
   - agent: pay
     irreversible: payment
     prompt: |
       Pay exactly ¥{ask.total}, then finish on the done page.
     tools: [tap]
     limit: {calls: 3}
-  - page: done
+  - page: app.pages.done
 """
 
 SHEET = make_screen(("综合", 0.5, 0.1), ("合计 ¥45", 0.5, 0.5), ("支付", 0.5, 0.8)).text
@@ -809,7 +814,11 @@ def test_payment_episode_second_tap_keeps_the_paid_record() -> None:
     "old, new, fragment",
     [
         # A granted name can never be spelled like a fixed answer.
-        ("give: [landmarks.back]", "give: [landmarks.done]", "fixed episode answer"),
+        (
+            "give: [app.landmarks.back]",
+            "give: [app.landmarks.done]",
+            "fixed episode answer",
+        ),
         # A return field cannot reuse the reply contract's own fields.
         ("      keyword: the search keyword\n", "      answer: the pick\n", "contract"),
         # scroll granted with no scroll budget would hand over at once.
@@ -832,7 +841,8 @@ def test_give_refuses_one_name_as_both_landmark_and_macro() -> None:
     write_pack(
         playbooks={
             "walk": AGENTED.replace(
-                "give: [landmarks.back]", "give: [landmarks.back, demo.macros.back]"
+                "give: [app.landmarks.back]",
+                "give: [app.landmarks.back, app.macros.back]",
             )
         },
         landmarks=BACK_LANDMARK,
@@ -843,7 +853,7 @@ def test_give_refuses_one_name_as_both_landmark_and_macro() -> None:
 
 
 def test_payment_ask_before_a_screen_move_needs_resume() -> None:
-    text = AGENT_PAY.replace("    resume:\n      macro: demo.macros.open-app\n", "")
+    text = AGENT_PAY.replace("    resume:\n      macro: app.macros.open-app\n", "")
     write_channel()
     write_pack(playbooks={"pay": text})
     with pytest.raises(PlaybookError, match="declare `resume:`"):
@@ -853,8 +863,8 @@ def test_payment_ask_before_a_screen_move_needs_resume() -> None:
 def test_payment_ask_reads_the_page_before_it() -> None:
     # A reserved built-in cannot be the sheet a payment ask reads.
     text = AGENT_PAY.replace(
-        "  - page: results\n  - ask: gate\n",
-        "  - page: results\n  - page: ios.locked\n  - ask: gate\n",
+        "  - page: app.pages.results\n  - ask: gate\n",
+        "  - page: app.pages.results\n  - page: ios.locked\n  - ask: gate\n",
     )
     write_channel()
     write_pack(playbooks={"pay": text})
@@ -935,7 +945,7 @@ def test_a_prompt_file_is_the_step_prompt_verbatim_with_refs_filled_later() -> N
 def test_a_pack_level_prompt_is_shared_by_every_route() -> None:
     from physiclaw.common import paths
 
-    _write(FILE_PROMPT.replace("prompts.parse", "demo.prompts.parse"))
+    _write(FILE_PROMPT.replace("prompts.parse", "app.prompts.parse"))
     root = paths.playbooks_dir() / "demo"
     write_prompt(root, None, "parse", "Shared brief.")
 
@@ -982,7 +992,7 @@ def test_an_empty_prompt_file_fails_the_step_with_the_cause() -> None:
 
 
 def test_a_prompt_name_in_both_the_pack_and_the_route_is_no_clash() -> None:
-    # `prompts.parse` is the route's own file, `demo.prompts.parse` the
+    # `prompts.parse` is the route's own file, `app.prompts.parse` the
     # pack's: two spellings, so the same name may live in both.
     from physiclaw.common import paths
 
@@ -994,7 +1004,7 @@ def test_a_prompt_name_in_both_the_pack_and_the_route_is_no_clash() -> None:
     spec, _ = build.load_spec("demo", "walk", require_live=False)
     assert spec.nodes[0].prompt == "mine"
 
-    _write(FILE_PROMPT.replace("prompts.parse", "demo.prompts.parse"))
+    _write(FILE_PROMPT.replace("prompts.parse", "app.prompts.parse"))
     spec, _ = build.load_spec("demo", "walk", require_live=False)
     assert spec.nodes[0].prompt == "ours"
 
@@ -1328,7 +1338,7 @@ def test_a_granted_macro_tapping_a_target_is_refused_at_run_time() -> None:
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
-        GUARDED.replace("give: [landmarks.back]", "give: [demo.macros.pay-bar]"),
+        GUARDED.replace("give: [app.landmarks.back]", "give: [app.macros.pay-bar]"),
         RESULTS_WITH_PAY,
     )
     assert req.macros == ("pay-bar",)
@@ -1361,7 +1371,7 @@ def test_a_granted_playbook_local_macro_is_named_as_it_dispatches() -> None:
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
-        GUARDED.replace("give: [landmarks.back]", "give: [macros.pay-bar]"),
+        GUARDED.replace("give: [app.landmarks.back]", "give: [macros.pay-bar]"),
         RESULTS_WITH_PAY,
     )
     assert p.spec.nodes[3].macros == ("walk.pay-bar",)

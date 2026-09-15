@@ -30,11 +30,11 @@ inputs:
   keyword:
     description: what to search
 route:
-  - page: home
+  - page: app.pages.home
   - do: speak
-    macro: demo.macros.send
+    macro: app.macros.send
     with: {message: "{inputs.keyword}"}
-  - page: home
+  - page: app.pages.home
 """
 
 
@@ -66,11 +66,11 @@ def test_the_readiness_lint_names_a_hand_whose_callee_is_disabled() -> None:
 def test_a_playbook_folder_macro_runs_the_packs_shared_hand() -> None:
     root = write_pack(
         "demo",
-        playbooks={"buy": VIA_SEND.replace("macro: demo.macros.send", "macro: own")},
+        playbooks={"buy": VIA_SEND.replace("macro: app.macros.send", "macro: own")},
     )
     # From a playbook's folder the pack's hand is named in full.
     own = SEND.replace("name: send", "name: own").replace(
-        "run: open-app", "run: demo.macros.open-app"
+        "run: open-app", "run: app.macros.open-app"
     )
     write_local_macro(root, "buy", "own", own)
 
@@ -88,10 +88,10 @@ def test_a_playbook_folder_macro_named_like_a_pack_hand_is_its_own() -> None:
     # neighbour by the bare one.
     root = write_pack(
         "demo",
-        playbooks={"buy": VIA_SEND.replace("macro: demo.macros.send", "macro: own")},
+        playbooks={"buy": VIA_SEND.replace("macro: app.macros.send", "macro: own")},
     )
     own = SEND.replace("name: send", "name: own").replace(
-        "run: open-app", "run: demo.macros.open-app"
+        "run: open-app", "run: app.macros.open-app"
     )
     write_local_macro(root, "buy", "own", own)
     write_local_macro(root, "buy", "open-app", PACK_MACRO.format(name="open-app"))
@@ -111,8 +111,8 @@ def test_an_inline_macro_runs_a_pack_hand() -> None:
         "demo",
         playbooks={
             "buy": VIA_SEND.replace(
-                '    macro: demo.macros.send\n    with: {message: "{inputs.keyword}"}\n',
-                "    macro: {steps: [{run: demo.macros.open-app}]}\n",
+                '    macro: app.macros.send\n    with: {message: "{inputs.keyword}"}\n',
+                "    macro: {steps: [{run: app.macros.open-app}]}\n",
             )
         },
     )
@@ -133,7 +133,7 @@ def test_never_tap_judges_a_callees_taps_too() -> None:
     pack = pb.load_pack("demo")
     text = VALID.replace(
         "    tools: [tap, scroll]\n",
-        '    tools: [scroll]\n    give: [demo.macros.send]\n    never_tap: ["t"]\n',
+        '    tools: [scroll]\n    give: [app.macros.send]\n    never_tap: ["t"]\n',
     )
 
     with pytest.raises(PlaybookError, match="grants macro 'send', which presses"):

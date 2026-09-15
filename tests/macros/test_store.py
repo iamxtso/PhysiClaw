@@ -351,13 +351,13 @@ def test_macros_that_run_each_other_are_both_refused() -> None:
 
 
 def test_a_dotted_run_name_is_the_packs_never_a_neighbour(tmp_path) -> None:
-    # `<pack>.macros.<name>` goes to the pack's resolver; a bare name is
+    # `app.macros.<name>` goes to the pack's resolver; a bare name is
     # a sibling file and nothing else.
     from physiclaw.macros.parse import parse_macro
 
     shared = parse_macro(OPEN_TEXT, "open")
     (tmp_path / "send.yml").write_text(
-        SEND_TEXT.replace("run: open", "run: shop.macros.open"), encoding="utf-8"
+        SEND_TEXT.replace("run: open", "run: app.macros.open"), encoding="utf-8"
     )
 
     (entry,) = scan(tmp_path, fallback=lambda name: shared)

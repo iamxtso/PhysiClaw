@@ -127,7 +127,7 @@ def test_a_channel_without_a_live_boot_says_so(wake_log) -> None:
     write_pack(playbooks={"flow": FLOW})
     (paths.playbooks_dir() / "channel" / "wechat" / "boot" / "PLAYBOOK.yml").write_text(
         "name: boot\ndescription: off\nenabled: false\nroute:\n"
-        "  - page: thread\n  - select: parse\n",
+        "  - page: app.pages.thread\n  - select: parse\n",
         encoding="utf-8",
     )
 

@@ -48,7 +48,14 @@ from physiclaw.conductor.spec.pages import (
     PageDecl,
     PagePrint,
 )
-from physiclaw.macros.model import Clause, MacroError
+from physiclaw.macros.model import (
+    PAGES_KIND,
+    Clause,
+    MacroError,
+    app_ref,
+    app_refs,
+    parse_ref,
+)
 
 # Fuzzy-tier floors (industrial practice: fuzzy text is reliable only
 # paired with anchors/structure — UiPath's 0.5–0.6 band). Short anchors
@@ -532,15 +539,23 @@ class PageCheck(Clause):
 def page_resolver(
     app: str, decls: dict[str, PageDecl], prints: tuple[PagePrint, ...]
 ) -> Callable[[str], Clause]:
-    """The pack's pages as the macro parser's `PageResolver`: a page name
-    → its `PageCheck` over `prints` (the pack's, built once at load), or
-    a MacroError naming the pages the pack does declare."""
+    """The pack's pages as the macro parser's `PageResolver`:
+    `app.pages.<name>` → its `PageCheck` over `prints` (the pack's, built
+    once at load), or a MacroError naming the pages the pack does
+    declare."""
 
-    def resolve(name: str) -> Clause:
-        if name not in decls:
-            known = ", ".join(sorted(decls)) or "(none)"
-            raise MacroError(f"no page {name!r} in pack {app!r} — it declares: {known}")
-        return PageCheck(page_id=page_id(app, name), prints=prints)
+    def resolve(ref: str) -> Clause:
+        r = parse_ref(ref)
+        if r is None or not r.is_app(PAGES_KIND):
+            raise MacroError(
+                f"{ref!r} — a macro names the pack's page as `{app_ref(PAGES_KIND, '<name>')}`"
+            )
+        if r.name not in decls:
+            raise MacroError(
+                f"no page {r.name!r} in pack {app!r} — it declares: "
+                f"{app_refs(PAGES_KIND, decls)}"
+            )
+        return PageCheck(page_id=page_id(app, r.name), prints=prints)
 
     return resolve
 

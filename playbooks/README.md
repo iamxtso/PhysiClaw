@@ -16,7 +16,7 @@ per journey:
     <app>/
     ├── APP.yml              # the MANIFEST: meta + placeholders + landmarks + shared pages
     ├── README.md            # for people: what the pack does, the device, the traps (never loaded)
-    ├── macros/<n>.yml       # the pack's hands every route shares (`macro: <app>.macros.<n>`)
+    ├── macros/<n>.yml       # the pack's hands every route shares (`macro: app.macros.<n>`)
     └── <name>/              # one playbook per folder; the folder is the name
         ├── PLAYBOOK.yml     # the route: name (= the folder), description, enabled, inputs, route
         ├── macros/<n>.yml   # this route's own recorded hands (`macro: <n>`; dispatch <app>/<name>.<n>)
@@ -61,7 +61,7 @@ playbook of another pack; `playbooks run` still rehearses it), `inputs` (a
 `default:` makes one optional; the boot's menu says so), and
 `route` — a ROUTE of `page:` waypoints (checked every time, each
 optionally declaring its own `recover:` — one hand (`go_back`,
-`{tap: landmarks.<name>}`, `{macro: <app>.macros.<name>}`), or
+`{tap: app.landmarks.<name>}`, `{macro: app.macros.<name>}`), or
 `covered:`/`elsewhere:`/`locked:` hands per reading, with `tries:`
 beside it)
 alternating with moves — `start` (the cold launch, usually a pack
@@ -105,16 +105,14 @@ its own page — and nothing retries or unlocks in the background.
 
 ## References: beside this file, or the pack's
 
-A bare name is the file beside the one naming it: `macro: open-tmall`
-is this route's `macros/open-tmall.yml`, `prompt: prompts.pick` its
-`prompts/pick.md`, `give: [macros.nudge]` its hand. The pack's shared
-files carry the pack's name: `macro: taobao.macros.launch`, `prompt:
-taobao.prompts.item-keyword`, `give: [taobao.macros.nudge]`, `resume:
-taobao.macros.foreground`, and inside a macro `run: taobao.macros.cashier`.
-The manifest is the pack's own file, so its hands stay bare (`recover:
-{macro: launch}`), as does a macro file's `run:` of a sibling. Landmarks
-and pages are manifest entries, never files: `landmarks.<n>`, `page: <n>`.
-The same name may live in both places; the spelling says which.
+A bare name is the file beside the one naming it (`macro: open-tmall`,
+`prompt: prompts.pick`, `give: [macros.nudge]`); `app.<kind>.<name>` is
+what the pack declares in `APP.yml` or ships beside it — `app.macros.launch`,
+`app.prompts.pick`, `app.landmarks.close`, `app.pages.home` — in a route,
+a manifest hand or a macro's `run:` / `if_page:` alike. A page declared
+beside a waypoint is bare in that route only; a page two routes share
+lives in `APP.yml`. The same name may live in both places; the spelling
+says which.
 
 ## Values, and the one check shape
 
@@ -137,7 +135,7 @@ A check reads the same everywhere it appears — a macro step's `require`
                                         right) or a [l, t, r, b] box
     {and: [..]}  {or: [..]}  {not: ..}  combinators (macro checks only)
 
-A pack macro may also read a page whole: `- if_page: thread` with
+A pack macro may also read a page whole: `- if_page: app.pages.thread` with
 `goto: type` skips forward to `- mark: type` while the page already
 shows, so the steps between (the ones that reach it) are not replayed;
 walked to, the mark checks the page arrived. Jumps follow one

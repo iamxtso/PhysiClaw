@@ -30,11 +30,11 @@ route:
     prompt: "Turn this into a search term: {inputs.keyword}"
     returns:
       term: the search term
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{parse.term}"}
-  - page: results
+  - page: app.pages.results
 """
 
 ACTING_FLOW = """\
@@ -43,7 +43,7 @@ inputs:
   keyword:
     description: what to search
 route:
-  - page: home
+  - page: app.pages.home
   - agent: pick
     prompt: "Pick the cheapest {inputs.keyword}"
     tools: [tap, scroll]
@@ -51,7 +51,7 @@ route:
       summary: what was picked
     limit: {calls: 4, scrolls: 2}
     think: off
-  - page: results
+  - page: app.pages.results
 """
 
 TELLING = """\
@@ -60,14 +60,14 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - tell: note
     message: "starting {inputs.keyword}"
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
 """
 
 

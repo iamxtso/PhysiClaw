@@ -57,13 +57,14 @@ from physiclaw.conductor.spec.pages import (
     parse_pages_data,
     parse_thread,
     prints_for_app,
+    route_declared_pages,
 )
 from physiclaw.conductor.spec.refs import check_refs, field_name, refs_in
 from physiclaw.conductor.spec.route import compile_route, manifest_recovers
 from physiclaw.macros import inputs as macro_inputs
 from physiclaw.macros import parse as macro_parse
 from physiclaw.macros import store as macro_store
-from physiclaw.macros.model import Macro, MacroError
+from physiclaw.macros.model import APP_ROOT, REF_KINDS, Macro, MacroError
 
 
 def qualified_macro(app: str, name: str) -> str:
@@ -167,7 +168,7 @@ def load_pack(app: str) -> Pack:
     prints = tuple(prints_for_app(app, decls=pages))
     page_of = page_resolver(app, pages, prints)
     macros = _scan_macros(root / PACK_MACROS_DIRNAME, page_of)
-    shared = macro_resolver(macros.ok, macros.errors, root.name)
+    shared = macro_resolver(macros.ok, macros.errors)
     pack = Pack(
         app=app,
         pages=pages,
@@ -186,7 +187,7 @@ def load_pack(app: str) -> Pack:
         },
         landmarks=landmarks,
         thread_incoming=thread_incoming,
-        folder=root.name,
+        route_pages=route_declared_pages(doc, docs),
     )
     # The manifest's hands, resolved once here with the pack's own
     # resolver: a broken one is the pack's load error, not every
@@ -260,10 +261,8 @@ def _check_pack_meta(doc: dict, app: str, folder: str) -> None:
             raise PlaybookError(
                 f"app {declared!r} must equal the pack directory {folder!r}"
             )
-    if app == "pages":
-        raise PlaybookError(
-            "a pack cannot be named 'pages' — it is the page-reference root"
-        )
+    if app == APP_ROOT or app in REF_KINDS:
+        raise PlaybookError(f"a pack cannot be named {app!r} — it is a reference word")
     if "description" in doc:
         prose(doc.get("description"), "`description`")
     ph = doc.get("placeholders")

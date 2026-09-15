@@ -19,22 +19,22 @@ inputs:
   keyword:
     description: what to search
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: home
+  - page: app.pages.home
   - agent: choose
     prompt: "Pick the cheapest {inputs.keyword} and land on the results"
     tools: [tap, scroll]
     returns:
       pick: the chosen item's title
     limit: {calls: 4, scrolls: 2}
-  - page: results
+  - page: app.pages.results
   - do: to-cart
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "{choose.pick}"}
-  - page: done
+  - page: app.pages.done
   - tell: confirm
     message: "Added to the cart, ordering soon"
   - ask: pay
@@ -43,17 +43,17 @@ route:
     message: "Total ¥{ask.total}, reply ok to pay, or no to cancel"
     yes: ["ok"]
     no: ["no"]
-    resume: demo.macros.open-app
+    resume: app.macros.open-app
 """
 
 # A payment move appended as the ask's fall-through — several money
 # tests share it.
 PAY_TAIL = """\
   - do: do-pay
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
-  - page: results
+  - page: app.pages.results
 """
 
 
@@ -141,7 +141,10 @@ def test_retired_keys_are_unknown() -> None:
             "exactly one of",
         ),
         (
-            VALID.replace("  - page: done\n", "  - page: done\n    open: open-app\n"),
+            VALID.replace(
+                "  - page: app.pages.done\n",
+                "  - page: app.pages.done\n    open: open-app\n",
+            ),
             "unknown key",
         ),
         (VALID + "    return: open-app\n", "unknown key"),
@@ -178,13 +181,19 @@ def _mutate(old: str, new: str) -> str:
         (_mutate("  - tell: confirm\n", "  - shout: confirm\n"), "exactly one of"),
         # unknown macro
         (
-            _mutate("macro: demo.macros.add-cart", "macro: ghost"),
+            _mutate("macro: app.macros.add-cart", "macro: ghost"),
             "no macro 'ghost' in buy/macros/",
         ),
         # unknown page
-        (_mutate("  - page: results\n", "  - page: mars\n"), "not declared"),
+        (
+            _mutate("  - page: app.pages.results\n", "  - page: app.pages.mars\n"),
+            "not declared",
+        ),
         # foreign app page
-        (_mutate("  - page: results\n", "  - page: jd.home\n"), "reserved namespace"),
+        (
+            _mutate("  - page: app.pages.results\n", "  - page: jd.home\n"),
+            "reserved namespace",
+        ),
         # undeclared placeholder
         (
             _mutate(
@@ -247,21 +256,21 @@ def test_rejections_name_the_rule(text: str, fragment: str) -> None:
 def test_route_must_start_at_a_page() -> None:
     # A screen-touching move before the first page breaks the start
     # contract — only pure-text agents and the `start` move may precede.
-    text = _mutate("route:\n  - page: home\n", "route:\n")
+    text = _mutate("route:\n  - page: app.pages.home\n", "route:\n")
 
     with pytest.raises(PlaybookError, match="precede the first page"):
         pb.parse_playbook(text, "buy", _pack())
 
 
 def test_route_needs_at_least_one_move() -> None:
-    text = "name: buy\ndescription: only a place\nroute:\n  - page: home\n"
+    text = "name: buy\ndescription: only a place\nroute:\n  - page: app.pages.home\n"
 
     with pytest.raises(PlaybookError, match="needs at least one move"):
         pb.parse_playbook(text, "buy", _pack())
 
 
 def test_do_must_be_followed_by_its_landing_page() -> None:
-    text = _mutate("  - page: done\n", "")
+    text = _mutate("  - page: app.pages.done\n", "")
 
     with pytest.raises(PlaybookError, match="followed by the page"):
         pb.parse_playbook(text, "buy", _pack())
@@ -273,8 +282,8 @@ def test_route_declared_page_reaches_the_pack() -> None:
     from physiclaw.conductor.spec import pages
 
     text = _mutate(
-        "  - page: results\n",
-        '  - page: results\n  - page: cart\n    anchors: ["Cart"]\n',
+        "  - page: app.pages.results\n",
+        '  - page: app.pages.results\n  - page: cart\n    anchors: ["Cart"]\n',
     )
     write_pack(playbooks={"buy": text})
 
@@ -290,7 +299,7 @@ def test_page_declared_twice_rejected() -> None:
     # `home` lives in the appendix already — declaring it again on the
     # route is a conflict, not an override.
     text = _mutate(
-        "route:\n  - page: home\n",
+        "route:\n  - page: app.pages.home\n",
         'route:\n  - page: home\n    anchors: ["Files"]\n',
     )
     write_pack(playbooks={"buy": text})
@@ -303,7 +312,7 @@ def test_waypoints_are_bare_names() -> None:
     # Own-pack pages are written bare — the route IS the pack's context.
     with pytest.raises(PlaybookError, match="bare"):
         pb.parse_playbook(
-            _mutate("  - page: results\n", "  - page: pages.results\n"),
+            _mutate("  - page: app.pages.results\n", "  - page: pages.results\n"),
             "buy",
             _pack(),
         )
@@ -343,9 +352,9 @@ def test_payment_move_must_directly_follow_its_ask() -> None:
     text = (
         VALID
         + """  - do: detour
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "x"}
-  - page: results
+  - page: app.pages.results
 """
         + PAY_TAIL
     )
@@ -399,21 +408,21 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: home
+  - page: app.pages.home
   - ask: addr
     approve: address
     message: "address ok? reply ok or no"
     yes: ["ok"]
     no: ["no"]
   - do: pay
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
-  - page: home
+  - page: app.pages.home
 """
     with pytest.raises(PlaybookError, match="approve: payment"):
         pb.parse_playbook(text, "buy", pack)
@@ -430,7 +439,7 @@ def test_payment_agent_episode_takes_the_ask_total() -> None:
     tools: [tap]
     irreversible: payment
     limit: {calls: 3}
-  - page: results
+  - page: app.pages.results
 """
     )
 
@@ -682,8 +691,8 @@ INLINE_OPEN = """\
 
 
 def _inline(text: str = VALID) -> str:
-    assert text.count("    macro: demo.macros.open-app\n") == 1
-    return text.replace("    macro: demo.macros.open-app\n", INLINE_OPEN)
+    assert text.count("    macro: app.macros.open-app\n") == 1
+    return text.replace("    macro: app.macros.open-app\n", INLINE_OPEN)
 
 
 def test_do_macro_may_embed_the_body() -> None:
@@ -700,7 +709,7 @@ def test_do_names_its_macro() -> None:
     # `do: open-app` alone no longer runs a same-named directory macro: a
     # reader must not need the rule to know where the hand lives.
     text = _mutate(
-        "  - do: open\n    macro: demo.macros.open-app\n", "  - do: open-app\n"
+        "  - do: open\n    macro: app.macros.open-app\n", "  - do: open-app\n"
     )
 
     with pytest.raises(PlaybookError, match="names its `macro:`"):
@@ -709,8 +718,8 @@ def test_do_names_its_macro() -> None:
 
 def test_inline_do_with_keys_validate_against_the_body() -> None:
     text = _inline().replace(
-        'with: {message: "{inputs.keyword}"}\n  - page: home',
-        'with: {wrong: "x"}\n  - page: home',
+        'with: {message: "{inputs.keyword}"}\n  - page: app.pages.home',
+        'with: {wrong: "x"}\n  - page: app.pages.home',
     )
 
     with pytest.raises(PlaybookError, match="wrong.*not.*inputs of macro 'buy.open'"):
@@ -732,7 +741,7 @@ def test_inline_body_errors_are_framed_with_the_move() -> None:
 
 
 def test_do_macro_rejects_a_non_string_non_mapping() -> None:
-    text = VALID.replace("macro: demo.macros.open-app", "macro: 3")
+    text = VALID.replace("macro: app.macros.open-app", "macro: 3")
 
     with pytest.raises(PlaybookError, match="macro name or an inline mapping"):
         pb.parse_playbook(text, "buy", _pack())
@@ -776,7 +785,7 @@ def test_pack_doc_rejects_yaml_aliases() -> None:
 
 def test_ask_resume_may_embed_the_body() -> None:
     text = _mutate(
-        "    resume: demo.macros.open-app\n",
+        "    resume: app.macros.open-app\n",
         "    resume:\n      steps:\n        - home_screen\n",
     )
     pack = _pack()
@@ -797,7 +806,7 @@ def test_inline_role_body_with_required_input_rejected() -> None:
     # only abort at run time (right after a confirmed ask), so the lint
     # runs on the RESOLVED macro.
     text = _mutate(
-        "    resume: demo.macros.open-app\n",
+        "    resume: app.macros.open-app\n",
         "    resume:\n"
         "      inputs:\n"
         "        x: {description: d}\n"
@@ -821,7 +830,7 @@ def test_scrollable_only_waypoint_is_a_declaration_at_both_doors() -> None:
     # carrying only `scrollable:` must read as a (re)declaration at the
     # pack door AND the text door.
     text = _mutate(
-        "route:\n  - page: home\n",
+        "route:\n  - page: app.pages.home\n",
         "route:\n  - page: home\n    scrollable: true\n",
     )
     write_pack(playbooks={"buy": text})
@@ -835,7 +844,7 @@ def test_text_door_validates_inplace_declarations_too() -> None:
     # door: the in-place declaration's CONTENT rides the same page
     # grammar at both (here: a single-char anchor without a region).
     text = _mutate(
-        "  - page: results\n",
+        "  - page: app.pages.results\n",
         '  - page: cart\n    anchors: ["x"]\n',
     )
 
@@ -854,8 +863,8 @@ def test_disabled_recover_macro_is_reported_not_run() -> None:
     )
     pack = pb.load_pack("demo")
     text = _mutate(
-        "route:\n  - page: home\n",
-        "route:\n  - page: home\n    recover: {macro: demo.macros.go-home}\n",
+        "route:\n  - page: app.pages.home\n",
+        "route:\n  - page: app.pages.home\n    recover: {macro: app.macros.go-home}\n",
     )
 
     spec = pb.parse_playbook(text, "buy", pack)
@@ -870,10 +879,10 @@ BOOT = """\
 name: boot
 description: reach the thread and read it
 route:
-  - page: thread
+  - page: app.pages.thread
     recover:
       locked: unlock_phone
-      elsewhere: {macro: wechat.macros.open}
+      elsewhere: {macro: app.macros.open}
     tries: 4
   - select: parse
 """
@@ -926,7 +935,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         (
             lambda t: t.replace(
                 "  - select: parse\n",
-                "  - do: nudge\n    macro: wechat.macros.open\n  - page: other\n"
+                "  - do: nudge\n    macro: app.macros.open\n  - page: other\n"
                 '    anchors: ["Somewhere else"]\n'
                 "  - select: parse\n",
             ),
@@ -935,7 +944,8 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         # activate ends the boot
         (
             lambda t: (
-                t + "  - do: after\n    macro: wechat.macros.open\n  - page: thread\n"
+                t
+                + "  - do: after\n    macro: app.macros.open\n  - page: app.pages.thread\n"
             ),
             "must end with a `select`",
         ),
@@ -943,7 +953,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         (
             lambda t: t.replace(
                 "  - select: parse\n",
-                "  - select: first\n  - page: thread\n  - select: parse\n",
+                "  - select: first\n  - page: app.pages.thread\n  - select: parse\n",
             ),
             "one `select` only",
         ),
@@ -951,7 +961,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         (
             lambda t: t.replace(
                 "  - select: parse\n",
-                "  - do: nudge\n    macro: wechat.macros.open\n  - page: thread\n",
+                "  - do: nudge\n    macro: app.macros.open\n  - page: app.pages.thread\n",
             ),
             "must end with a `select`",
         ),
@@ -982,8 +992,8 @@ def test_flat_recover_covers_the_locked_reading_too() -> None:
     # screen included, exactly as the docstring promises; the keyed form
     # is where an author tells the readings apart.
     text = VALID.replace(
-        "  - page: home\n  - do: open",
-        "  - page: home\n    recover: force_quit\n  - do: open",
+        "  - page: app.pages.home\n  - do: open",
+        "  - page: app.pages.home\n    recover: force_quit\n  - do: open",
         1,
     )
     spec = pb.parse_playbook(text, "buy", _pack())
@@ -1095,15 +1105,17 @@ def test_a_pages_on_fail_rides_its_recovery() -> None:
     # A page that says only `on_fail` gets a hand-less recovery; one that
     # also declares a hand keeps it.
     text = VALID.replace(
-        "  - page: results\n", "  - page: results\n    on_fail: stop\n", 1
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    on_fail: stop\n",
+        1,
     )
     spec = pb.parse_playbook(text, "buy", _pack())
     assert spec.recovers["results"].on_fail == "stop"
     assert spec.recovers["results"].hands == ()
 
     text = VALID.replace(
-        "  - page: results\n",
-        "  - page: results\n    recover: go_back\n    on_fail: stop\n",
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: go_back\n    on_fail: stop\n",
         1,
     )
     spec = pb.parse_playbook(text, "buy", _pack())
@@ -1115,15 +1127,19 @@ def test_a_page_declares_on_fail_once() -> None:
     # `home` is a waypoint twice in VALID: the same word twice is fine,
     # a later waypoint may add what the earlier left unsaid, and two
     # different words are a contradiction.
-    text = VALID.replace("  - page: home\n", "  - page: home\n    on_fail: stop\n")
+    text = VALID.replace(
+        "  - page: app.pages.home\n", "  - page: app.pages.home\n    on_fail: stop\n"
+    )
     assert pb.parse_playbook(text, "buy", _pack()).recovers["home"].on_fail == "stop"
 
-    once = VALID.replace("  - page: home\n", "  - page: home\n    on_fail: stop\n", 1)
+    once = VALID.replace(
+        "  - page: app.pages.home\n", "  - page: app.pages.home\n    on_fail: stop\n", 1
+    )
     assert pb.parse_playbook(once, "buy", _pack()).recovers["home"].on_fail == "stop"
 
     twice = text.replace(
-        "  - page: home\n    on_fail: stop\n",
-        "  - page: home\n    on_fail: handover\n",
+        "  - page: app.pages.home\n    on_fail: stop\n",
+        "  - page: app.pages.home\n    on_fail: handover\n",
         1,
     )
     with pytest.raises(PlaybookError, match="declares `on_fail` twice"):
@@ -1195,8 +1211,8 @@ def test_only_the_payment_ask_is_told_when_on_fail_is_unsaid() -> None:
 
     pack = _pack()
     text = VALID.replace(
-        "  - page: results\n",
-        "  - page: results\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n"
         "  - ask: proceed\n"
         "    approve: go\n"
         '    message: "Continue? reply go or no"\n'
@@ -1256,9 +1272,9 @@ def test_a_granted_macro_with_a_templated_box_is_refused_under_never_tap() -> No
 
     with pytest.raises(PlaybookError, match="placeholder"):
         pb.parse_playbook(
-            spec('    never_tap: ["Pay"]\n    give: [demo.macros.tmpl]\n'), "buy", pack
+            spec('    never_tap: ["Pay"]\n    give: [app.macros.tmpl]\n'), "buy", pack
         )
-    pb.parse_playbook(spec("    give: [demo.macros.tmpl]\n"), "buy", pack)
+    pb.parse_playbook(spec("    give: [app.macros.tmpl]\n"), "buy", pack)
 
 
 def test_the_same_grant_twice_is_named_without_its_body() -> None:
@@ -1267,7 +1283,7 @@ def test_the_same_grant_twice_is_named_without_its_body() -> None:
         pb.parse_playbook(
             _mutate(
                 "    tools: [tap, scroll]\n",
-                "    tools: [tap, scroll]\n    give: [demo.macros.add-cart, demo.macros.add-cart]\n",
+                "    tools: [tap, scroll]\n    give: [app.macros.add-cart, app.macros.add-cart]\n",
             ),
             "buy",
             pack,
@@ -1348,7 +1364,7 @@ def test_never_tap_is_allowed_on_an_episode_that_only_runs_a_macro() -> None:
         _mutate(
             "    tools: [tap, scroll]\n",
             "    tools: [scroll]\n"
-            "    give: [demo.macros.add-cart]\n"
+            "    give: [app.macros.add-cart]\n"
             '    never_tap: ["Pay Now"]\n',
         ),
         "buy",
@@ -1377,13 +1393,15 @@ def test_a_grant_that_walks_around_never_tap_is_refused_at_parse() -> None:
     guarded = '    never_tap: ["t"]\n'
 
     with pytest.raises(PlaybookError, match="never_tap"):
-        pb.parse_playbook(spec(guarded + "    give: [landmarks.pay]\n"), "buy", pack)
+        pb.parse_playbook(
+            spec(guarded + "    give: [app.landmarks.pay]\n"), "buy", pack
+        )
     # The shared fixture macro taps "t" too.
     with pytest.raises(PlaybookError, match="presses"):
         pb.parse_playbook(
-            spec(guarded + "    give: [demo.macros.add-cart]\n"), "buy", pack
+            spec(guarded + "    give: [app.macros.add-cart]\n"), "buy", pack
         )
     # The same grants, with nothing declared, stay legal.
     pb.parse_playbook(
-        spec("    give: [landmarks.pay, demo.macros.add-cart]\n"), "buy", pack
+        spec("    give: [app.landmarks.pay, app.macros.add-cart]\n"), "buy", pack
     )

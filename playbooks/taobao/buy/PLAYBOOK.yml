@@ -24,15 +24,15 @@ route:
     think: off                    # a keyword is read off the words, not reasoned out
 
   - start: app
-    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
+    macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
 
   - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}  # suffix the search, not the field
-    macro: taobao.macros.search
+    macro: app.macros.search
 
-  - page: results                 # the filter row (综合 / 销量)
+  - page: app.pages.results       # the filter row (综合 / 销量)
 
   # The model picks a listing and opens its buy sheet (立即购买 / 领券购买)
   # with one spec at one exact price, then stops: the ask reads the
@@ -41,7 +41,7 @@ route:
   - agent: pick
     prompt: prompts.pick          # rows to a listing, the sheet's spec, stop before paying
     tools: [tap, scroll, back]
-    give: [landmarks.close]       # the ✕ of a promo card over the page
+    give: [app.landmarks.close]       # the ✕ of a promo card over the page
     never_tap:                    # bans the walker enforces; never shown to the model
       # Banded because 免密支付 is also a label the total sits beside
       # (`total_label:` below), read mid-page: y 0.56 the label, y 0.92
@@ -59,7 +59,7 @@ route:
     on_fail: stop                 # it stands on the buy sheet: a free model with the
                                   # tools there is how an unasked payment happened
 
-  - page: buysheet                # the pay button over the 实付 / 补贴后 row
+  - page: app.pages.buysheet      # the pay button over the 实付 / 补贴后 row
 
   - ask: confirm-pay              # the human approves before money moves
     approve: payment
@@ -73,7 +73,7 @@ route:
     rounds: 3                     # …and silent polls before the session suspends
     think: off                    # a reply the words miss is read, not deliberated over
     on_fail: stop                 # a failure (or an answered no) ends the session; nothing paid
-    resume: taobao.macros.foreground  # the ask left the app — come back where it was
+    resume: app.macros.foreground  # the ask left the app — come back where it was
 
   # One recorded tap once the consented amount still shows.
   - do: pay
@@ -84,9 +84,9 @@ route:
         - tap: ["免密支付", "立即支付", "提交订单"]   # one target, three spellings
           at: [0.368, 0.923, 0.629, 0.948]
         - wait: 4
-        - run: taobao.macros.cashier  # 立即支付 / 确认支付, only while one shows
+        - run: app.macros.cashier  # 立即支付 / 确认支付, only while one shows
 
-  - page: paid
+  - page: app.pages.paid
 
   - tell: report                  # the walk is done; a reply is the next wake's request
     message: "已下单并完成支付：{pick.summary}。"

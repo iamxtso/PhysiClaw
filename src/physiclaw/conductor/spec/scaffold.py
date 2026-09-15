@@ -124,7 +124,7 @@ description: EDIT ME — what this pack automates, and when to adopt it
 #     example: SomeOne
 
 # Named fixed spots the author KNOWS — recover hands tap them, and
-# agent episodes are granted them by name (`give: [landmarks.back]`).
+# agent episodes are granted them by name (`give: [app.landmarks.back]`).
 # Open vocabulary; each is {{label, at, [page]}}: the tap fires at `at`
 # as declared, the label says what it is; `page:` scopes it — an
 # episode is offered it only while that page is the verified reading.
@@ -146,7 +146,7 @@ description: EDIT ME — what this pack automates, and when to adopt it
 #   home:
 #     anchors:
 #       - {{text: ["Search", "Find"], within: top}}
-#     recover: {{macro: launch}}          # the pack's own hand, bare in its own manifest
+#     recover: {{macro: app.macros.launch}}   # a pack hand, the one spelling everywhere
 """
 
 
@@ -154,14 +154,14 @@ PLAYBOOK_TEMPLATE = """\
 # One playbook — this folder is its name ({app}/{playbook}); the pack's
 # APP.yml holds what every playbook shares, and this folder holds what
 # is this route's alone: macros/<name>.yml it recorded, prompts/<name>.md
-# its agent steps read (`prompt: prompts.<name>` — its own; `{app}.prompts.<name>` — the pack's), README.md for people.
+# its agent steps read (`prompt: prompts.<name>` — its own; `app.prompts.<name>` — the pack's), README.md for people.
 # A route alternates
 # WHERE (a page, checked every time) with WHAT (a move), forward-only,
 # ≤ {max_nodes} moves. What you declare is what runs: nothing retries,
 # unlocks, or waits unless a line here says so. The entries:
 #   page   — where the walk must BE; `recover:` is the hand that runs when
-#            it is not ({recover_tools}, `{{tap: landmarks.<name>}}`,
-#            `{{macro: <name>}}`, or one per reading: covered / elsewhere /
+#            it is not ({recover_tools}, `{{tap: app.landmarks.<name>}}`,
+#            `{{macro: app.macros.<name>}}`, or one per reading: covered / elsewhere /
 #            locked), `tries:` beside it (default {recover_limit}).
 #   start  — the cold launch, once, right before the first page.
 #   do     — a recorded macro (`macro:` a pack macro or an inline body,
@@ -170,7 +170,7 @@ PLAYBOOK_TEMPLATE = """\
 #            payment` ask.
 #   agent  — the model drives inside YOUR prompt (inline, or
 #            `prompt: prompts.<name>` for its own prompts/<name>.md,
-#            `{app}.prompts.<name>` for the pack's) with the
+#            `app.prompts.<name>` for the pack's) with the
 #            `tools:` and `give:` grants you list (`never_tap:` is the
 #            opposite — readings, or `{{label, within}}`, this episode's
 #            taps may never land on, a granted macro's recorded taps
@@ -253,13 +253,13 @@ route:
             at: [0.1, 0.1, 0.3, 0.2]
           - wait: 3
     # recover:              # or one hand per reading:
-    #   covered: {{tap: landmarks.dismiss}}
+    #   covered: {{tap: app.landmarks.dismiss}}
     #   elsewhere: go_back
     #   locked: unlock_phone
     # tries: 2              # this page's tries per walk (default {recover_limit})
     # on_fail: stop         # cannot reach this page → the session ends
   - do: {macro}             # the recorded gesture
-    macro: {app}.macros.{macro}   # the pack's macros/{macro}.yml (a bare name is this folder's)
+    macro: app.macros.{macro}     # the pack's macros/{macro}.yml (a bare name is this folder's)
     with: {{message: "{{inputs.message}}"}}
   - page: home              # the landing check — hand over if not reached
   # An acting agent episode — the judgment stretch, delegated whole:
@@ -267,7 +267,7 @@ route:
   #   prompt: |
   #     EDIT ME — the goal, the rules, and where to finish.
   #   tools: [{agent_tools}]
-  #   give: [landmarks.back, {app}.macros.{macro}]
+  #   give: [app.landmarks.back, app.macros.{macro}]
   #   context: [daylog]
   #   returns:
   #     summary: EDIT ME — what to report back
@@ -323,9 +323,9 @@ One directory per app, self-contained — everything its playbooks use:
                            and optionally returns and scope.
         macros/<n>.yml     this route's own recorded hands (dispatch
                            <app>/<name>.<n>): `macro: <n>` here; the pack's
-                           is `macro: <app>.macros.<n>` — the spelling says which.
+                           is `macro: app.macros.<n>`.
         prompts/<n>.md     this route's prose for the model, verbatim
-                           (`prompt: prompts.<n>`; the pack's: `<app>.prompts.<n>`).
+                           (`prompt: prompts.<n>`; the pack's: `app.prompts.<n>`).
         README.md          the route's notes for people. Never loaded.
 
 Validate everything: `physiclaw playbooks check`. Scaffold a pack:
@@ -362,8 +362,8 @@ What the playbook declares is what runs — no more, no less. An
 the whole brief (refs fill once when the step opens; the conductor
 adds only the output contract), `tools:` the closed gesture allowlist,
 `give:` the landmarks shown to it each turn with their reading and box
-(`landmarks.<name>`) and the macros it may run whole (`macros.<name>`,
-this route's; `<app>.macros.<name>`, the pack's), `never_tap:` the
+(`app.landmarks.<name>`) and the macros it may run whole (`macros.<name>`,
+this route's; `app.macros.<name>`, the pack's), `never_tap:` the
 targets its taps may NEVER press —
 a reading, alternate readings of one target, or `{{label, within}}` to
 say which band the target sits in; a granted macro's recorded taps are
@@ -400,8 +400,7 @@ A pack may declare `landmarks:` — named fixed spots ({{label, at,
 are granted; a `page:` scope offers the spot only on that page. A
 page's `recover:` declares its recovery hand — a bare gesture
 (`go_back`, `force_quit`, `home_screen`, `unlock_phone`), `{{tap:
-landmarks.<name>}}`, or `{{macro: <name>}}` (bare in the manifest: its own
-macros/; `<app>.macros.<name>` from a route) — or one hand per reading
+app.landmarks.<name>}}`, or `{{macro: app.macros.<name>}}` — or one hand per reading
 (`covered:` for a sheet over the page itself, `locked:` for the
 phone's lock screen, `elsewhere:` for any other screen), with `tries:`
 beside it as its own bound: the hand runs, the page is read again, at
@@ -513,11 +512,11 @@ name: {boot}
 description: reach the user's thread and read the request there
 enabled: true
 route:
-  - page: {thread}                  # where the walk must BE (the manifest declares it)
+  - page: app.pages.{thread}        # where the walk must BE (the manifest declares it)
     recover:                       # …and what to do when it is not
       locked: unlock_phone           # a sleeping phone gets no taps: wake it first
-      covered: {{macro: {im}.macros.{open}}}     # the thread under a sheet or keyboard
-      elsewhere: {{macro: {im}.macros.{open}}}   # any other screen: the rehearsed hand
+      covered: {{macro: app.macros.{open}}}     # the thread under a sheet or keyboard
+      elsewhere: {{macro: app.macros.{open}}}   # any other screen: the rehearsed hand
     tries: 4                         # unlocks + opens together (an unlock races the keypad)
   - select: parse                  # the boot's own step: read the thread and select
     limit: {{scrolls: 2}}            # the playbook it asks for (scrolls up for an
@@ -565,8 +564,7 @@ def ensure_channel_boot(root: Path) -> None:
 
 
 def channel_boot_stub(root: Path) -> str:
-    """The boot for the channel pack at `root`: its hands name the IM
-    folder's own macros (`<im>.macros.open`)."""
+    """The boot for a channel pack: its hands are the pack's `open`."""
     return CHANNEL_BOOT_STUB.format(
         app=CHANNEL_APP,
         boot=BOOT_PLAYBOOK,

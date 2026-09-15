@@ -16,7 +16,7 @@ steps:
   # Resumed on the feed: nothing more to do. Anything else it kept (an
   # ad, a search, an item page, an order sheet) is mid-state: quit and
   # launch cold.
-  - if_page: home
+  - if_page: app.pages.home
     goto: feed
   # ── 2. first cold launch ───────────────────────────────────────────
   - run: cold-launch                         # quit, relaunch past the ad, onto 推荐, settled
@@ -24,7 +24,7 @@ steps:
   # after a force_quit may come up on that page, and the launch after
   # that on the feed. So the feed already showing is done; otherwise
   # quit and launch once more, and the mark checks the pass reached it.
-  - if_page: home
+  - if_page: app.pages.home
     goto: feed
   # ── 3. second cold launch ──────────────────────────────────────────
   - run: cold-launch                         # quit, relaunch past the ad, onto 推荐, settled

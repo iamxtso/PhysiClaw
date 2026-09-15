@@ -33,29 +33,29 @@ route:
     message: "收到，正在盒马为你挑选：\n{parse.items}"
 
   - start: app
-    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
+    macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: home                    # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
 
   - do: enter                     # the feed's main search for 盒马 opens its storefront
     with: {keyword: "盒马"}
-    macro: taobao.macros.search
+    macro: app.macros.search
 
-  - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
+  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
 
   - run: hema-add                 # store search, pick, 加入购物车, back to this home; one
     each: {item: parse.items}     # round per item; a line already in the cart is not
     miss: skip                    # re-added, an item not found is skipped
     limit: {rounds: 4}
 
-  - page: hema-home
+  - page: app.pages.hema-home
 
   - run: hema-checkout            # the cart, tick, settle, confirm, pay
     with: {lines: "{hema-add.line}"}
     revise: parse                 # a reply the ask's words miss re-plans from `parse`
     limit: {revisions: 2}
 
-  - page: paid
+  - page: app.pages.paid
 
   - tell: report
     message: "盒马已下单并完成支付：\n{hema-add.line}"

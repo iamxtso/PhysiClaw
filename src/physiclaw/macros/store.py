@@ -98,8 +98,8 @@ def scan(
     `paths.playbooks_dirs` layering rule). The CLI's view; the engine
     uses `discover_enabled`. Conductor packs point this at their private
     ``macros/`` roots, with ``pages`` the pack's page resolver a jump
-    reads through and ``fallback`` where a `run` step's dotted name
-    (`<pack>.macros.<name>`) goes (`parse_folder`) — one scanner, one
+    reads through and ``fallback`` where a `run` step's `app.macros.<name>`
+    goes (`parse_folder`) — one scanner, one
     traversal guard, one broad-except lesson."""
     if root is None:
         seen: set[str] = set()
@@ -146,7 +146,7 @@ def parse_folder(
     step names a sibling: the resolver here parses the named file on
     demand (each once, whichever order the folder lists them in), so
     a caller binds the very object its callee's entry holds; a dotted
-    name (`<pack>.macros.<name>`) goes to ``fallback``, the pack's
+    name (`app.macros.<name>`) goes to ``fallback``, the pack's
     resolver; a file that reaches itself
     through its callees is a cycle, refused with the chain. The
     folder's whole rule, so `scan`, a pack's loader and a test over
@@ -184,8 +184,8 @@ def parse_folder(
             )
             raise MacroError(f"{chain} — {what}")
         ref = parse_ref(name)
-        if ref is not None and ref.pack is not None:
-            # `<pack>.macros.<name>`: the pack's shared hand, resolved by
+        if ref is not None and ref.shared:
+            # `app.macros.<name>`: the pack's shared hand, resolved by
             # the pack — a folder of the pack's own names its siblings bare.
             if fallback is None:
                 raise MacroError(

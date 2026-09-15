@@ -37,12 +37,12 @@ returns:
   did: "searched {inputs.what}"
 route:
   - start: app
-    macro: demo.macros.open-app
-  - page: home
+    macro: app.macros.open-app
+  - page: app.pages.home
   - do: search
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "{inputs.what}"}
-  - page: results
+  - page: app.pages.results
 """
 
 FLOW = """\
@@ -54,7 +54,7 @@ inputs:
 route:
   - run: leg
     with: {what: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - tell: report
     message: "done: {leg.did}"
 """
@@ -98,8 +98,8 @@ def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
     [
         # The route must continue with the leg's last page.
         (
-            "  - page: results\n  - tell",
-            "  - page: home\n  - tell",
+            "  - page: app.pages.results\n  - tell",
+            "  - page: app.pages.home\n  - tell",
             "lands on 'results'",
         ),
         # A `with` key must be an input of the leg.
@@ -108,8 +108,8 @@ def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
         ('    with: {what: "{inputs.keyword}"}\n', "", "requires input"),
         # `miss` goes with `each`.
         (
-            "  - page: results\n  - tell",
-            "    miss: skip\n  - page: results\n  - tell",
+            "  - page: app.pages.results\n  - tell",
+            "    miss: skip\n  - page: app.pages.results\n  - tell",
             "`miss: skip` goes with `each`",
         ),
         # A run cannot name itself.
@@ -132,8 +132,8 @@ def test_a_leg_that_ends_on_a_move_cannot_be_run() -> None:
 
 def test_a_leg_may_not_run_a_playbook_itself() -> None:
     nested = LEG.replace(
-        "  - start: app\n    macro: demo.macros.open-app\n",
-        "  - run: flow\n  - page: results\n  - start: app\n    macro: demo.macros.open-app\n",
+        "  - start: app\n    macro: app.macros.open-app\n",
+        "  - run: flow\n  - page: app.pages.results\n  - start: app\n    macro: app.macros.open-app\n",
     )
     # The leg's own parse fails first: `start` must sit right before the
     # first page; the depth rule is reached with a leg that parses.
@@ -142,12 +142,13 @@ def test_a_leg_may_not_run_a_playbook_itself() -> None:
 
 
 def test_a_leg_without_its_own_start_needs_the_page_before_the_run() -> None:
-    leg = LEG.replace("  - start: app\n    macro: demo.macros.open-app\n", "")
+    leg = LEG.replace("  - start: app\n    macro: app.macros.open-app\n", "")
     with pytest.raises(PlaybookError, match="starts on page 'home'"):
         _parse(FLOW, leg=leg)
     # …and with that page in place, it frames like a do: enter = home.
     spec = _parse(
-        FLOW.replace("  - run: leg\n", "  - page: home\n  - run: leg\n"), leg=leg
+        FLOW.replace("  - run: leg\n", "  - page: app.pages.home\n  - run: leg\n"),
+        leg=leg,
     )
     run = spec.nodes[0]
     assert isinstance(run, RunNode) and run.enter == "home" and not run.self_starting
@@ -197,15 +198,15 @@ def test_a_run_walks_the_leg_under_its_prefix_and_hands_its_return_forward() -> 
 
 
 ASKING_LEG = LEG.replace(
-    "  - page: results\n",
-    "  - page: results\n"
+    "  - page: app.pages.results\n",
+    "  - page: app.pages.results\n"
     "  - ask: go\n"
     "    approve: go\n"
     '    message: "go on with {inputs.what}?"\n'
     '    yes: ["好的"]\n'
     '    no: ["不用"]\n'
-    "    resume: demo.macros.add-cart\n"
-    "  - page: results\n",
+    "    resume: app.macros.add-cart\n"
+    "  - page: app.pages.results\n",
 )
 
 
@@ -256,7 +257,7 @@ route:
   - run: leg
     each: {what: parse.items}
     limit: {rounds: 2}
-  - page: results
+  - page: app.pages.results
   - tell: report
     message: "done: {leg.did}"
 """
@@ -387,12 +388,12 @@ route:
     returns:
       key: the keyword
   - start: app
-    macro: demo.macros.open-app
-  - page: home
+    macro: app.macros.open-app
+  - page: app.pages.home
   - do: search
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "{plan.key}"}
-  - page: results
+  - page: app.pages.results
 """
 
 
@@ -433,14 +434,14 @@ inputs:
   lines:
     description: what to confirm
 route:
-  - page: results
+  - page: app.pages.results
   - ask: confirm
     approve: go
     message: "buy {inputs.lines}?"
     yes: ["好的"]
     no: ["不用"]
-    resume: demo.macros.add-cart
-  - page: results
+    resume: app.macros.add-cart
+  - page: app.pages.results
 """
 
 REVISING = """\
@@ -460,12 +461,12 @@ route:
       items: the items, one per line
   - run: leg
     each: {what: parse.items}
-  - page: results
+  - page: app.pages.results
   - run: pay
     with: {lines: "{leg.did}"}
     revise: parse
     limit: {revisions: 1}
-  - page: results
+  - page: app.pages.results
   - tell: report
     message: "done: {leg.did}"
 """
@@ -656,7 +657,8 @@ def test_two_playbooks_running_each_other_are_named_not_recursed() -> None:
     # The scan memoises what it parsed; a name reached again while its
     # own parse is in progress is a cycle, said in one line.
     leg = LEG.replace(
-        "  - page: results\n", "  - page: results\n  - run: flow\n  - page: results\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n  - run: flow\n  - page: app.pages.results\n",
     )
     write_pack(playbooks={"leg": leg, "flow": FLOW})
 
@@ -707,7 +709,8 @@ def test_a_suspension_inside_the_second_round_resumes_there_without_the_first() 
 
 def test_a_recover_hand_inside_a_round_runs_again_never_the_rounds_start() -> None:
     leg = LEG.replace(
-        "  - page: results\n", "  - page: results\n    recover: go_back\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: go_back\n",
     )
     p, h = _walk(flow=EACH, leg=leg, keyword="milk and eggs")
     start = _listed(p, h, "milk\neggs")
@@ -728,15 +731,15 @@ def test_a_recover_hand_inside_a_round_runs_again_never_the_rounds_start() -> No
 
 
 TOP_ASK = EACH.replace(
-    "  - page: results\n  - tell: report\n",
-    "  - page: results\n"
+    "  - page: app.pages.results\n  - tell: report\n",
+    "  - page: app.pages.results\n"
     "  - ask: go\n"
     "    approve: go\n"
     '    message: "all in?"\n'
     '    yes: ["好的"]\n'
     '    no: ["不用"]\n'
-    "    resume: demo.macros.add-cart\n"
-    "  - page: results\n"
+    "    resume: app.macros.add-cart\n"
+    "  - page: app.pages.results\n"
     "  - tell: report\n",
 )
 
@@ -784,9 +787,9 @@ def test_a_revision_that_keeps_the_list_re_runs_no_round() -> None:
 # ---------- the second review's findings, pinned ----------
 
 PAY_LONG = PAY.replace(
-    "  - page: results\n  - ask: confirm\n",
-    '  - page: results\n  - do: hop\n    macro: demo.macros.add-cart\n    with: {message: "x"}\n'
-    "  - page: results\n  - ask: confirm\n",
+    "  - page: app.pages.results\n  - ask: confirm\n",
+    '  - page: app.pages.results\n  - do: hop\n    macro: app.macros.add-cart\n    with: {message: "x"}\n'
+    "  - page: app.pages.results\n  - ask: confirm\n",
 )
 
 
@@ -795,7 +798,8 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
     # expanded layout), revise, and let the new round's page hand fail:
     # the hand runs again where the round stands, never past the end.
     leg = LEG.replace(
-        "  - page: results\n", "  - page: results\n    recover: go_back\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: go_back\n",
     )
     write_channel()
     write_pack(playbooks={"leg": leg, "pay": PAY_LONG, "flow": REVISING})
@@ -850,7 +854,10 @@ def test_a_runs_on_fail_word_covers_failures_inside_its_rounds() -> None:
 
 
 def test_the_runs_miss_word_wins_over_a_sub_pages_own_stop() -> None:
-    leg = LEG.replace("  - page: results\n", "  - page: results\n    on_fail: stop\n")
+    leg = LEG.replace(
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    on_fail: stop\n",
+    )
     flow = EACH.replace("    limit: {rounds: 2}\n", "    miss: skip\n")
     p, h = _walk(flow=flow, leg=leg, keyword="milk and eggs")
     start = _listed(p, h, "milk\neggs")
@@ -863,10 +870,10 @@ def test_the_runs_miss_word_wins_over_a_sub_pages_own_stop() -> None:
 
 def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
     flow = EACH.replace(
-        "  - page: results\n  - tell: report\n",
-        "  - page: results\n    recover: go_back\n"
-        '  - do: after\n    macro: demo.macros.add-cart\n    with: {message: "x"}\n'
-        "  - page: results\n  - tell: report\n",
+        "  - page: app.pages.results\n  - tell: report\n",
+        "  - page: app.pages.results\n    recover: go_back\n"
+        '  - do: after\n    macro: app.macros.add-cart\n    with: {message: "x"}\n'
+        "  - page: app.pages.results\n  - tell: report\n",
     )
     p, h = _walk(flow=flow, keyword="milk and eggs")
     start = _listed(p, h, "milk\neggs")
@@ -896,15 +903,15 @@ returns:
   did: "added {inputs.what}"
 route:
   - start: app
-    macro: demo.macros.open-app
-  - page: home
+    macro: app.macros.open-app
+  - page: app.pages.home
   - do: add
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "{inputs.what}"}
-  - page: results
+  - page: app.pages.results
   - do: back
-    macro: demo.macros.open-app
-  - page: home
+    macro: app.macros.open-app
+  - page: app.pages.home
     recover: go_back
 """
 
@@ -914,7 +921,7 @@ def test_a_hand_after_a_landed_move_never_runs_that_move_again() -> None:
     # never crossed again by a recovery, so the round misses with the
     # add done exactly once rather than searching and adding twice.
     flow = EACH.replace("    limit: {rounds: 2}\n", "    miss: skip\n").replace(
-        "  - page: results\n  - tell", "  - page: home\n  - tell"
+        "  - page: app.pages.results\n  - tell", "  - page: app.pages.home\n  - tell"
     )
     p, h = _walk(flow=flow, leg=ADDING_LEG, keyword="milk")
     start = _listed(p, h, "milk")
@@ -1001,7 +1008,7 @@ route:
     prompt: "describe {inputs.keyword}"
     returns:
       items: the items, one per line
-  - page: results
+  - page: app.pages.results
   - tell: report
     message: "买了：\\n{parse.items}"
 """

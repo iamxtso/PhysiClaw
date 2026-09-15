@@ -35,8 +35,8 @@ pages:
   results:
     anchors: ["综合"]
     recover:
-      covered: {tap: landmarks.dismiss}
-      elsewhere: {macro: launch}
+      covered: {tap: app.landmarks.dismiss}
+      elsewhere: {macro: app.macros.launch}
     tries: 2
 """
 
@@ -48,19 +48,19 @@ inputs:
     description: what to search
 route:
   - start: app
-    macro: shop.macros.launch
-  - page: home
+    macro: app.macros.launch
+  - page: app.pages.home
   - do: search
-    macro: shop.macros.search
+    macro: app.macros.search
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - agent: pick
     prompt: "pick for <<CONTACT>>"
     tools: [tap]
-    give: [landmarks.dismiss]
+    give: [app.landmarks.dismiss]
     returns:
       summary: one line
-  - page: results
+  - page: app.pages.results
 """
 
 TRACK = """\
@@ -68,12 +68,12 @@ name: track
 description: track an order
 route:
   - start: app
-    macro: shop.macros.launch
-  - page: home
+    macro: app.macros.launch
+  - page: app.pages.home
   - do: orders
-    macro: shop.macros.search
+    macro: app.macros.search
     with: {message: "orders"}
-  - page: results
+  - page: app.pages.results
     recover: go_back
   - tell: done
     message: "<<CONTACT>>, your order is on its way"
@@ -175,7 +175,7 @@ def test_manifest_hand_must_name_a_recorded_macro_never_a_body(shop) -> None:
     # is the pack's own fault, raised before any playbook compiles.
     (shop / "APP.yml").write_text(
         MANIFEST.replace(
-            "elsewhere: {macro: launch}",
+            "elsewhere: {macro: app.macros.launch}",
             "elsewhere: {macro: {steps: [home_screen]}}\n",
         ),
         encoding="utf-8",
@@ -200,7 +200,7 @@ def test_a_page_declared_in_the_manifest_and_a_file_is_refused(shop) -> None:
     (shop / "track").mkdir(exist_ok=True)
     (shop / "track" / "PLAYBOOK.yml").write_text(
         TRACK.replace(
-            "  - page: home\n", '  - page: home\n    anchors: ["Files"]\n', 1
+            "  - page: app.pages.home\n", '  - page: home\n    anchors: ["Files"]\n', 1
         ),
         encoding="utf-8",
     )
@@ -220,7 +220,7 @@ def test_activation_menu_is_one_line_per_playbook_and_check_flags_twins(shop) ->
     _write_pack(
         "mall",
         MANIFEST.replace("app: shop", "app: mall"),
-        buy=BUY.replace("shop.macros.", "mall.macros."),
+        buy=BUY.replace("app.macros.", "app.macros."),
     )
     entries = {}
     for app in ("shop", "mall"):
@@ -247,11 +247,11 @@ name: buy
 description: buy with its own recorded search
 route:
   - start: open
-    macro: shop.macros.launch
-  - page: home
+    macro: app.macros.launch
+  - page: app.pages.home
   - do: find
     macro: search-own
-  - page: results
+  - page: app.pages.results
 """
 
 
@@ -288,7 +288,7 @@ def test_an_unreferenced_playbook_macro_is_still_the_routes_to_run() -> None:
 
 def test_a_bare_name_is_the_playbooks_own_file_even_when_the_pack_has_one() -> None:
     # `macro: search` is buy/macros/search.yml; the pack's is
-    # `shop.macros.search` — two spellings, no clash.
+    # `app.macros.search` — two spellings, no clash.
     root = _write_pack("shop", MANIFEST, buy=LOCAL_BUY.replace("search-own", "search"))
     write_local_macro(root, "buy", "search")  # the pack already records `search`
 
@@ -428,14 +428,15 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
 """
     override = route.replace(
-        "  - page: results\n", "  - page: results\n    on_fail: handover\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    on_fail: handover\n",
     )
     write_pack(pages=pages, playbooks={"inherits": route, "overrides": override})
     pack = pb.load_pack("demo")

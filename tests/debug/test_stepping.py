@@ -33,15 +33,15 @@ route:
     prompt: "keyword for {inputs.keyword}"
     returns:
       keyword: the keyword
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{parse.keyword}"}
-  - page: home
+  - page: app.pages.home
   - do: search
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "go"}
-  - page: results
+  - page: app.pages.results
 """
 
 

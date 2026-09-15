@@ -286,8 +286,8 @@ def test_the_boot_route_is_authorable() -> None:
         "name: boot\n"
         "description: mine\n"
         "route:\n"
-        "  - page: thread\n"
-        "    recover: {elsewhere: {macro: wechat.macros.open}}\n    tries: 1\n"
+        "  - page: app.pages.thread\n"
+        "    recover: {elsewhere: {macro: app.macros.open}}\n    tries: 1\n"
         "  - select: read\n"
         "    limit: {scrolls: 0}\n"
     )
@@ -306,7 +306,7 @@ def test_a_disabled_boot_means_a_plain_session() -> None:
     write_pack(playbooks={"flow": FLOW})
     (paths.playbooks_dir() / "channel" / "wechat" / "boot" / "PLAYBOOK.yml").write_text(
         "name: boot\ndescription: off\nenabled: false\nroute:\n"
-        "  - page: thread\n  - select: parse\n",
+        "  - page: app.pages.thread\n  - select: parse\n",
         encoding="utf-8",
     )
 

@@ -37,7 +37,12 @@ from physiclaw.conductor.spec.limits import (
     MAX_LANDMARKS,
     MAX_PAGES,
 )
-from physiclaw.macros.model import MAX_LABEL_READINGS, checked_readings
+from physiclaw.macros.model import (
+    MAX_LABEL_READINGS,
+    PAGES_KIND,
+    app_ref,
+    checked_readings,
+)
 
 log = logging.getLogger(__name__)
 
@@ -223,19 +228,36 @@ def route_decl(entry: dict) -> "dict | None":
 
 
 def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
-    """The pack's RAW page declarations, wherever they were written: the
-    manifest's `pages:` appendix plus every route waypoint carrying
-    declaration fields beside its `page:` key, across every playbook
-    file. Data-level on purpose — this runs at the pack door
-    (`scan_app_decls`, `load_pack`) before any playbook parses, so the
-    matcher sees route-declared pages through every door and
-    pack.py never re-owns the page grammar. A page is DECLARED
-    exactly once per pack; a second site raises with both named — the
-    same page declared in two files is a pack error, never a silent
-    merge. Malformed playbook shapes are skipped here — each playbook
-    excludes itself at its own parse, never the pack."""
-    out: dict[str, Any] = {}
-    sites: dict[str, str] = {}
+    """The pack's RAW page declarations, wherever they were written —
+    `page_sites` without the sites."""
+    return {name: spec for name, (spec, _) in page_sites(doc, playbook_docs).items()}
+
+
+def route_declared_pages(doc: dict, playbook_docs: dict | None) -> dict[str, str]:
+    """Page name → the route that declares it beside a waypoint. A
+    route's page is its own (`route._waypoint_id` refuses it from
+    another route); this is how the refusal knows whose it is."""
+    return {
+        name: route
+        for name, (_, route) in page_sites(doc, playbook_docs).items()
+        if route is not None
+    }
+
+
+def page_sites(
+    doc: dict, playbook_docs: dict | None = None
+) -> dict[str, tuple[Any, str | None]]:
+    """Every page declaration with where it was written — the raw spec
+    and the declaring route (None: the manifest's `pages:` appendix),
+    across every playbook file. Data-level on purpose — this runs at
+    the pack door (`scan_app_decls`, `load_pack`) before any playbook
+    parses, so the matcher sees route-declared pages through every
+    door and pack.py never re-owns the page grammar. A page is
+    DECLARED exactly once per pack; a second site raises with both
+    named — the same page declared in two files is a pack error, never
+    a silent merge. Malformed playbook shapes are skipped here — each
+    playbook excludes itself at its own parse, never the pack."""
+    out: dict[str, tuple[Any, str | None]] = {}
     appendix = doc.get("pages")
     if appendix is not None:
         if not isinstance(appendix, dict):
@@ -243,12 +265,12 @@ def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
         for name, spec in appendix.items():
             # The declaration half only: a manifest page may also carry
             # `recover:`, the pack-level hand (`collect_page_recovers`).
-            out[str(name)] = (
+            decl = (
                 {k: v for k, v in spec.items() if k not in PAGE_RECOVERY_FIELDS}
                 if isinstance(spec, dict)
                 else spec
             )
-            sites[str(name)] = "the manifest's `pages:` section"
+            out[str(name)] = (decl, None)
     for pb_name, pb in (playbook_docs or {}).items():
         route = pb.get("route") if isinstance(pb, dict) else None
         if not isinstance(route, list):
@@ -260,18 +282,18 @@ def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
             name = str(entry["page"])
             if decl is None or "." in name:
                 # A bare waypoint is a reference, not a declaration; a
-                # dotted one names a reserved built-in — its own route's
-                # parse refuses the declaration with the exact reason,
-                # never the whole pack.
+                # dotted one names the manifest's page or a reserved
+                # built-in — its own route's parse refuses a declaration
+                # there with the exact reason, never the whole pack.
                 continue
-            site = f"{pb_name}.yml's route"
             if name in out:
+                was = out[name][1]
+                site = "the manifest" if was is None else f"{was}.yml's route"
                 raise PagesError(
-                    f"page {name!r} declared twice — in {sites[name]} and on "
-                    f"{site}; declare once, reference it bare everywhere else"
+                    f"page {name!r} declared twice — in {site} and on {pb_name}.yml's "
+                    f"route; declare once (the manifest's is `{app_ref(PAGES_KIND, name)}`)"
                 )
-            out[name] = decl
-            sites[name] = site
+            out[name] = (decl, pb_name)
     return out
 
 

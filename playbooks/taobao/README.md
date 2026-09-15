@@ -56,7 +56,7 @@ before a playbook that uses it is live.
 - The 加入购物车 toast is transient, so `add` verifies the detail page
   and the cart itself is the check: a line `tick` cannot find escalates.
 - Promo popups (天降红包, coupons) cover a page right after it opens;
-  `landmarks.close` is their ✕, never their buttons.
+  `app.landmarks.close` is their ✕, never their buttons.
 - A storefront's search field sits at the very top of its search page,
   so iOS draws the Paste bubble BELOW it; the home feed's field sits
   lower and its bubble comes up above (`search` vs `store-search` /

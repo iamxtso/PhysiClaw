@@ -13,23 +13,23 @@ returns:
 
 route:
   - agent: parse
-    prompt: taobao.prompts.item-keyword  # the product words, no quantity or unit
+    prompt: app.prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
-  - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
+  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
 
   - do: find                      # type the keyword into the storefront's search, run it
     with: {keyword: "{parse.keyword}"}
-    macro: taobao.macros.store-search
+    macro: app.macros.store-search
 
-  - page: store-results           # the store's sort row (综合排序 / 销量优先)
+  - page: app.pages.store-results  # the store's sort row (综合排序 / 销量优先)
 
   - agent: pick
-    prompt: taobao.prompts.store-pick  # rows to an item, one add, the sheets that follow
+    prompt: app.prompts.store-pick  # rows to an item, one add, the sheets that follow
     tools: [tap, scroll]
-    give: [landmarks.close, landmarks.pairing-close]   # a promo ✕, the 推荐搭配 sheet's ✕
+    give: [app.landmarks.close, app.landmarks.pairing-close]   # a promo ✕, the 推荐搭配 sheet's ✕
     never_tap:
       - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button
@@ -43,9 +43,9 @@ route:
     think: low
     on_fail: stop
 
-  - page: store-detail            # the item page: 加入购物车 and the 店铺 tab
+  - page: app.pages.store-detail  # the item page: 加入购物车 and the 店铺 tab
 
   - do: back-to-store             # the item page's arrow, then the results' — lands on hema-home
-    macro: taobao.macros.hema-back
+    macro: app.macros.hema-back
 
-  - page: hema-home
+  - page: app.pages.hema-home

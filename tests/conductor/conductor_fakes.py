@@ -72,15 +72,15 @@ inputs:
   keyword:
     description: what to search
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - do: search
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "go"}
-  - page: done
+  - page: app.pages.done
 """
 
 

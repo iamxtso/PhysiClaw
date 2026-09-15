@@ -41,7 +41,7 @@ vocabulary and the model classes below carry the same names)::
                 # recover: is inherited by every route, a route's own
                 # replaces it whole for that walk
     hand      ::= go_back | force_quit | home_screen | unlock_phone
-                | {tap: landmarks.<name>} | {macro: name | body}
+                | {tap: app.landmarks.<name>} | {macro: app.macros.<name> | own | body}
     macro     ::= name                    # macros/<name>.yml — a recorded macro (pack or playbook)
                 | {[inputs] steps}        # inline — the macro-file grammar minus
                                           # name/description/enabled
@@ -100,7 +100,8 @@ from physiclaw.macros.model import (
     Macro,
     MacroError,
     MacroInput,
-    pack_macro_ref,
+    app_ref,
+    app_refs,
     parse_ref,
 )
 from physiclaw.macros.parse import MacroResolver
@@ -197,7 +198,7 @@ class AgentNode:
     context: tuple[str, ...] = ()  # `context:` — what to load (`context.py`)
     macros: tuple[
         str, ...
-    ] = ()  # granted macros (`give: [macros.<name>]` / `[<pack>.macros.<name>]`)
+    ] = ()  # granted macros (`give: [macros.<name>]` / `[app.macros.<name>]`)
     # `think:` — how much hidden thinking each of its calls asks the
     # model for; None = the vendor's default for that model.
     think: Thinking | None = None
@@ -522,30 +523,23 @@ class Files:
     prompts: Scanned[str] = field(default_factory=Scanned)
 
 
-def macro_resolver(
-    ok: Mapping[str, Macro], errors: Mapping[str, str], pack: str
-) -> MacroResolver:
-    """A pack's shared hand by reference — `<pack>.macros.<name>` from a
-    playbook or a macro beside it, the bare name from the pack's own
-    manifest — or why not. The one lookup a playbook's `macro:`, an
-    agent's `give:`, a manifest hand and a macro file's `run:` all end
-    in. One wording for "broken" and "not here"."""
+def macro_resolver(ok: Mapping[str, Macro], errors: Mapping[str, str]) -> MacroResolver:
+    """`app.macros.<name>` → one of the pack's hands, or why not — the one
+    lookup a playbook's `macro:`, an agent's `give:`, a manifest hand
+    and a macro file's `run:` all end in. One wording for "broken" and
+    "not here"."""
 
     def resolve(ref: str) -> Macro:
         r = parse_ref(ref)
-        own = r is not None and r.pack is None and r.kind is None
-        shared = r is not None and r.pack == pack and r.kind == MACROS_KIND
-        if r is None or not (own or shared):
+        if r is None or not r.is_app(MACROS_KIND):
             raise MacroError(
                 f"{ref!r} is not a pack macro reference — the pack's hands are "
-                f"`{pack_macro_ref(pack, '<name>')}`"
+                f"`{app_ref(MACROS_KIND, '<name>')}`"
             )
         if r.name in errors:
             raise MacroError(f"pack macro {r.name!r} is invalid: {errors[r.name]}")
         if r.name not in ok:
-            available = (
-                ", ".join(pack_macro_ref(pack, n) for n in sorted(ok)) or "(none)"
-            )
+            available = app_refs(MACROS_KIND, ok)
             raise MacroError(
                 f"{ref!r} not found in this pack's {paths.PACK_MACROS_DIRNAME}/ — "
                 f"available: {available}"
@@ -574,7 +568,7 @@ class Pack:
     # pack; the files that would not load ride as errors.
     playbook_docs: dict = field(default_factory=dict)
     playbook_errors: dict[str, str] = field(default_factory=dict)
-    # The pack's shared prose (`prompts/*.md`, `<pack>.prompts.<name>`)
+    # The pack's shared prose (`prompts/*.md`, `app.prompts.<name>`)
     # and each playbook's own leaf folders, by playbook — the route's
     # compiler registers a playbook's recorded hands under
     # `<playbook>.<name>` beside its inline bodies.
@@ -588,10 +582,9 @@ class Pack:
     # The channel pack's `thread: {incoming}` — the box the user's
     # bubbles' centers fall in; None for every other pack.
     thread_incoming: Bbox | None = None
-    # The folder the pack loads from — the name a reference to its
-    # shared files carries (`<folder>.macros.<name>`); the app's name
-    # for every pack but the channel, whose folder is its IM's.
-    folder: str = ""
+    # Pages declared beside a waypoint, by the route that declared them
+    # — a route's page is its own: another route may not name it.
+    route_pages: dict[str, str] = field(default_factory=dict)
 
     # The pack's declared fixed spots (`landmarks:`) — recover hands and
     # agent grants name them. See `pages.Landmark`.

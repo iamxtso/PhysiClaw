@@ -15,7 +15,7 @@ anywhere — nothing here reads files, YAML, or the rig.
 
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, ClassVar, TypeVar
 
@@ -562,44 +562,57 @@ class Macro:
         return self.live_gap is None
 
 
-# A reference inside a pack, `[<pack>.]<kind>.<name>`: `macros.<n>`,
-# `prompts.<n>` or `landmarks.<n>` beside the referring file, or the
-# pack's shared file with the pack's folder name in front
-# (`taobao.macros.launch`). A bare name (one part) is a sibling by name.
-# The one parse every reader shares — the route compiler, the pack
-# loader, a macro file's `run:` — so the shape has one spelling.
+# A reference inside a pack, `[app.]<kind>.<name>`: `macros.<n>` or
+# `prompts.<n>` beside the referring file, or `app.<kind>.<n>` for what
+# the pack declares or ships — `app.macros.launch`, `app.prompts.pick`,
+# `app.landmarks.close`, `app.pages.home` (APP.yml and the folders
+# beside it). A bare name (one part) is a sibling by name. The one parse
+# every reader shares — the route compiler, the pack loader, a macro
+# file's `run:` and `if_page:` — so the shape has one spelling.
+APP_ROOT = "app"
 MACROS_KIND = "macros"
 PROMPTS_KIND = "prompts"
 LANDMARKS_KIND = "landmarks"
-REF_KINDS = frozenset({MACROS_KIND, PROMPTS_KIND, LANDMARKS_KIND})
+PAGES_KIND = "pages"
+REF_KINDS = frozenset({MACROS_KIND, PROMPTS_KIND, LANDMARKS_KIND, PAGES_KIND})
 
 
 @dataclass(frozen=True)
 class Ref:
-    pack: str | None  # `<pack>.` — the pack's shared file
+    shared: bool  # `app.<kind>.<name>` — the pack's own
     kind: str | None  # a REF_KINDS word; None for a bare name
     name: str
+
+    def is_app(self, kind: str) -> bool:
+        """`app.<kind>.<name>` of exactly this kind."""
+        return self.shared and self.kind == kind
 
 
 def parse_ref(value: str) -> "Ref | None":
     """`value` as a reference, or None when it is not that shape (a
-    prompt may be prose; a dotted name with a kind nobody declares is
-    no reference either)."""
+    prompt may be prose; a root other than `app` or a kind nobody
+    declares is no reference either)."""
     parts = value.split(".")
     if not all(parts):
         return None
     if len(parts) == 1:
-        return Ref(None, None, parts[0])
+        return Ref(False, None, parts[0])
     if len(parts) == 2 and parts[0] in REF_KINDS:
-        return Ref(None, parts[0], parts[1])
-    if len(parts) == 3 and parts[1] in REF_KINDS:
-        return Ref(parts[0], parts[1], parts[2])
+        return Ref(False, parts[0], parts[1])
+    if len(parts) == 3 and parts[0] == APP_ROOT and parts[1] in REF_KINDS:
+        return Ref(True, parts[1], parts[2])
     return None
 
 
-def pack_macro_ref(pack: str, name: str) -> str:
-    """The pack's own spelling of one of its hands: `<pack>.macros.<name>`."""
-    return f"{pack}.{MACROS_KIND}.{name}"
+def app_ref(kind: str, name: str) -> str:
+    """The pack's spelling of one of its own things: `app.<kind>.<name>`."""
+    return f"{APP_ROOT}.{kind}.{name}"
+
+
+def app_refs(kind: str, names: "Iterable[str]") -> str:
+    """The pack's things of one kind, listed for a message — "(none)"
+    when there are none."""
+    return ", ".join(app_ref(kind, n) for n in sorted(names)) or "(none)"
 
 
 def check_name(name: str, where: str = "name", extra: str = "") -> None:

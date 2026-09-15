@@ -109,7 +109,9 @@ def test_move_verifying_a_builtin_page_is_refused_at_parse() -> None:
     # on this pack's pages — refused at the pack door, never at run time.
     write_pack(
         playbooks={
-            "flow": FLOW.replace("  - page: results\n", "  - page: ios.locked\n")
+            "flow": FLOW.replace(
+                "  - page: app.pages.results\n", "  - page: ios.locked\n"
+            )
         }
     )
 
@@ -155,11 +157,11 @@ route:
     prompt: "Turn this into a search term: {inputs.keyword}"
     returns:
       term: the search term
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{parse.term}"}
-  - page: results
+  - page: app.pages.results
 """
 
 
@@ -186,21 +188,21 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - agent: choose
     prompt: "pick one"
     tools: [tap]
     returns:
       pick: the pick
-  - page: done
+  - page: app.pages.done
   - do: wrap
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "x"}
-  - page: done
+  - page: app.pages.done
 """
     write_pack(playbooks={"flow": flow})
     p = _program(keyword="milk")
@@ -222,11 +224,11 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - ask: gate
     approve: payment
     total_label: "合计"
@@ -234,12 +236,12 @@ route:
     yes: ["好的"]
     no: ["不用"]
     think: off
-    resume: demo.macros.open-app
+    resume: app.macros.open-app
   - do: pay
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
-  - page: home
+  - page: app.pages.home
 """
 
 
@@ -489,17 +491,17 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - tell: tell
     message: "已下单{inputs.keyword}，稍后汇报进度"
   - do: wrap
-    macro: demo.macros.add-cart
+    macro: app.macros.add-cart
     with: {message: "done"}
-  - page: done
+  - page: app.pages.done
 """
 
 
@@ -917,17 +919,17 @@ inputs:
   keyword:
     description: what
 route:
-  - page: home
+  - page: app.pages.home
   - do: open
-    macro: demo.macros.open-app
+    macro: app.macros.open-app
     with: {message: "{inputs.keyword}"}
-  - page: results
+  - page: app.pages.results
   - ask: address
     approve: address
     message: "地址没变吧？回复 好的 或 不用"
     yes: ["好的"]
     no: ["不用", "cancel"]
-    resume: demo.macros.open-app
+    resume: app.macros.open-app
   - ask: handoff
     approve: handoff
     message: "现在下单吗？回复 好的 或 不用"
@@ -1095,11 +1097,11 @@ back:
 # FLOW with declared hands: home force-quits, results pops back with
 # the OS gesture.
 RECOVERING = FLOW.replace(
-    "  - page: home\n",
-    "  - page: home\n    recover: force_quit\n",
+    "  - page: app.pages.home\n",
+    "  - page: app.pages.home\n    recover: force_quit\n",
 ).replace(
-    "  - page: results\n",
-    "  - page: results\n    recover: go_back\n",
+    "  - page: app.pages.results\n",
+    "  - page: app.pages.results\n    recover: go_back\n",
 )
 
 
@@ -1160,7 +1162,8 @@ def test_declared_unlock_hand_wakes_the_phone_then_continues() -> None:
     # Nothing unlocks in the background: the page declares the
     # `unlock_phone` hand, and only then does a locked phone get woken.
     flow = FLOW.replace(
-        "  - page: results\n", "  - page: results\n    recover: unlock_phone\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: unlock_phone\n",
     )
     p, h, move1 = _recovering_walk(flow)
     _feed(h, move1, LOCKED_MID)
@@ -1205,8 +1208,8 @@ def test_aborted_move_is_judged_by_its_landing_page() -> None:
 def test_recover_tap_hand_falls_back_to_the_declared_bbox() -> None:
     # A tap hand whose label is not on screen presses the declared spot.
     flow = FLOW.replace(
-        "  - page: results\n",
-        "  - page: results\n    recover: {tap: landmarks.back}\n",
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: {tap: app.landmarks.back}\n",
     )
     p, h, move1 = _recovering_walk(flow)
     _feed(h, move1, ELSEWHERE)  # unknown landing
@@ -1247,9 +1250,9 @@ done:
 """
 
 KEYED = FLOW.replace(
-    "  - page: results\n",
-    "  - page: results\n    recover:\n"
-    "      covered: {tap: landmarks.back}\n"
+    "  - page: app.pages.results\n",
+    "  - page: app.pages.results\n    recover:\n"
+    "      covered: {tap: app.landmarks.back}\n"
     "      elsewhere: go_back\n",
 )
 
@@ -1322,8 +1325,8 @@ def test_a_locked_phone_takes_the_locked_hand_and_no_other() -> None:
     # saying so (a go_back hand would land nowhere), and the reading
     # names the OS page rather than "no known page".
     keyed = FLOW.replace(
-        "  - page: results\n",
-        "  - page: results\n    recover:\n      elsewhere: go_back\n",
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover:\n      elsewhere: go_back\n",
     )
     p, h, move1 = _recovering_walk(keyed)
     _feed(h, move1, LOCKED_MID)
@@ -1345,8 +1348,8 @@ def test_a_locked_phone_takes_the_locked_hand_and_no_other() -> None:
 
 def test_keyed_recover_without_a_hand_for_the_reading_hands_over() -> None:
     only_occluded = FLOW.replace(
-        "  - page: results\n",
-        "  - page: results\n    recover:\n      covered: {tap: landmarks.back}\n",
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover:\n      covered: {tap: app.landmarks.back}\n",
     )
     p, h, move1 = _recovering_walk(only_occluded)
     _feed(h, move1, ELSEWHERE)
@@ -1379,8 +1382,8 @@ def test_recovery_never_restarts_once_a_payment_fired() -> None:
     # after the payment move, a deviation is the model's even where the
     # page declares a hand.
     gated = GATED.replace(
-        "  - page: home\n  - do: open",
-        "  - page: home\n    recover: go_back\n  - do: open",
+        "  - page: app.pages.home\n  - do: open",
+        "  - page: app.pages.home\n    recover: go_back\n  - do: open",
     )
     p, h, send = _at_gate(playbook=gated)
     back = _reply_arrives(p, h, send, "好的")
@@ -1453,9 +1456,9 @@ def test_trailing_tell_completes_the_walk() -> None:
 
 
 def test_check_warns_when_an_ask_without_resume_precedes_a_screen_move() -> None:
-    flow = TWO_ASKS.replace("    resume: demo.macros.open-app\n", "") + (
-        "  - page: results\n  - do: wrap\n    macro: demo.macros.add-cart\n"
-        '    with: {message: "x"}\n  - page: done\n'
+    flow = TWO_ASKS.replace("    resume: app.macros.open-app\n", "") + (
+        "  - page: app.pages.results\n  - do: wrap\n    macro: app.macros.add-cart\n"
+        '    with: {message: "x"}\n  - page: app.pages.done\n'
     )
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"two": flow})
@@ -1470,7 +1473,8 @@ def test_recovery_never_runs_with_consent_bound() -> None:
     # Money keeps the hard handover: a deviation after the user consented
     # is the model's, never a hand's.
     gated = GATED.replace(
-        "  - page: results\n", "  - page: results\n    recover: go_back\n"
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n    recover: go_back\n",
     )
     p, h, send = _at_gate(playbook=gated)
     back = _reply_arrives(p, h, send, "好的")
@@ -1692,9 +1696,9 @@ def test_failed_agent_call_records_handover_with_micro_count() -> None:
 # ---------- inline macros (a move's embedded body) ----------
 
 
-# FLOW's first move with the body embedded in place of `macro: demo.macros.open-app`.
+# FLOW's first move with the body embedded in place of `macro: app.macros.open-app`.
 INLINE_FLOW = FLOW.replace(
-    "    macro: demo.macros.open-app\n",
+    "    macro: app.macros.open-app\n",
     "    macro:\n"
     "      inputs:\n"
     "        message: {description: the text}\n"
@@ -1749,8 +1753,8 @@ def test_suspended_walk_with_a_broken_spec_is_dropped() -> None:
 # ---------- on_fail: stop — the model never inherits the pay hand ----------
 
 STOPPING = GATED.replace(
-    "    resume: demo.macros.open-app\n",
-    "    resume: demo.macros.open-app\n    on_fail: stop\n",
+    "    resume: app.macros.open-app\n",
+    "    resume: app.macros.open-app\n    on_fail: stop\n",
 )
 
 
@@ -1863,7 +1867,7 @@ def test_the_ask_that_says_stop_ends_the_session_with_nothing_paid() -> None:
     [
         # a page waypoint that says stop: the move landed elsewhere and
         # the page declares no recover hand
-        ("  - page: results\n", ELSEWHERE, "did not land on 'results'"),
+        ("  - page: app.pages.results\n", ELSEWHERE, "did not land on 'results'"),
         # a move that says stop: its macro was blocked
         (
             '    with: {message: "{inputs.keyword}"}\n',
@@ -1895,7 +1899,9 @@ def test_a_page_that_says_handover_is_briefed_even_under_a_node_that_says_stop()
     # page briefs the model, it does not fall to the node's stop.
     p, h = _armed(
         GATED.replace("  - do: open\n", "  - do: open\n    on_fail: stop\n", 1).replace(
-            "  - page: results\n", "  - page: results\n    on_fail: handover\n", 1
+            "  - page: app.pages.results\n",
+            "  - page: app.pages.results\n    on_fail: handover\n",
+            1,
         )
     )
     move = p.advance(h)
