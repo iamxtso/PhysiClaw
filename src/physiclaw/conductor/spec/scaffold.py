@@ -209,8 +209,6 @@ name: {playbook}         # = this folder's name; referenced as {app}/{playbook}
 description: EDIT ME — one line saying what task this playbook does
 # A valid playbook is enabled by default; this scaffold starts off.
 enabled: false
-# scope: local           # only another playbook of this pack runs it (`run:`);
-                         # the agent never launches it. Default: global.
 # Values filled at activation; reference them as {{inputs.name}} in
 # `with:` values and agent prompts. ≤ {max_inputs}; `default`
 # present = optional.
@@ -321,19 +319,23 @@ One directory per app, self-contained — everything its playbooks use:
       macros/<n>.yml       the pack's hands, shared by every route
                            (same format as ~/.physiclaw/macros/, never
                            shown to the model's macro list).
-      <name>/              one playbook per folder; the folder is the
-        PLAYBOOK.yml       name (referenced as <app>/<name>, and `name:`
+      <name>/              one DOOR per folder — the whole workflow the
+        PLAYBOOK.yml       boot may offer; the folder is the name
+                           (referenced as <app>/<name>, and `name:`
                            inside must agree) and the body is the
                            playbook: name, description, enabled,
                            inputs, route (page → move → page → move),
                            and optionally pages (this route's own, the
-                           manifest's shape), returns and scope.
-        macros/<n>.yml     this route's own recorded hands (dispatch
-                           <app>/<name>.<n>): `macro: <n>` here; the pack's
-                           is `macro: app.macros.<n>`.
-        prompts/<n>.md     this route's prose for the model, verbatim
+                           manifest's shape) and returns.
+        <part>.yml         a PART of the door, the same body: walked by
+                           the door's `run: <part>` only, never offered
+                           (referenced as <app>/<name>.<part>).
+        macros/<n>.yml     this door's own recorded hands, its parts'
+                           too (dispatch <app>/<name>.<n>): `macro: <n>`
+                           here; the pack's is `macro: app.macros.<n>`.
+        prompts/<n>.md     this door's prose for the model, verbatim
                            (`prompt: prompts.<n>`; the pack's: `app.prompts.<n>`).
-        README.md          the route's notes for people. Never loaded.
+        README.md          the door's notes for people. Never loaded.
 
 Validate everything: `physiclaw playbooks check`. Scaffold a pack:
 `physiclaw playbooks init <app>` — or start from a shared template
@@ -353,16 +355,16 @@ name EARLIER agent outputs or the quoting step's own last answer, and
 `ask` with `approve: payment` — the total the user consented to is the
 fire-time bound.
 
-A `run: <playbook>` walks another playbook of this pack as one move:
-`with:` fills its inputs, `each: {{<input>: <move>.<field>}}` walks it
-once per line of a list an earlier agent returned, `miss: skip`
-records a failed round and goes on, `revise: <agent>` re-plans from
-that agent when a reply the ask's words miss comes back, and
-`limit: {{rounds, revisions}}` bounds both. The playbook it runs
-declares `returns: {{field: template}}`, read downstream as
-`{{<run>.field}}` — the lines of its finished rounds — and may declare
-`scope: local` to be walked only by its own pack's playbooks, never
-offered on its own.
+A `run: <part>` walks one of the door's parts (`<part>.yml` beside
+its PLAYBOOK.yml) as one move: `with:` fills its inputs,
+`each: {{<input>: <move>.<field>}}` walks it once per line of a list
+an earlier agent returned, `miss: skip` records a failed round and
+goes on, `revise: <agent>` re-plans from that agent when a reply the
+ask's words miss comes back, and `limit: {{rounds, revisions}}` bounds
+both. The part declares `returns: {{field: template}}`, read
+downstream as `{{<run>.field}}` — the lines of its finished rounds. A
+part is never offered on its own and never runs a playbook itself:
+only a door runs, one level deep.
 
 What the playbook declares is what runs — no more, no less. An
 `agent` step is the model's, inside the author's fence: `prompt:` is

@@ -61,12 +61,17 @@ route:
 
 
 def _pack(**playbooks: str):
-    write_pack(playbooks={"leg": LEG, **playbooks})
+    """The pack on disk, written by playbook id: `flow` is the door and
+    `flow.leg` its part — a part is a file beside the door's."""
+    write_pack(playbooks={"flow.leg": LEG, **playbooks})
     return pb.load_pack("demo")
 
 
 def _parse(text: str, name: str = "flow", **playbooks: str):
-    return pb.parse_playbook(text, name, _pack(**{name: text, **playbooks}))
+    """One playbook parsed against a pack holding it. A keyword spells
+    the id's dot with an underscore (`flow_leg=`), which Python allows."""
+    others = {k.replace("_", "."): v for k, v in playbooks.items()}
+    return pb.parse_playbook(text, name, _pack(**{name: text, **others}))
 
 
 def test_a_run_is_a_move_framed_like_a_do() -> None:
@@ -74,7 +79,8 @@ def test_a_run_is_a_move_framed_like_a_do() -> None:
 
     run, tell = spec.nodes
     assert isinstance(run, RunNode) and isinstance(tell, TellNode)
-    assert run.playbook == "leg" and run.sub.name == "leg"
+    assert run.id == "leg" and run.sub.name == "flow.leg"
+    assert run.sub.part_of == "flow" and spec.part_of is None
     assert run.enter == "" and run.self_starting  # the leg cold-starts itself
     assert run.verify == "results"  # …and lands on the leg's last page
     assert run.args == {"what": "{inputs.keyword}"}
@@ -103,7 +109,7 @@ def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
             "lands on 'results'",
         ),
         # A `with` key must be an input of the leg.
-        ("{what: ", "{whom: ", "not inputs of playbook 'leg'"),
+        ("{what: ", "{whom: ", "not inputs of playbook 'flow.leg'"),
         # A required input must be filled.
         ('    with: {what: "{inputs.keyword}"}\n', "", "requires input"),
         # `miss` goes with `each`.
@@ -112,10 +118,10 @@ def test_a_playbook_declares_its_returns_over_its_own_refs() -> None:
             "    miss: skip\n  - page: app.pages.results\n  - tell",
             "`miss: skip` goes with `each`",
         ),
-        # A run cannot name itself.
-        ("run: leg", "run: flow", "cannot run itself"),
-        # …or a playbook the pack does not have.
-        ("run: leg", "run: wing", "no playbook 'wing'"),
+        # A run names a part beside the door — never the door itself…
+        ("run: leg", "run: flow", "no part 'flow' of 'flow'"),
+        # …nor a part the door does not have.
+        ("run: leg", "run: wing", "no part 'wing' of 'flow' — a part is flow/wing.yml"),
     ],
 )
 def test_run_shape_lints(old, new, fragment) -> None:
@@ -127,28 +133,28 @@ def test_run_shape_lints(old, new, fragment) -> None:
 def test_a_leg_that_ends_on_a_move_cannot_be_run() -> None:
     leg = LEG + '  - tell: bye\n    message: "bye"\n'
     with pytest.raises(PlaybookError, match="ends on a move"):
-        _parse(FLOW, leg=leg)
+        _parse(FLOW, flow_leg=leg)
 
 
-def test_a_leg_may_not_run_a_playbook_itself() -> None:
+def test_a_part_cannot_run_a_playbook() -> None:
+    # A part is a file: it has no folder for parts of its own, so only
+    # a door runs — one level deep by shape, said at the part's `run`.
     nested = LEG.replace(
-        "  - start: app\n    macro: app.macros.open-app\n",
-        "  - run: flow\n  - page: app.pages.results\n  - start: app\n    macro: app.macros.open-app\n",
+        "  - page: app.pages.results\n",
+        "  - page: app.pages.results\n  - run: flow\n  - page: app.pages.results\n",
     )
-    # The leg's own parse fails first: `start` must sit right before the
-    # first page; the depth rule is reached with a leg that parses.
-    with pytest.raises(PlaybookError):
-        _parse(FLOW, leg=nested)
+    with pytest.raises(PlaybookError, match="a part cannot run a playbook"):
+        _parse(FLOW, flow_leg=nested)
 
 
 def test_a_leg_without_its_own_start_needs_the_page_before_the_run() -> None:
     leg = LEG.replace("  - start: app\n    macro: app.macros.open-app\n", "")
     with pytest.raises(PlaybookError, match="starts on page 'home'"):
-        _parse(FLOW, leg=leg)
+        _parse(FLOW, flow_leg=leg)
     # …and with that page in place, it frames like a do: enter = home.
     spec = _parse(
         FLOW.replace("  - run: leg\n", "  - page: app.pages.home\n  - run: leg\n"),
-        leg=leg,
+        flow_leg=leg,
     )
     run = spec.nodes[0]
     assert isinstance(run, RunNode) and run.enter == "home" and not run.self_starting
@@ -167,7 +173,9 @@ def test_the_registry_and_the_readiness_rule_see_the_leg_too() -> None:
 
 def _walk(flow: str = FLOW, leg: str = LEG, pay: str | None = None, **values):
     write_channel()
-    write_pack(playbooks={"leg": leg, "flow": flow, **({"pay": pay} if pay else {})})
+    write_pack(
+        playbooks={"flow.leg": leg, "flow": flow, **({"flow.pay": pay} if pay else {})}
+    )
     p = build_program(name="flow", **values)
     h = history()
     feed(h, p.advance(h), ELSEWHERE)  # the opening peek
@@ -405,7 +413,7 @@ def test_a_recover_hand_inside_a_round_never_re_derives_the_rounds_answer() -> N
         'home:\n  anchors: ["Files"]\n  recover: force_quit\n',
     )
     write_channel()
-    write_pack(playbooks={"leg": RECOVERING_LEG, "flow": EACH}, pages=pages)
+    write_pack(playbooks={"flow.leg": RECOVERING_LEG, "flow": EACH}, pages=pages)
     p = build_program(name="flow", keyword="milk")
     h = history()
     feed(h, p.advance(h), ELSEWHERE)
@@ -617,55 +625,87 @@ def test_a_reply_sent_before_the_ask_landed_revises_at_the_landing() -> None:
     assert p.gate.replies == ["再加 eggs"]
 
 
-# ---------- scope: local, a playbook only its pack's playbooks run ----------
+# ---------- a part: the file beside the door, walked by its run only ----------
 
 
-def test_a_local_playbook_is_off_the_boot_menu_but_a_run_still_walks_it() -> None:
-    leg = LEG.replace(
-        "description: one leg — open, then search\n",
-        "description: one leg — open, then search\nscope: local\n",
-    )
-    write_pack(playbooks={"leg": leg, "flow": FLOW})
-    pack = pb.load_pack("demo")
-    spec = pb.parse_playbook(leg, "leg", pack)
+def test_a_part_is_off_the_boot_menu_but_its_doors_run_walks_it() -> None:
+    pack = _pack(flow=FLOW)
+    spec = pb.parse_playbook(LEG, "flow.leg", pack)
     flow = pb.parse_playbook(FLOW, "flow", pack)
-    assert spec.scope == "local" and flow.scope == "global"
+    assert spec.part_of == "flow" and flow.part_of is None
 
     found = activation.discover()
 
-    assert "demo/flow" in found.entries and "demo/leg" not in found.entries
-    assert "demo/leg (local)" in found.roster
-    assert isinstance(flow.nodes[0], RunNode) and flow.nodes[0].sub.scope == "local"
+    assert "demo/flow" in found.entries and "demo/flow.leg" not in found.entries
+    assert "demo/flow.leg (a part of flow)" in found.roster
+    assert isinstance(flow.nodes[0], RunNode) and flow.nodes[0].sub.part_of == "flow"
     assert lints.unrun_playbooks([spec, flow]) == []
     assert lints.unrun_playbooks([spec]) == [
-        "leg is local, but no playbook of this pack runs it — the boot never "
-        "offers a local playbook, so nothing walks it"
+        "flow.leg is a part no `run:` of flow names — the boot never offers a "
+        "part, so nothing walks it"
     ]
 
 
-@pytest.mark.parametrize("value", ["internal", "true", "pack"])
-def test_scope_takes_only_global_or_local(value: str) -> None:
-    text = FLOW.replace(
-        "description: runs a leg then reports\n",
-        f"description: runs a leg then reports\nscope: {value}\n",
+def test_a_parts_name_is_its_file_stem_and_scope_is_no_key() -> None:
+    write_pack(
+        playbooks={"flow.leg": LEG.replace("name: leg", "name: wing"), "flow": FLOW}
     )
-    with pytest.raises(PlaybookError, match="`scope` must be one of global, local"):
-        _parse(text)
+    entries = {e.name: e for e in pb.scan_playbooks("demo")}
+    assert entries["flow.leg"].error == (
+        "name 'wing' must equal the file name 'leg' (flow/leg.yml)"
+    )
+
+    with pytest.raises(PlaybookError, match="unknown key.*scope"):
+        _parse(
+            FLOW.replace(
+                "description: runs a leg then reports\n",
+                "description: runs a leg then reports\nscope: local\n",
+            )
+        )
 
 
-def test_two_playbooks_running_each_other_are_named_not_recursed() -> None:
-    # The scan memoises what it parsed; a name reached again while its
-    # own parse is in progress is a cycle, said in one line.
-    leg = LEG.replace(
+def test_a_part_reads_its_doors_leaf_folders() -> None:
+    # A part is a file in the door's folder, so the files beside it are
+    # the DOOR's: a bare `macro:` and `prompt:` reach them, and the hand
+    # dispatches under the door, not the part.
+    from conductor_fakes import write_local_macro, write_prompt
+
+    leg = LEG.replace("macro: app.macros.add-cart", "macro: hand").replace(
         "  - page: app.pages.results\n",
-        "  - page: app.pages.results\n  - run: flow\n  - page: app.pages.results\n",
+        "  - page: app.pages.results\n"
+        "  - agent: read\n    prompt: prompts.note\n"
+        "    returns:\n      what: a word\n  - page: app.pages.results\n",
     )
-    write_pack(playbooks={"leg": leg, "flow": FLOW})
+    root = write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
+    write_local_macro(root, "flow", "hand")
+    write_prompt(root, "flow", "note", "read the screen")
+
+    spec = pb.parse_playbook(leg, "flow.leg", pb.load_pack("demo"))
+
+    assert spec.inline_macros["flow.hand"].name == "flow.hand"
+    assert spec.prompts_used == frozenset({"flow/prompts/note.md"})
+
+
+def test_a_part_naming_no_file_of_its_door_says_the_doors_folder() -> None:
+    leg = LEG.replace("macro: app.macros.add-cart", "macro: hand")
+    write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
 
     entries = {e.name: e for e in pb.scan_playbooks("demo")}
 
-    assert entries["flow"].spec is None and entries["leg"].spec is None
-    assert "run each other in a cycle" in (entries["flow"].error or "")
+    assert "no macro 'hand' in flow/macros/" in (entries["flow.leg"].error or "")
+
+
+def test_a_folder_inside_a_door_is_not_a_part() -> None:
+    root = write_pack(playbooks={"flow.leg": LEG, "flow": FLOW})
+    (root / "flow" / "wing").mkdir()
+    (root / "flow" / "wing" / "PLAYBOOK.yml").write_text(LEG, encoding="utf-8")
+
+    entries = {e.name: e for e in pb.scan_playbooks("demo")}
+
+    assert entries["flow/wing/"].error == (
+        "demo/flow/wing/: a part of a door is a file beside its PLAYBOOK.yml "
+        "— flow/wing.yml"
+    )
 
 
 # ---------- the invariants the cleanup leaned on ----------
@@ -802,7 +842,7 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
         "  - page: app.pages.results\n    recover: go_back\n",
     )
     write_channel()
-    write_pack(playbooks={"leg": leg, "pay": PAY_LONG, "flow": REVISING})
+    write_pack(playbooks={"flow.leg": leg, "flow.pay": PAY_LONG, "flow": REVISING})
     p = build_program(name="flow", keyword="milk")
     h = history()
     feed(h, p.advance(h), ELSEWHERE)
@@ -947,31 +987,31 @@ def test_a_hand_after_a_landed_move_never_runs_that_move_again() -> None:
     assert p.ledger.rounds["leg[milk]"]["done"] == "missed"
 
 
-def test_a_broken_sub_playbook_is_named_in_the_parents_error() -> None:
+def test_a_broken_part_is_named_in_the_doors_error() -> None:
     leg = LEG.replace(
         "description: one leg — open, then search\n",
-        "description: one leg — open, then search\nscope: bogus\n",
+        "description: one leg — open, then search\nenabled: maybe\n",
     )
-    write_pack(playbooks={"leg": leg, "flow": FLOW})
+    write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
 
     entries = {e.name: e for e in pb.scan_playbooks("demo")}
 
-    assert entries["leg"].error == "`scope` must be one of global, local"
+    assert entries["flow.leg"].error == "`enabled` must be true or false"
     assert entries["flow"].error == (
-        "playbook 'leg' (run by 'flow'): `scope` must be one of global, local"
+        "part 'flow.leg' (run by 'flow'): `enabled` must be true or false"
     )
 
 
-def test_a_run_of_a_disabled_playbook_is_not_live() -> None:
+def test_a_run_of_a_disabled_part_is_not_live() -> None:
     leg = LEG.replace(
         "description: one leg — open, then search\n",
         "description: one leg — open, then search\nenabled: false\n",
     )
-    write_pack(playbooks={"leg": leg, "flow": FLOW})
+    write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
     pack = pb.load_pack("demo")
 
     assert pb.live_gap(pb.parse_playbook(FLOW, "flow", pack), pack) == (
-        "runs disabled playbook 'leg'"
+        "runs disabled part 'flow.leg'"
     )
 
 

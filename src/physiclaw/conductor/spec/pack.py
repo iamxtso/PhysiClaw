@@ -31,9 +31,6 @@ from physiclaw.conductor.spec import scaffold, specfile
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, ROUND_MARKS
 from physiclaw.conductor.spec.match import page_resolver
 from physiclaw.conductor.spec.model import (
-    SCOPE_GLOBAL,
-    SCOPE_LOCAL,
-    SCOPES,
     AgentNode,
     AskNode,
     DoNode,
@@ -51,13 +48,12 @@ from physiclaw.conductor.spec.model import (
 )
 from physiclaw.conductor.spec.pages import (
     PagesError,
-    collect_page_decls,
     collect_page_recovers,
     pack_landmarks,
+    page_sites,
     parse_pages_data,
     parse_thread,
     prints_for_app,
-    route_declared_pages,
 )
 from physiclaw.conductor.spec.refs import check_refs, field_name, refs_in
 from physiclaw.conductor.spec.route import compile_route, manifest_recovers
@@ -78,10 +74,12 @@ def qualified_macro(app: str, name: str) -> str:
 def split_ref(ref: str) -> tuple[str, str]:
     """`<app>/<playbook>` → (app, playbook) — the one parse of the ref
     every skin takes (the CLI exits on the error, the studio answers
-    400). Raises PlaybookError."""
+    400); a part's is `<app>/<door>.<part>`. Raises PlaybookError."""
     app, sep, name = ref.partition("/")
     if not sep or not app or not name or "/" in name:
-        raise PlaybookError(f"{ref!r} is not <app>/<playbook>")
+        raise PlaybookError(
+            f"{ref!r} is not <app>/<playbook> (a part: <app>/<door>.<part>)"
+        )
     return app, name
 
 
@@ -146,10 +144,12 @@ def load_pack(app: str) -> Pack:
         raise PlaybookError(str(e)) from e
     docs, pb_errors = specfile.load_playbook_docs(app, PlaybookError, root, values)
     try:
-        # Appendix + route-declared waypoints across every playbook
-        # file, one namespace — the matcher and every playbook validate
-        # against the same set.
-        pages = parse_pages_data(collect_page_decls(doc, docs), app)
+        # Appendix + every route's own declarations across every
+        # playbook file, ONE walk — the matcher and every playbook
+        # validate against the same set, and the same walk says whose
+        # a route-declared page is.
+        sites = page_sites(doc, docs)
+        pages = parse_pages_data({n: spec for n, (spec, _) in sites.items()}, app)
     except PagesError as e:
         raise PlaybookError(f"{app}/{PACK_FILENAME} pages: {e}") from e
     try:
@@ -183,11 +183,11 @@ def load_pack(app: str) -> Pack:
                 macros=_scan_macros(root / name / PACK_MACROS_DIRNAME, page_of, shared),
                 prompts=_scan_prompts(root / name / PACK_PROMPTS_DIRNAME, values),
             )
-            for name in docs
+            for name in {paths.door_of(n) for n in docs}  # a part reads its door's
         },
         landmarks=landmarks,
         thread_incoming=thread_incoming,
-        route_pages=route_declared_pages(doc, docs),
+        route_pages={n: pb for n, (_, pb) in sites.items() if pb is not None},
     )
     # The manifest's hands, resolved once here with the pack's own
     # resolver: a broken one is the pack's load error, not every
@@ -238,6 +238,7 @@ def macros_root(app: str, playbook: str | None = None) -> Path:
     if not (root / PACK_FILENAME).exists():
         raise PlaybookError(paths.pack_gap(app))
     if playbook is not None:
+        playbook = paths.door_of(playbook)  # a part's hands are its door's
         if not (root / playbook / paths.PLAYBOOK_FILENAME).is_file():
             raise PlaybookError(
                 f"no playbook {app}/{playbook} on disk ({root / playbook})"
@@ -290,7 +291,7 @@ def scan_playbooks(app: str, pack: Pack | None = None) -> list[PlaybookEntry]:
         PlaybookEntry(app=app, name=n, error=e)
         for n, e in sorted(pack.playbook_errors.items())
     ]
-    parsed: dict[str, Playbook | None] = {}
+    parsed: dict[str, Playbook] = {}
     for name in pack.playbook_docs:
         name = str(name)
         try:
@@ -348,7 +349,6 @@ _PLAY_KEYS = {
     "name",
     "description",
     "enabled",
-    "scope",
     "inputs",
     "pages",
     "route",
@@ -357,51 +357,50 @@ _PLAY_KEYS = {
 
 
 def _parse_playbook_data(
-    data: Any, name: str, pack: Pack, parsed: dict[str, Playbook | None] | None = None
+    data: Any, name: str, pack: Pack, parsed: dict[str, Playbook] | None = None
 ) -> Playbook:
-    """One playbook's document → a validated Playbook. The folder IS
-    the name; the `name:` inside must agree with it. A `run` entry
-    names another playbook of the pack, parsed on demand against the
-    same pack (`_sub_playbook`); `parsed` is the scan's memo, so every
-    document compiles once and a parent and the scan hold one object."""
+    """One playbook's document → a validated Playbook. `name` is the id
+    — the folder's name for a door, `<door>.<part>` for a part — and
+    the `name:` inside must be its own name (the folder's, or the part
+    file's stem). A door's `run` entry names one of its parts, parsed
+    on demand against the same pack (`_sub_playbook`); `parsed` is the
+    scan's memo, so every document compiles once and the door and the
+    scan hold one object."""
     if not isinstance(data, dict):
         raise PlaybookError("a playbook must be a YAML mapping (key: value pairs)")
     unknown = sorted(set(map(str, data.keys())) - _PLAY_KEYS)
     if unknown:
         raise PlaybookError(f"unknown key(s): {', '.join(unknown)}")
     # A playbook names itself, like a macro and a skill do — and the
-    # name must be the folder's, so a copied folder cannot lie about
+    # name must be the file's, so a copied folder cannot lie about
     # what it is (the same rule `app` keeps with the pack folder).
+    part_of = paths.part_of(name)
+    own, file = paths.own_name(name), paths.playbook_file(name)
     if "name" not in data:
-        raise PlaybookError(
-            f"a playbook has no `name:` — its {paths.PLAYBOOK_FILENAME} starts "
-            f"`name: {name}`"
-        )
-    check_name(name, "playbook name")
+        raise PlaybookError(f"a playbook has no `name:` — {file} starts `name: {own}`")
+    check_name(paths.door_of(name), "playbook name")
+    if part_of is not None:
+        check_name(own, "part name")
     declared = require_str(data.get("name"), "`name`")
-    if declared != name:
+    if declared != own:
         raise PlaybookError(
-            f"name {declared!r} must equal the folder name {name!r} "
-            f"({name}/{paths.PLAYBOOK_FILENAME})"
+            f"name {declared!r} must equal the "
+            f"{'file' if part_of else 'folder'} name {own!r} ({file})"
         )
     description = prose(data.get("description"), "`description`")
     enabled = data.get("enabled", True)
     if not isinstance(enabled, bool):
         raise PlaybookError("`enabled` must be true or false")
-    scope = data.get("scope", SCOPE_GLOBAL)
-    if scope not in SCOPES:
-        raise PlaybookError(f"`scope` must be one of {', '.join(SCOPES)}")
     inputs = _parse_inputs(data.get("inputs", {}))
     input_names = {i.name for i in inputs}
+    memo = {} if parsed is None else parsed  # ONE memo for every `run` of this route
     route = compile_route(
         data.get("route"),
         pages=data.get("pages"),
         playbook=name,
         input_names=input_names,
         pack=pack,
-        resolve_playbook=lambda other: _sub_playbook(
-            other, pack, {} if parsed is None else parsed, run_by=name
-        ),
+        resolve_playbook=lambda other: _sub_playbook(other, pack, memo, run_by=name),
     )
     returns = _parse_returns(data.get("returns"), input_names, route.payloads)
     return Playbook(
@@ -409,7 +408,6 @@ def _parse_playbook_data(
         name=name,
         description=description,
         enabled=enabled,
-        scope=scope,
         inputs=inputs,
         nodes=tuple(route.nodes),
         start=route.start,
@@ -424,37 +422,37 @@ def _parse_playbook_data(
 def _sub_playbook(
     name: str,
     pack: Pack,
-    parsed: dict[str, Playbook | None],
+    parsed: dict[str, Playbook],
     *,
     run_by: str | None = None,
 ) -> Playbook:
-    """A playbook of the pack by name — for a `run` entry (`run_by` the
-    playbook running it, so its error names the file at fault) and for
-    the scan alike, so a run and a walk of it read the same file, once.
-    `parsed` memoises; a name in it with no spec yet is mid-parse, so
-    reaching it again is two playbooks running each other."""
+    """A playbook of the pack by id — for a door's `run` entry (`run_by`
+    the door, so the error names the file at fault; the id is then
+    `<door>.<part>`) and for the scan alike, so a run and a walk of it
+    read the same file, once (`parsed` memoises). A part never runs, so
+    a parse can never reach itself."""
     if name in parsed:
-        spec = parsed[name]
-        if spec is None:
-            raise PlaybookError(f"playbooks run each other in a cycle through {name!r}")
-        return spec
+        return parsed[name]
     if name in pack.playbook_errors:
         raise PlaybookError(
             f"playbook {name!r} is invalid: {pack.playbook_errors[name]}"
         )
     if name not in pack.playbook_docs:
-        have = ", ".join(sorted(map(str, pack.playbook_docs))) or "(none)"
-        raise PlaybookError(f"no playbook {name!r} in this pack (has: {have})")
-    parsed[name] = None
+        # Always a part: the scan only asks for ids it read off disk, and
+        # a route's `run` asks for `<this door>.<part>`.
+        door = paths.door_of(name)
+        siblings = sorted(
+            paths.own_name(n) for n in pack.playbook_docs if paths.part_of(n) == door
+        )
+        raise PlaybookError(
+            f"no part {paths.own_name(name)!r} of {door!r} — a part is "
+            f"{paths.playbook_file(name)} (has: {', '.join(siblings) or '(none)'})"
+        )
     try:
         spec = _parse_playbook_data(pack.playbook_docs[name], name, pack, parsed)
     except PlaybookError as e:
-        del parsed[name]
         if run_by is not None:
-            raise PlaybookError(f"playbook {name!r} (run by {run_by!r}): {e}") from e
-        raise
-    except BaseException:
-        del parsed[name]
+            raise PlaybookError(f"part {name!r} (run by {run_by!r}): {e}") from e
         raise
     parsed[name] = spec
     return spec
@@ -513,9 +511,22 @@ def require_live(spec: Playbook, pack: Pack) -> None:
     suspension and the boot must satisfy it; a rehearsal deliberately
     need not (you rehearse BEFORE you enable). Raises PlaybookError
     naming the gap."""
+    if not offered(spec):
+        raise PlaybookError(
+            f"{spec.app}/{spec.name}: a part is walked by its door's `run:`, "
+            "never launched"
+        )
     gap = live_gap(spec, pack)
     if gap is not None:
         raise PlaybookError(f"{spec.app}/{spec.name}: {gap} — rehearse, then enable")
+
+
+def offered(spec: Playbook) -> bool:
+    """Whether the boot may launch this playbook at all — a door, yes; a
+    part, never. The STRUCTURAL rule, apart from readiness (`live_gap`):
+    a part cannot be enabled into being offered, so every door that
+    filters the menu reads this one, not a gap string."""
+    return spec.part_of is None
 
 
 def live_gap(spec: Playbook, pack: Pack) -> str | None:
@@ -524,13 +535,13 @@ def live_gap(spec: Playbook, pack: Pack) -> str | None:
     wake roster prints it; both read one rule."""
     if not spec.enabled:
         return "disabled"
-    if spec.scope == SCOPE_LOCAL:
-        # Walked by another playbook of its pack only — never launched
-        # alone, so never offered.
-        return "local"
+    if not offered(spec):
+        # Walked by its door only — never launched alone, so the roster
+        # owes this reason for it (`offered` is the rule itself).
+        return f"a part of {spec.part_of}"
     for r in spec.runs:
         if not r.sub.enabled:
-            return f"runs disabled playbook {r.playbook!r}"
+            return f"runs disabled part {r.sub.name!r}"
     disabled = disabled_macros(spec, pack)
     if disabled:
         return (

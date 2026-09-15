@@ -1,5 +1,5 @@
-# taobao/add — one item into the marketplace cart: search, pick, 加入购物车.
-# Runs alone (帮我把牛奶加入购物车) or once per item under `buy-together`.
+# taobao/buy-together.add — one item into the marketplace cart: search,
+# pick, 加入购物车; a part of `buy-together`, run once per item.
 # Starts anywhere (cold launch, the reset between rounds). Ends on the
 # item page with the item in the cart.
 name: add

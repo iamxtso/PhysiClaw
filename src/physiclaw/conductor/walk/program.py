@@ -910,7 +910,7 @@ class Program:
         self.ledger.round_done(
             rd.prefix,
             {
-                f: str(fill_refs(t, values, where=f"{rd.run.playbook} `returns.{f}`"))
+                f: str(fill_refs(t, values, where=f"{rd.run.id} `returns.{f}`"))
                 for f, t in rd.run.sub.returns.items()
             },
         )

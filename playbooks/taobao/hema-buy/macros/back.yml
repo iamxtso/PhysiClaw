@@ -1,6 +1,6 @@
-name: hema-back
+name: back
 description: pop from a 盒马 item page to the storefront's home by each page's own top-left arrow
-# Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-back
+# Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-buy.back
 enabled: false
 steps:
   # Arrows, not go_back: the item page's gallery swallows the edge swipe.

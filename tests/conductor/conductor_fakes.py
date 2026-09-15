@@ -202,7 +202,8 @@ def write_pack(
     landmarks: str | None = None,
 ):
     """Write a pack under the (fixture-scoped) playbooks dir — the
-    manifest, one `<name>/PLAYBOOK.yml` folder per playbook, the pack
+    manifest, one file per playbook keyed by its id (a door's
+    `<name>/PLAYBOOK.yml`, a part's `<door>/<part>.yml`), the pack
     macros; returns its root."""
     from physiclaw.common import paths
 
@@ -221,17 +222,20 @@ def write_pack(
 
 
 def write_playbook(root, name: str, text: str):
-    """One playbook folder under a pack root — `<name>/PLAYBOOK.yml`.
-    A playbook names itself; fixtures written before that rule get the
-    header the folder implies. Returns the folder."""
+    """One playbook under a pack root — a door's `<name>/PLAYBOOK.yml`,
+    or a part's `<door>/<part>.yml` for a dotted `<door>.<part>`. A
+    playbook names itself (its own name: the folder's, or the part
+    file's stem); fixtures written before that rule get the header the
+    file implies. Returns the door's folder."""
+    from physiclaw.common import paths
     from physiclaw.common.text import write_text
 
     if not text.startswith("name:"):
-        text = f"name: {name}\n{text}"
-    folder = root / name
-    folder.mkdir(parents=True, exist_ok=True)
-    write_text(folder / "PLAYBOOK.yml", text)
-    return folder
+        text = f"name: {paths.own_name(name)}\n{text}"
+    path = root / paths.playbook_file(name)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_text(path, text)
+    return path.parent
 
 
 def write_leaf(root, playbook: str | None, kind: str, name: str, text: str):

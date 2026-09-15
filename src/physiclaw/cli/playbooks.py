@@ -37,7 +37,7 @@ from physiclaw.cli.pages import pages_app
 from physiclaw.common.paths import PACK_FILENAME
 from physiclaw.common.ready import START_HINT
 from physiclaw.conductor.drive import rehearsal
-from physiclaw.conductor.spec.model import SCOPE_GLOBAL, PlaybookError
+from physiclaw.conductor.spec.model import PlaybookError
 
 if TYPE_CHECKING:
     from physiclaw.conductor.drive import decisions
@@ -877,9 +877,7 @@ def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":
             typer.echo(step_fail(f"{app}/{entry.name}: {entry.error or ''}"))
             bad = True
             continue
-        tags = ("" if entry.spec.enabled else "  (disabled)") + (
-            "" if entry.spec.scope == SCOPE_GLOBAL else "  (local)"
-        )
+        tags = "" if entry.spec.enabled else "  (disabled)"
         typer.echo(ok(f"{app}/{entry.name}{tags}"))
     _report_not_live(app, pack, entries)
     for line in lints.unrun_playbooks([e.spec for e in entries if e.spec is not None]):
@@ -899,10 +897,12 @@ def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> 
     which playbooks the boot will not offer, and why — the reason from
     `pack.live_gap`, the one rule the wake roster and `require_live`
     also read. Rehearse them (`playbooks run`), then enable."""
-    from physiclaw.conductor.spec.pack import live_gap
+    from physiclaw.conductor.spec.pack import live_gap, offered
 
     for e in entries:
-        if e.spec is not None and (gap := live_gap(e.spec, pack)) is not None:
+        if e.spec is None or not offered(e.spec):
+            continue  # a part is never offered; its door's gap says if it is off
+        if (gap := live_gap(e.spec, pack)) is not None:
             typer.echo(warn(f"{app}/{e.name}: the boot will not offer it — {gap}."))
 
 

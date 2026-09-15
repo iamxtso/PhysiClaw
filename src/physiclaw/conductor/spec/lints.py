@@ -20,7 +20,6 @@ from physiclaw.conductor.spec.conventions import BOOT_PLAYBOOK, CHANNEL_APP
 from physiclaw.conductor.spec.match import SHORT_ANCHOR_MIN, normalize, score_page
 from physiclaw.conductor.spec.model import (
     ON_FAIL_STOP,
-    SCOPE_LOCAL,
     ActivateNode,
     AgentNode,
     AskNode,
@@ -39,15 +38,15 @@ from physiclaw.conductor.spec.pages import PageDecl, PagePrint
 
 
 def unrun_playbooks(specs: list[Playbook]) -> list[str]:
-    """`playbooks check`'s line for a local playbook that no playbook of
-    the pack runs — the boot never offers it and nothing walks it, so
-    it is dead until one does."""
-    run = {r.playbook for spec in specs for r in spec.runs}
+    """`playbooks check`'s line for a part no `run:` of its door names —
+    the boot never offers a part and nothing walks it, so it is dead
+    until one does."""
+    run = {r.sub.name for spec in specs for r in spec.runs}
     return [
-        f"{spec.name} is local, but no playbook of this pack runs it — "
-        "the boot never offers a local playbook, so nothing walks it"
+        f"{spec.name} is a part no `run:` of {spec.part_of} names — the boot "
+        "never offers a part, so nothing walks it"
         for spec in specs
-        if spec.scope == SCOPE_LOCAL and spec.name not in run
+        if spec.part_of is not None and spec.name not in run
     ]
 
 

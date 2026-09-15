@@ -1,6 +1,6 @@
 name: open-tmall
 description: open the 天猫超市闪购 store from the 闪购 search results for 天猫超市 — its card comes first
-# Disabled until rehearsed on YOUR device: physiclaw macros run taobao/open-tmall
+# Disabled until rehearsed on YOUR device: physiclaw macros run taobao/tmall-buy.open-tmall
 enabled: false
 steps:
   - tap: "天猫超市闪购"

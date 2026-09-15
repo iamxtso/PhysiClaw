@@ -1,31 +1,25 @@
-# taobao/tmall-checkout — the 天猫超市 cart to ONE paid order; the last
-# move of `tmall-buy`. Starts on the store's page, where the rounds end.
+# taobao/hema-buy.checkout — the 盒马 cart to ONE paid order; a part of
+# `hema-buy`, its last move. Starts on the storefront's home, where the rounds end.
 # Ends on the paid page.
-name: tmall-checkout
-description: pay for the lines in the 天猫超市 (Tmall Supermarket) store cart inside Taobao in ONE order
+name: checkout
+description: pay for the lines in the 盒马 (Hema) cart inside Taobao in ONE order
 enabled: false  # rehearse on YOUR device, then enable
-scope: local
 inputs:
   lines:
     description: the cart lines to buy, one per line, with quantities
 
 route:
-  - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
+  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
 
-  - do: open-cart                 # the footer's running total opens the cart sheet
-    macro:
-      steps:
-        - tap: "到手约￥… (the cart footer's total)"
-          at: [0.15, 0.90, 0.45, 0.95]
-        - wait: 3
-          expect: ["去结算", "领券结算", "起送"]   # the footer's button, whatever it reads
+  - do: open-cart                 # the tab bar's 购物车, then a stroke that snaps a
+    macro: open-cart              # cart left scrolled back to its top
 
-  - page: app.pages.tmall-cart    # the sheet's 全选 row under the store header
+  - page: app.pages.hema-cart     # the 购物车 title over the footer's settle button
 
   - do: nudge                     # a short stroke up while the 全选 row sits under
     macro: app.macros.store-nudge  # this phone's floating button
 
-  - page: app.pages.tmall-cart
+  - page: app.pages.hema-cart
 
   - agent: tick
     prompt: app.prompts.store-tick  # the list, the checkbox geometry, the footer total
@@ -41,18 +35,18 @@ route:
     think: low
     on_fail: stop
 
-  - page: app.pages.tmall-cart
+  - page: app.pages.hema-cart
 
-  - do: settle                    # 去结算 / 领券结算 in the sheet's footer, to the order page
+  - do: settle                    # 去结算 / 领券结算 in 盒马's footer, to the order page
     on_fail: stop                 # nothing is paid yet
-    macro: app.macros.settle
+    macro: settle                 # 盒马's own; the pack's `settle` is the other storefronts'
 
-  - page: app.pages.store-order   # 闪购天猫超市闪购 over 提交订单
+  - page: app.pages.store-order   # 确认订单 over 提交订单
 
   - ask: confirm-pay
     approve: payment
-    total_label: ["合计"]                       # 合计￥… beside 提交订单
-    message: "天猫超市下单：\n{tick.ticked}\n合计 ¥{ask.total}（以屏幕读数为准）。回复 好的 确认支付，或 不用 取消。"
+    total_label: ["合计"]                       # 合计：￥… in the footer
+    message: "盒马下单：\n{tick.ticked}\n合计 ¥{ask.total}（以屏幕读数为准）。回复 好的 确认支付，或 不用 取消。"
     yes: ["好的", "好", "可以", "确认"]
     no: ["不用", "不要", "取消", "算了"]
     denied: "好的，已取消付款，商品还留在购物车里。"

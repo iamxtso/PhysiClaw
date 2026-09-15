@@ -1,6 +1,6 @@
 # taobao/tmall-buy — staples from 天猫超市 inside Taobao, several items
 # in ONE order (~4 h): open the store once through 闪购's search,
-# `tmall-add` per item, then `tmall-checkout`. Starts anywhere. Ends on
+# its part `add` per item, then its part `checkout`. Starts anywhere. Ends on
 # the paid page, the buyer told.
 name: tmall-buy
 description: >-
@@ -18,7 +18,7 @@ route:
       The buyer said: "{inputs.user_said}"
       Later replies, if any: {ask.replies}
       The list as it stood before those replies: {parse.items}
-      Already in the 天猫超市 cart from this errand: {tmall-add.line}
+      Already in the 天猫超市 cart from this errand: {add.line}
       Return the FULL list the buyer wants now, one product per line as
       name + spec + quantity (e.g. 金典纯牛奶 250ml*24盒 ×1); leave out
       anything they no longer want. Keep the buyer's language. Keep every
@@ -53,19 +53,19 @@ route:
 
   - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
 
-  - run: tmall-add                # store search, pick, 加入购物车, back to the store; one
+  - run: add                      # store search, pick, 加入购物车, back to the store; one
     each: {item: parse.items}     # round per item; a line already in the cart is not
     miss: skip                    # re-added, an item not found is skipped
     limit: {rounds: 4}
 
   - page: app.pages.tmall-home
 
-  - run: tmall-checkout           # the cart sheet, tick, settle, confirm, pay
-    with: {lines: "{tmall-add.line}"}
+  - run: checkout                 # the cart sheet, tick, settle, confirm, pay
+    with: {lines: "{add.line}"}
     revise: parse                 # a reply the ask's words miss re-plans from `parse`
     limit: {revisions: 2}
 
   - page: app.pages.paid
 
   - tell: report
-    message: "天猫超市已下单并完成支付：\n{tmall-add.line}"
+    message: "天猫超市已下单并完成支付：\n{add.line}"

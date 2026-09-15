@@ -1,14 +1,16 @@
 # taobao
 
-Doors, chosen by description at the boot. The marketplace, by
-courier: `buy` buys one item off the 立即购买 sheet; `buy-together` buys
-several in one order (`add` once per item, then `checkout`). The three
-delivery storefronts inside the app, each with its own cart and order
-page: `hema-buy` for 盒马 groceries (fresh food, ~30 min), `tmall-buy`
-for 天猫超市 staples (packaged food, household goods, ~4 h), `shangou-buy`
-for 淘宝闪购 takeout from one restaurant or shop (~30 min). Each `*-buy`
-is `*-add` once per item then `*-checkout` (both `scope: local`);
-`shangou-buy` adds every dish inside one store visit instead.
+Five doors, one folder each, chosen by description at the boot. The
+marketplace, by courier: `buy` buys one item off the 立即购买 sheet;
+`buy-together` buys several in one order. The three delivery
+storefronts inside the app, each with its own cart and order page:
+`hema-buy` for 盒马 groceries (fresh food, ~30 min), `tmall-buy` for
+天猫超市 staples (packaged food, household goods, ~4 h), `shangou-buy`
+for 淘宝闪购 takeout from one restaurant or shop (~30 min). A door that
+buys several items runs its two parts, the files beside its
+PLAYBOOK.yml: `add.yml` once per item, then `checkout.yml`
+(`taobao/buy-together.add` to rehearse one); `shangou-buy` adds every
+dish inside one store visit instead and has none.
 
 ## Which door
 
@@ -35,11 +37,18 @@ taobao` on your phone so one OCR miss does not read a page unknown.
 
 ## Rehearsal
 
-`launch`, `foreground`, `cold-launch`, `search` and `cashier` are pack
-macros the routes share (`launch` runs `foreground` and `cold-launch`;
-the marketplace and storefront pay hands run `cashier`); each ships
-disabled and needs `physiclaw macros run taobao/<name>` on your device
-before a playbook that uses it is live.
+`macros/` holds the hands more than one door shares — `launch` (which
+runs `foreground` and `cold-launch`), `search`, `cashier` (the
+marketplace and storefront pay hands run it), the `store-*` and
+`shangou-*` hands two storefronts share, and `hema-recover`, which a
+manifest page's `recover:` names. A hand only one door uses lives in
+that door's own `macros/` and is written bare there:
+`hema-buy/macros/{back,open-cart,settle}.yml`,
+`buy-together/macros/nudge.yml`, `tmall-buy/macros/open-tmall.yml`
+(`hema-buy`'s `settle` is 盒马's, the pack's is the other storefronts').
+Each ships disabled and needs `physiclaw macros run taobao/<name>` —
+a door's is `taobao/<door>.<name>` — on your device before a playbook
+that uses it is live.
 
 ## Traps
 
@@ -52,8 +61,8 @@ before a playbook that uses it is live.
   `within: top`.
 - The detail footer's third icon is 收藏, not the cart; `buy` never
   touches the cart, it buys off the 领券购买 / 立即购买 sheet. The cart
-  flow reaches the cart by the home footer's 购物车 tab (checkout's `open-cart`).
-- The 加入购物车 toast is transient, so `add` verifies the detail page
+  flow reaches the cart by the home footer's 购物车 tab (`buy-together.checkout`'s `open-cart`).
+- The 加入购物车 toast is transient, so `buy-together.add` verifies the detail page
   and the cart itself is the check: a line `tick` cannot find escalates.
 - Promo popups (天降红包, coupons) cover a page right after it opens;
   `app.landmarks.close` is their ✕, never their buttons.
@@ -71,11 +80,12 @@ before a playbook that uses it is live.
   set (the tap claims it on the way), and 差¥N起送 below the store's
   minimum (¥18 at 盒马, ¥20 at 瑞幸) — `hema-cart` reads its 购物车
   title and `tmall-cart` its 全选 row over any of those three (清空 is
-  too small for OCR to hold), and `settle` accepts both labels.
+  too small for OCR to hold); `hema-buy.settle` and the pack's `settle`
+  each accept both labels.
 - Leaving a storefront cart and coming back re-ticks every line and
   keeps the list's scroll (全选, 清空 and the newest lines can sit above
-  the header — `hema-open-cart` snaps it to the top when 全选 is off the
-  screen, `store-nudge` then moves the 全选 row clear of this phone's
+  the header — `hema-buy.open-cart` snaps it to the top when 全选 is
+  off the screen, `store-nudge` then moves the 全选 row clear of this phone's
   floating button);
   `go_back` from the cart
   page pops the whole storefront (to the marketplace search-entry
@@ -88,7 +98,7 @@ before a playbook that uses it is live.
   whose ✕ sits at y 0.75–0.80, lower than the other stores'; the page
   reads through it, so no covered hand ever fires — `open-tmall` closes
   it while its texts show.
-- A 盒马 item page swallows the edge swipe (its gallery): `hema-back`
+- A 盒马 item page swallows the edge swipe (its gallery): `hema-buy.back`
   pops by each page's own top-left arrow instead.
 - 盒马's home opens under a promo card on entry (天天特惠 / 秋风起,
   its ✕ at y 0.69–0.75) that dims 权益中心 past OCR, so the reading is

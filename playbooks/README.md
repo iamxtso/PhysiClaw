@@ -17,17 +17,24 @@ per journey:
     ├── APP.yml              # the MANIFEST: meta + placeholders + landmarks + shared pages
     ├── README.md            # for people: what the pack does, the device, the traps (never loaded)
     ├── macros/<n>.yml       # the pack's hands every route shares (`macro: app.macros.<n>`)
-    └── <name>/              # one playbook per folder; the folder is the name
-        ├── PLAYBOOK.yml     # the route: name (= the folder), description, enabled, inputs, route
-        ├── macros/<n>.yml   # this route's own recorded hands (`macro: <n>`; dispatch <app>/<name>.<n>)
-        ├── prompts/<n>.md   # this route's prose for the model (`prompt: prompts.<n>`)
-        └── README.md        # the route's notes for people (never loaded)
+    └── <name>/              # one DOOR per folder; the folder is the name
+        ├── PLAYBOOK.yml     # the door: name (= the folder), description, enabled, inputs, route
+        ├── <part>.yml       # a PART of the door, the same body, walked by its `run: <part>` only
+        ├── macros/<n>.yml   # the door's own recorded hands, its parts' too (`macro: <n>`; dispatch <app>/<name>.<n>)
+        ├── prompts/<n>.md   # the door's prose for the model, its parts' too (`prompt: prompts.<n>`)
+        └── README.md        # the door's notes for people (never loaded)
 
 A folder with `APP.yml` is a pack; a folder inside it with `PLAYBOOK.yml`
-is a playbook; `macros/` and `prompts/` hold leaf files and are never
-mistaken for one (a reference says which folder: see References below).
-`APP.yml` never carries a route. Every section is optional, so an
-empty file is a valid pack (the file is the pack marker):
+is a DOOR — the whole workflow, tell and ask and pay, that the boot may
+offer for a request; any other `<part>.yml` beside that file is one of
+the door's PARTS — walked by the door's `run: <part>` only, never
+offered, never named from another door or pack (`<app>/<name>.<part>`
+to rehearse it). The tree says which is which: the top level is offered,
+what sits inside a door is its own. `macros/` and `prompts/` hold leaf
+files and are never mistaken for either (a reference says which folder:
+see References below). `APP.yml` never carries a route. Every section
+is optional, so an empty file is a valid pack (the file is the pack
+marker):
 
 - `app` (must equal the folder when present) and `description` (what
   the pack automates and when to adopt it — `install` prints it)
@@ -52,14 +59,14 @@ empty file is a valid pack (the file is the pack marker):
   user's bubbles' centers fall in (the assistant's sit outside it),
   which is how a reply is told from the walk's own ask.
 
-`<name>/PLAYBOOK.yml` is the playbook, headed like a macro or a skill: `name`
-(must equal the folder's), `description` (the line the activation menu
-shows — name the app the way users say it, 淘宝 not taobao, so two
-packs offering the same task read apart), `enabled`, `scope` (`global`,
-the default: the boot may launch it for a request; `local`: only another
-playbook of this pack walks it, by `run:` — never the agent, never a
-playbook of another pack; `playbooks run` still rehearses it), `inputs` (a
-`default:` makes one optional; the boot's menu says so), and
+`<name>/PLAYBOOK.yml` is the door and `<name>/<part>.yml` a part, both
+headed like a macro or a skill: `name` (must equal the folder's, or the
+part file's stem), `description` (the line the activation menu shows —
+name the app the way users say it, 淘宝 not taobao, so two packs
+offering the same task read apart; a part's is for the reader), `enabled`
+(a part is rehearsed and enabled on its own; a door whose part is off
+is not live), `inputs` (a `default:` makes one optional; the boot's
+menu says so), and
 `route` — a ROUTE of `page:` waypoints (checked every time, each
 optionally declaring its own `recover:` — one hand (`go_back`,
 `{tap: app.landmarks.<name>}`, `{macro: app.macros.<name>}`), or
@@ -78,9 +85,9 @@ its micro calls at off or low), `ask` (human gate; `yes:`/`no:` are the replies 
 `denied:` the line it sends back on a no before `on_fail` decides,
 `wait:` and `rounds:` its patience, `total_label:` the label a payment total sits beside,
 `think:` how much the model may think when it reads a reply those words miss,
-`resume:` re-enters the app), `tell`, and `run` (a playbook of this
-pack walked as one move — `with:` fills its inputs, it starts where
-that playbook starts and lands on its last page, and its `returns:`
+`resume:` re-enters the app), `tell`, and `run` (a part of this door
+walked as one move — `with:` fills its inputs, it starts where the
+part starts and lands on its last page, and its `returns:`
 read downstream as `{<run>.<field>}`; `each: {<input>: <move>.<field>}`
 runs it once per line of a list an earlier agent returned, one round
 per distinct item, the returns joined as lines afterwards, `miss: skip`
@@ -88,8 +95,8 @@ records a failed round as missed and goes on, `revise: <agent>` re-runs
 the walk from that agent when an ask inside the run reads a reply its
 words miss, `limit: {rounds, revisions}` bounds both; a run's `miss:`
 and `on_fail:` are the composing route's words and win over the
-playbook's own inside its rounds; a playbook is run once per route, as
-moves share one namespace). A list is lines:
+part's own inside its rounds; a part is run once per route, as moves
+share one namespace, and never runs a playbook itself). A list is lines:
 a return field holding several things is one per line, and that is
 what `each` iterates and a message renders. Any entry, a page included, may
 say `on_fail: stop|handover` — what a failure of that entry does once
@@ -107,7 +114,9 @@ its own page — and nothing retries or unlocks in the background.
 ## References: beside this file, or the pack's
 
 A bare name is the file beside the one naming it (`macro: open-tmall`,
-`prompt: prompts.pick`, `give: [macros.nudge]`); `app.<kind>.<name>` is
+`prompt: prompts.pick`, `give: [macros.nudge]`, `run: add` — the door's
+`add.yml`; a part reads its door's `macros/` and `prompts/` the same
+way); `app.<kind>.<name>` is
 what the pack declares in `APP.yml` or ships beside it — `app.macros.launch`,
 `app.prompts.pick`, `app.landmarks.close`, `app.pages.home` — in a route,
 a manifest hand or a macro's `run:` / `if_page:` alike. The same macro

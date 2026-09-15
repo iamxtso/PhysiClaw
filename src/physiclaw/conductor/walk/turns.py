@@ -14,6 +14,7 @@ declares that). What a kind MEANS and what to do about a failure are
 the walk's.
 """
 
+import re
 from dataclasses import dataclass
 
 from physiclaw.conductor.walk import views
@@ -36,6 +37,8 @@ from physiclaw.contract.dto import (
 # `views.result_for` (exact-match, newest-first) could hand a walk the
 # OTHER walk's stale result whenever its own failed to land.
 CALL_PREFIX = "conductor"
+# What a tool-call id may hold: letters, digits, "_" and "-".
+_ID_UNSAFE = re.compile(r"[^A-Za-z0-9_-]")
 
 # Where a scroll swipe originates: a mid-content band, clear of top
 # chrome and the tab bar, so the drag scrolls the list rather than
@@ -77,11 +80,13 @@ class Turnsmith:
     `taobao/buy`) — required rather than defaulted so two walks in one
     session cannot silently collide on one sequence. It rides every
     minted turn as `driver`, so the engine can say who is driving, and
-    every call id in its id-safe spelling (`taobao-buy`)."""
+    every call id in its id-safe spelling — `taobao/hema-buy.add` is
+    `taobao-hema-buy-add`, every character a call id may not hold
+    replaced once, so a wider ref grammar needs no new rule here."""
 
     def __init__(self, ref: str) -> None:
         self.driver = ref
-        self.scope = ref.replace("/", "-")
+        self.scope = _ID_UNSAFE.sub("-", ref)
         self.pending: Pending | None = None
         self._seq = 0
 

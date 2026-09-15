@@ -56,7 +56,7 @@ def test_a_route_declared_page_is_bare_and_its_own() -> None:
 
     assert _entry("demo", "buy").error is None
     err = _entry("demo", "track").error or ""
-    assert "declared in buy.yml" in err and "move it to APP.yml" in err
+    assert "declared in buy/PLAYBOOK.yml" in err and "move it to APP.yml" in err
 
 
 def test_a_declaration_under_an_app_pages_waypoint_is_refused() -> None:
@@ -155,7 +155,7 @@ def test_a_block_page_is_private_and_declared_once() -> None:
         },
     )
     err = _entry("demo", "track").error or ""
-    assert "declared in buy.yml" in err and "move it to APP.yml" in err
+    assert "declared in buy/PLAYBOOK.yml" in err and "move it to APP.yml" in err
 
     twice = BLOCK.replace(
         "  - page: mine\n  - do: open",

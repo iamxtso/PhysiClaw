@@ -1,6 +1,6 @@
-# taobao/checkout — the marketplace cart to ONE paid order: tick the
-# lines, 结算, confirm the order page's total, pay. Runs alone for
-# "把购物车结算了" or as the last move of `buy-together`.
+# taobao/buy-together.checkout — the marketplace cart to ONE paid order:
+# tick the lines, 结算, confirm the order page's total, pay; a part of
+# `buy-together`, its last move.
 # Starts anywhere (cold launch). Ends on the paid page.
 name: checkout
 description: pay for the items in the 淘宝 (Taobao) cart in ONE order
@@ -27,7 +27,7 @@ route:
   - page: app.pages.cart          # the 购物车 title over the 全选 footer
 
   - do: nudge                     # a short stroke up: the first line's checkbox sits
-    macro: app.macros.nudge       # under this phone's floating button
+    macro: nudge                  # under this phone's floating button
 
   - page: app.pages.cart
 
@@ -37,7 +37,7 @@ route:
   - agent: tick
     prompt: prompts.tick          # the list, the checkbox geometry, 合计 as the check
     tools: [tap, scroll]
-    give: [app.landmarks.select-all, app.landmarks.close, app.macros.nudge]   # 全选, a promo ✕, the stroke
+    give: [app.landmarks.select-all, app.landmarks.close, macros.nudge]   # 全选, a promo ✕, the stroke
     never_tap:
       - {label: ["结算", "删除"], within: bottom}
       - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}

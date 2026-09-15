@@ -295,7 +295,10 @@ def page_sites(
         if isinstance(block, dict):
             for name, spec in block.items():
                 declare(
-                    str(name), decl_fields(spec), pb_name, f"{pb_name}.yml's `pages:`"
+                    str(name),
+                    decl_fields(spec),
+                    pb_name,
+                    f"{paths.playbook_file(pb_name)}'s `pages:`",
                 )
         route = pb.get("route")
         if not isinstance(route, list):
@@ -311,7 +314,7 @@ def page_sites(
                 # built-in — its own route's parse refuses a declaration
                 # there with the exact reason, never the whole pack.
                 continue
-            declare(name, decl, pb_name, f"{pb_name}.yml's route")
+            declare(name, decl, pb_name, f"{paths.playbook_file(pb_name)}'s route")
     return out
 
 

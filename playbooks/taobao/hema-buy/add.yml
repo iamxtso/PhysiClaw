@@ -1,10 +1,9 @@
-# taobao/tmall-add — one item into the 天猫超市 store cart; runs once per
-# item under `tmall-buy`, which opens the store first. Starts and ends
-# on the store's page, so the rounds chain without a relaunch.
-name: tmall-add
-description: put one item in the 天猫超市 (Tmall Supermarket) store cart inside Taobao, nothing paid
+# taobao/hema-buy.add — one item into the 盒马 cart; a part of `hema-buy`,
+# run once per item after the door enters the storefront. Starts and ends
+# on the storefront's home, so the rounds chain without a relaunch.
+name: add
+description: put one item in the 盒马 (Hema) cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable
-scope: local
 inputs:
   item:
     description: one product, name + spec + quantity, as the buyer named it
@@ -18,9 +17,9 @@ route:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
-  - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
+  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
 
-  - do: find                      # type the keyword into the store's search, run it
+  - do: find                      # type the keyword into the storefront's search, run it
     with: {keyword: "{parse.keyword}"}
     macro: app.macros.store-search
 
@@ -29,7 +28,7 @@ route:
   - agent: pick
     prompt: app.prompts.store-pick  # rows to an item, one add, the sheets that follow
     tools: [tap, scroll]
-    give: [app.landmarks.close, app.landmarks.pairing-close]   # a promo ✕, a 推荐搭配 sheet's ✕
+    give: [app.landmarks.close, app.landmarks.pairing-close]   # a promo ✕, the 推荐搭配 sheet's ✕
     never_tap:
       - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button
@@ -45,7 +44,7 @@ route:
 
   - page: app.pages.store-detail  # the item page: 加入购物车 and the 店铺 tab
 
-  - do: back-to-store             # the item page's arrow while it shows, an edge swipe,
-    macro: app.macros.store-back  # the search page's arrow while it shows
+  - do: back-to-store             # the item page's arrow, then the results' — lands on hema-home
+    macro: back                 # this door's own hand
 
-  - page: app.pages.tmall-home
+  - page: app.pages.hema-home

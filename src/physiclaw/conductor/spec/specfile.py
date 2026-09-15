@@ -128,22 +128,25 @@ def load_playbook_docs(
     root: Path | None = None,
     values: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, str]]:
-    """Every playbook of a pack — `playbooks/<app>/<name>/PLAYBOOK.yml`,
-    one folder per playbook beside the manifest — as raw documents keyed
-    by the folder name (the playbook's name, referenced as
-    `<app>/<name>`), plus what would not load, by name with the reason.
-    A bad file excludes itself, never the pack: `scan_playbooks` reports
-    it as an invalid entry. The folder name follows the move-name
-    grammar, so a folder the grammar refuses is an error entry too; a
-    `_` or `.` prefix is the one skip convention every artifact lister
-    shares (a draft the author parks beside the pack). Two strays are
-    error entries so they never vanish silently: a `*.yml` at pack level
-    that is not the manifest (a route that belongs in a folder, keyed
-    by its file name so it can never shadow the folder it should be),
-    and a folder with no PLAYBOOK.yml that is not `macros/` or
-    `prompts/`. `root` is the pack's directory when the caller already
-    resolved it; `values` the placeholder values when the caller read
-    them (one read per pack load)."""
+    """Every playbook of a pack as raw documents, plus what would not
+    load, by id with the reason. A DOOR is `<app>/<name>/PLAYBOOK.yml`,
+    one folder per door beside the manifest, keyed by the folder name
+    (referenced as `<app>/<name>`); a PART is any other `<part>.yml` in
+    a door's folder, keyed `<door>.<part>` (referenced as
+    `<app>/<door>.<part>`) and listed right after its door. A bad file
+    excludes itself, never the pack: `scan_playbooks` reports it as an
+    invalid entry. Folder and file names follow the move-name grammar,
+    so one the grammar refuses is an error entry too; a `_` or `.`
+    prefix is the one skip convention every artifact lister shares (a
+    draft the author parks beside the pack). Strays are error entries so
+    they never vanish silently: a `*.yml` at pack level that is not the
+    manifest (a route that belongs in a folder, keyed by its file name
+    so it can never shadow the folder it should be), a folder with no
+    PLAYBOOK.yml that is not `macros/` or `prompts/`, and a folder
+    inside a door that is not one of those two (a part is a file).
+    `root` is the pack's directory when the caller already resolved it;
+    `values` the placeholder values when the caller read them (one read
+    per pack load)."""
     root = paths.pack_root(app) if root is None else root
     name_check = bind(error_cls)[3]
     if values is None:
@@ -153,25 +156,14 @@ def load_playbook_docs(
             raise error_cls(str(e)) from e
     docs: dict[str, Any] = {}
     errors: dict[str, str] = {}
-    for stray in paths.leaf_files(root, ".yml"):
-        if stray.name != PACK_FILENAME:
-            errors[stray.name] = (
-                f"{app}/{stray.name}: a playbook is a folder — move it to "
-                f"{stray.stem}/{PLAYBOOK_FILENAME}"
-            )
-    for folder in sorted(p for p in root.iterdir() if p.is_dir()):
-        name = folder.name
-        if paths.is_skipped(name) or name in RESERVED_PACK_DIRS:
-            continue
-        path = folder / PLAYBOOK_FILENAME
-        where = f"{app}/{name}/{PLAYBOOK_FILENAME}"
-        if not path.is_file():
-            errors[name] = (
-                f"{app}/{name}/: a folder with no {PLAYBOOK_FILENAME} is not a playbook"
-            )
-            continue
+
+    def read(playbook: str, path: Path, role: str) -> None:
+        """One file into `docs` under its id, or into `errors` with the
+        reason — the id's own name checked against the move-name
+        grammar (the folder's for a door, the file stem for a part)."""
+        where = f"{app}/{paths.playbook_file(playbook)}"
         try:
-            name_check(name, f"{where}: playbook folder name")
+            name_check(paths.own_name(playbook), f"{where}: {role}")
             data = load_yaml(read_text(path), error_cls, where=where, values=values)
             if not isinstance(data, dict):
                 raise error_cls(
@@ -179,9 +171,40 @@ def load_playbook_docs(
                     "inputs, route)"
                 )
         except Exception as e:  # broad: exclude the file, never the pack
-            errors[name] = str(e) or type(e).__name__
+            errors[playbook] = str(e) or type(e).__name__
+            return
+        docs[playbook] = data
+
+    for stray in paths.leaf_files(root, paths.PLAYBOOK_SUFFIX):
+        if stray.name != PACK_FILENAME:
+            errors[stray.name] = (
+                f"{app}/{stray.name}: a playbook is a folder — move it to "
+                f"{stray.stem}/{PLAYBOOK_FILENAME}"
+            )
+    for folder in paths.leaf_dirs(root):
+        name = folder.name
+        if name in RESERVED_PACK_DIRS:
             continue
-        docs[name] = data
+        path = folder / PLAYBOOK_FILENAME
+        if not path.is_file():
+            errors[name] = (
+                f"{app}/{name}/: a folder with no {PLAYBOOK_FILENAME} is not a playbook"
+            )
+            continue
+        read(name, path, "door folder name")
+        for part in paths.leaf_files(folder, paths.PLAYBOOK_SUFFIX):
+            if part.name != PLAYBOOK_FILENAME:
+                read(f"{name}.{part.stem}", part, "part file name")
+        for sub in paths.leaf_dirs(folder):
+            if sub.name not in RESERVED_PACK_DIRS:
+                # Keyed by the offending PATH, as the pack-level stray is:
+                # a part of the same name may be valid beside it, and must
+                # not be reported invalid in its place.
+                errors[f"{name}/{sub.name}/"] = (
+                    f"{app}/{name}/{sub.name}/: a part of a door is a file beside "
+                    f"its {PLAYBOOK_FILENAME} — "
+                    f"{paths.playbook_file(f'{name}.{sub.name}')}"
+                )
     return docs, errors
 
 

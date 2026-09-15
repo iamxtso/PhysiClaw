@@ -17,7 +17,7 @@ of waypoints (`page:` — where the walk must BE, checked every time) and
 moves (what it DOES). The grammar, top-down (the YAML keys are the user
 vocabulary and the model classes below carry the same names)::
 
-    playbook  ::= description [enabled] [scope] [inputs] [returns] route
+    playbook  ::= description [enabled] [inputs] [pages] [returns] route
     inputs    ::= {id: {description, [default], [example]}}   # ≤ MAX_INPUTS
     route     ::= [agent...] [start] page (move page | ask | tell)*
     entry     ::= "page" name [anchors] [forbid] [scrollable] [recover] [tries]
@@ -125,12 +125,6 @@ ON_FAIL_MODES = ("handover", ON_FAIL_STOP)
 # only: a failed round is recorded as missed and the walk goes on.
 ON_FAIL_SKIP = "skip"
 MISS_MODES = (ON_FAIL_SKIP,)
-# A playbook's `scope:` — `global` may be launched by the boot for a
-# request; `local` is walked only by another playbook of its pack.
-SCOPE_GLOBAL = "global"
-SCOPE_LOCAL = "local"
-SCOPES = (SCOPE_GLOBAL, SCOPE_LOCAL)
-
 # The ref grammar's one global root — `{inputs.name}` — rejected as a
 # move name so an agent's `{move.field}` outputs can never shadow it.
 # (`ask` is not global: it exists only inside a payment ask's own
@@ -313,8 +307,7 @@ class RunNode:
     at any ask INSIDE this run re-runs the walk from there, at most
     `revise_limit` times."""
 
-    id: str
-    playbook: str
+    id: str  # the run's own word, which is the part's name (`run: add`)
     args: dict  # `with:` — ref templates, filled at run time
     sub: "Playbook"
     enter: str  # "" when the playbook opens with its own `start`
@@ -423,11 +416,6 @@ class Playbook:
     enabled: bool
     inputs: tuple[PlaybookInput, ...]
     nodes: tuple[Node, ...]  # the route's MOVES, compiled (waypoints derived away)
-    # `scope:` — who may launch this playbook. `global` (the default):
-    # the boot, for a request. `local`: only another playbook of this
-    # pack, by `run:` (and `playbooks run`, to rehearse it) — never the
-    # agent, never a playbook of another pack.
-    scope: str = SCOPE_GLOBAL
     # The route's first waypoint — where the walk must be at start (it
     # is also the first move's derived enter, which is what the runtime
     # actually checks).
@@ -450,6 +438,16 @@ class Playbook:
     # The route's last waypoint — the landing a `run` of it checks; ""
     # when the route ends on a move (then it cannot be run as a move).
     end: str = ""
+
+    @property
+    def part_of(self) -> str | None:
+        """The door this playbook is a part of — None when it IS a door.
+        Where the file sits says who may launch it: a door
+        (`<name>/PLAYBOOK.yml`) the boot offers for a request; a part
+        (`<door>/<name>.yml`, id `<door>.<name>`) only its door walks,
+        by `run:` — and `playbooks run`, to rehearse it — never the
+        agent, never another pack."""
+        return paths.part_of(self.name)
 
     @property
     def runs(self) -> tuple["RunNode", ...]:
@@ -592,8 +590,9 @@ class Pack:
     landmarks: dict[str, Landmark] = field(default_factory=dict)
 
     def local_for(self, playbook: str) -> Files:
-        """A playbook's own leaf folders — empty when it has none."""
-        return self.local.get(playbook, Files())
+        """A playbook's own leaf folders — its door's for a part — empty
+        when it has none."""
+        return self.local.get(paths.door_of(playbook), Files())
 
     def file_errors(self) -> list[tuple[str, str]]:
         """Every leaf file that would not load, as (pack-relative path,

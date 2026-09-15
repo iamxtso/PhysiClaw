@@ -71,15 +71,58 @@ SOURCE_LAYER: bool = "PHYSICLAW_HOME" not in os.environ
 
 # The pack layout's fixed names. A folder with APP.yml is a pack (the
 # app's manifest: what its playbooks share); a folder inside it with
-# PLAYBOOK.yml is a playbook (the route). The two reserved subfolders
-# hold leaf files — recorded hands and the model's prose — at either
-# level, and are never mistaken for a playbook.
+# PLAYBOOK.yml is a playbook (the route) — a DOOR, the whole workflow
+# the boot may offer. Any other `<part>.yml` beside it is one of the
+# door's PARTS: walked only by that door's `run:`, never offered. The
+# two reserved subfolders hold leaf files — recorded hands and the
+# model's prose — at either level, and are never mistaken for a
+# playbook; a door's leaf folders serve its parts too.
 PACK_FILENAME = "APP.yml"
 PLAYBOOK_FILENAME = "PLAYBOOK.yml"
+PLAYBOOK_SUFFIX = ".yml"
 PACK_MACROS_DIRNAME = "macros"
 PACK_PROMPTS_DIRNAME = "prompts"
 RESERVED_PACK_DIRS = frozenset({PACK_MACROS_DIRNAME, PACK_PROMPTS_DIRNAME})
 PROMPT_SUFFIX = ".md"
+
+
+def split_playbook(playbook: str) -> tuple[str, str | None]:
+    """A playbook id read once: `(door, part)` — `("hema-buy", "add")`
+    for `hema-buy.add`, `("buy", None)` for a door. THE parse of the id;
+    `door_of`, `own_name`, `part_of` and `playbook_file` are its faces,
+    so the dot means one thing everywhere."""
+    door, sep, part = playbook.partition(".")
+    return door, part if sep else None
+
+
+def door_of(playbook: str) -> str:
+    """The door a playbook id names — itself for a door, the folder for
+    a part (`hema-buy.add` → `hema-buy`). A part's leaf folders are its
+    door's."""
+    return split_playbook(playbook)[0]
+
+
+def part_of(playbook: str) -> str | None:
+    """The door a PART belongs to — None when the id is a door's. The
+    predicate too: `if part_of(name)` is "this is a part"."""
+    door, part = split_playbook(playbook)
+    return door if part is not None else None
+
+
+def own_name(playbook: str) -> str:
+    """A playbook id's own name — the folder's for a door, the file
+    stem for a part — the name its file declares."""
+    door, part = split_playbook(playbook)
+    return part if part is not None else door
+
+
+def playbook_file(playbook: str) -> str:
+    """A playbook id's file, pack-relative: `hema-buy/PLAYBOOK.yml` for
+    a door, `hema-buy/add.yml` for its part."""
+    door, part = split_playbook(playbook)
+    leaf = PLAYBOOK_FILENAME if part is None else f"{part}{PLAYBOOK_SUFFIX}"
+    return f"{door}/{leaf}"
+
 
 # The one skip convention every artifact lister shares: a `_` or `.`
 # prefix parks a draft beside the real files (an editor's swap file, a
@@ -100,6 +143,15 @@ def leaf_files(root: Path, suffix: str) -> list[Path]:
     return sorted(
         p for p in root.glob(f"*{suffix}") if p.is_file() and not is_skipped(p.name)
     )
+
+
+def leaf_dirs(root: Path) -> list[Path]:
+    """``<root>/*/``, sorted, minus the skip convention — `leaf_files`'
+    twin for the folder walk (a pack's playbook folders, a door's
+    subfolders). An absent root is no folders."""
+    if not root.is_dir():
+        return []
+    return sorted(p for p in root.iterdir() if p.is_dir() and not is_skipped(p.name))
 
 
 def marked_subdirs(dirs: list[Path], marker: str) -> set[str]:

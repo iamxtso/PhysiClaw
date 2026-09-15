@@ -3,9 +3,9 @@
 Groceries from 盒马 inside Taobao, several items in one order. `parse`
 lists the items, `ack` tells the buyer, the walk launches Taobao and
 searches 盒马 on the home feed (the main search jumps into the
-storefront), `hema-add` runs once per item from the storefront's home
-(its own search, pick, 加入购物车, back to home), then `hema-checkout`
-opens the storefront's cart, ticks exactly those lines, confirms 合计
+storefront), the part `add` runs once per item from the storefront's
+home (its own search, pick, 加入购物车, back to home), then the part
+`checkout` opens the storefront's cart, ticks exactly those lines, confirms 合计
 off the order page and pays once. A reply that is neither yes nor no
 re-runs `parse` with the cart lines, as `buy-together` does.
 
