@@ -37,9 +37,10 @@ empty file is a valid pack (the file is the pack marker):
   pack's recover hands tap and its agent episodes are granted by name;
   a `page:` scope offers the spot only while that page reads
 - `pages:` — fingerprints more than one route lands on (a page only
-  one route uses may be declared beside its waypoint instead). Anchors
-  are the texts that identify the page and EVERY one must show, so
-  declare few, unmistakable texts — alternate readings of one text go
+  one route uses is declared in that route's own `pages:` block, or
+  beside its waypoint). Anchors are the texts that identify the page
+  and EVERY one must show, so declare few, unmistakable texts —
+  alternate readings of one text go
   inside it (`text: [..]`), `within:` pins it to a band or a box, a
   `forbid:` term (the same shape) showing reads the page out; no score,
   a screen reading exactly one page whole is that page — semantics
@@ -109,10 +110,11 @@ A bare name is the file beside the one naming it (`macro: open-tmall`,
 `prompt: prompts.pick`, `give: [macros.nudge]`); `app.<kind>.<name>` is
 what the pack declares in `APP.yml` or ships beside it — `app.macros.launch`,
 `app.prompts.pick`, `app.landmarks.close`, `app.pages.home` — in a route,
-a manifest hand or a macro's `run:` / `if_page:` alike. A page declared
-beside a waypoint is bare in that route only; a page two routes share
-lives in `APP.yml`. The same name may live in both places; the spelling
-says which.
+a manifest hand or a macro's `run:` / `if_page:` alike. The same macro
+or prompt name may live in both places; the spelling says which. A page
+is declared once: a page a route declares itself, in its `pages:` block
+or beside a waypoint, is bare in that route only; a page two routes
+share lives in `APP.yml`.
 
 ## Values, and the one check shape
 

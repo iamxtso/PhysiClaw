@@ -92,6 +92,7 @@ from physiclaw.conductor.spec.pages import (
     PAGE_DECL_FIELDS,
     PAGE_RECOVERY_FIELDS,
     PagesError,
+    decl_fields,
     parse_pages_data,
     recovery_fields,
     route_decl,
@@ -244,12 +245,14 @@ def compile_route(
     input_names: set[str],
     pack: Pack,
     resolve_playbook: Callable[[str], Playbook] | None = None,
+    pages: Any = None,
 ) -> CompiledRoute:
     """`route:` → the compiled route (see `CompiledRoute`): the shape
     prepass first (every rule about WHERE an entry may sit), then one
     forward pass compiling the moves against the waypoints around them,
     then the lints that need the whole route."""
-    entries, wp_ids, start, page_names = _shape(raw, pack)
+    own = _own_pages(pages, pack)
+    entries, wp_ids, start, page_names = _shape(raw, pack, set(own))
     local = pack.local_for(playbook)
     # The playbook's own recorded hands enter the dispatch table here,
     # once, under their `<playbook>.<name>` spelling — the inline bodies
@@ -366,12 +369,12 @@ def compile_route(
     lints.check_resume(flat)
     if _is_boot(ctx):
         lints.check_boot(moves)
-    # The manifest's hands beneath this route's own: a route that
-    # declares a page's hand replaces the inherited one whole.
+    # The route's defaults beneath its waypoints' hands: a waypoint that
+    # declares a page's hand replaces the default whole.
     return CompiledRoute(
         nodes=moves,
         start=start,
-        recovers=_overlay(_inherited_hands(ctx), recovers),
+        recovers=_overlay(_route_defaults(ctx, own), recovers),
         inline=inline,
         prompts_used=frozenset(ctx.prompts_used),
         end=wp_ids[-1] or "",  # "" when the route ends on a move
@@ -541,7 +544,7 @@ def _parse_run(
 
 
 def _shape(
-    raw: Any, pack: Pack
+    raw: Any, pack: Pack, own_names: set[str]
 ) -> tuple[list[tuple[str, str, dict]], list[str | None], str, set[str]]:
     """The route's shape, proved before any move is compiled: a
     non-empty list whose first page is the start contract, at most one
@@ -588,7 +591,7 @@ def _shape(
     # every door), so a `do` can read the page that follows it in one
     # forward look. `pages.route_decl` is the one declaration predicate,
     # shared with `collect_page_decls` so the two doors cannot disagree.
-    declared_here = {
+    declared_here = own_names | {
         name
         for kind, name, entry in entries
         if kind == "page" and route_decl(entry) is not None
@@ -629,10 +632,44 @@ def _classify_entry(i: int, entry: Any) -> tuple[str, str, dict]:
     return kind, require_str(entry.get(kind), f"{where}: `{kind}`"), entry
 
 
+def _own_pages(raw: Any, pack: Pack) -> dict[str, dict]:
+    """A route's `pages:` block — the manifest's page shape, this
+    route's ownership — as page name → its recovery fields ({} when it
+    declares none): the names seed `_shape`'s declared set, the fields
+    are parsed once the route's context exists (`_route_defaults`)."""
+    if raw is None:
+        return {}
+    if not isinstance(raw, dict):
+        raise PlaybookError("`pages` must be a mapping of page name → spec")
+    own: dict[str, dict] = {}
+    for name, spec in raw.items():
+        name = str(name)
+        where = f"route page {name!r}"
+        if not isinstance(spec, dict):
+            raise PlaybookError(f"{where}: spec must be a mapping")
+        _check_decl(where, name, decl_fields(spec), pack)
+        own[name] = recovery_fields(spec)
+    return own
+
+
+def _check_decl(where: str, page: str, decl: Any, pack: Pack) -> None:
+    """A page declaration's CONTENT, checked at the text door
+    (`parse_playbook` — tests, tooling) with the page grammar the pack
+    door runs via `collect_page_decls`, so a playbook green at one door
+    is never red at the other. The pack door already parsed it when the
+    pack knows the page."""
+    if page in pack.pages:
+        return
+    try:
+        parse_pages_data({page: decl}, pack.app)
+    except PagesError as e:
+        raise PlaybookError(f"{where}: {e}") from e
+
+
 def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) -> str:
     """One page waypoint's id. Three spellings: a bare name is a page
-    declared beside a waypoint of THIS route (there, and at every later
-    waypoint of the route); `app.pages.<name>` is the manifest's; the
+    THIS route declares (in its `pages:` block, or beside a waypoint —
+    there, and at every later waypoint); `app.pages.<name>` is the manifest's; the
     reserved built-ins stay `ios.<page>` / `channel.<page>` and can only
     be referenced, never declared here. So a bare `page:` with no
     declaration in the file is an error, never a lookup elsewhere."""
@@ -676,7 +713,7 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
             else f"a route's page is its own — move it to {PACK_FILENAME} to share it"
         )
         raise PlaybookError(
-            f"{where}: page {page!r} is declared beside a waypoint of {owner!r}, "
+            f"{where}: page {page!r} is declared in {owner}.yml, "
             f"not in {PACK_FILENAME} — {hint}"
         )
     if shared and page not in pack.pages:
@@ -685,20 +722,12 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
             f"{where}: page {page!r} is not declared in {PACK_FILENAME}. "
             f"Declared: {app_refs(PAGES_KIND, manifest)}"
         )
-    if declares and page not in pack.pages:
-        # Validate the in-place declaration's CONTENT here too, so the
-        # text door (`parse_playbook` — tests, tooling) enforces the
-        # same page grammar the pack door does via `collect_page_decls`;
-        # a playbook green at one door must not go red at the other.
-        # (The pack door already parsed it when the pack knows the page.)
-        try:
-            parse_pages_data({page: route_decl(entry)}, pack.app)
-        except PagesError as e:
-            raise PlaybookError(f"{where}: {e}") from e
+    if declares:
+        _check_decl(where, page, route_decl(entry), pack)
     if not shared and not reserved and not declares and page not in declared:
         raise PlaybookError(
             f"{where}: page {page!r} is not declared in this route — declare it "
-            f"beside a waypoint (anchors under `page:`)"
+            f"in the route's `pages:` block or beside a waypoint (anchors under `page:`)"
             + _pack_hint(PAGES_KIND, page, page in pack.pages and owner is None)
         )
     return name if reserved else page
@@ -1540,10 +1569,22 @@ def _ask_wait(entry: dict, where: str) -> tuple[int, int]:
     return seconds, rounds
 
 
-def _inherited_hands(ctx: _Ctx) -> dict[str, Recovery]:
-    """The manifest's hands every route inherits — resolved once, at
-    pack load (`manifest_recovers`)."""
-    return dict(ctx.pack.recovers)
+def _route_defaults(ctx: _Ctx, own: dict[str, dict]) -> dict[str, Recovery]:
+    """What the route's waypoints start from: the manifest's hands every
+    route inherits (resolved once, at pack load — `manifest_recovers`)
+    under the hands its own `pages:` block declares, parsed with the
+    route's own resolver."""
+    return _overlay(dict(ctx.pack.recovers), _page_hands(ctx, own, "route"))
+
+
+def _page_hands(ctx: _Ctx, raw: dict[str, dict], site: str) -> dict[str, Recovery]:
+    """The hands a `pages:` mapping declares, by page — the
+    `recovery_fields` slice of each, the pages declaring none skipped."""
+    return {
+        name: _parse_recover(ctx, fields, f"{site} page {name!r}", name)
+        for name, fields in raw.items()
+        if fields
+    }
 
 
 def manifest_recovers(pack: Pack, raw: dict[str, dict]) -> dict[str, Recovery]:
@@ -1561,15 +1602,9 @@ def manifest_recovers(pack: Pack, raw: dict[str, dict]) -> dict[str, Recovery]:
         except MacroError as e:
             raise PlaybookError(f"{where}: {role or 'macro'} {e}") from e
 
-    ctx = _Ctx("", pack, set(), resolve)
-    out: dict[str, Recovery] = {}
     for name, spec in raw.items():
-        # Every page here is declared: the pack door parses the same
-        # entry's anchors first and refuses one without.
-        where = f"manifest page {name!r}"
-        _refuse_bodies(spec.get("recover"), where)
-        out[name] = _parse_recover(ctx, spec, where, name)
-    return out
+        _refuse_bodies(spec.get("recover"), f"manifest page {name!r}")
+    return _page_hands(_Ctx("", pack, set(), resolve), raw, "manifest")
 
 
 def _refuse_bodies(raw: Any, where: str) -> None:

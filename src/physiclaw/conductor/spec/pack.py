@@ -350,6 +350,7 @@ _PLAY_KEYS = {
     "enabled",
     "scope",
     "inputs",
+    "pages",
     "route",
     "returns",
 }
@@ -394,6 +395,7 @@ def _parse_playbook_data(
     input_names = {i.name for i in inputs}
     route = compile_route(
         data.get("route"),
+        pages=data.get("pages"),
         playbook=name,
         input_names=input_names,
         pack=pack,

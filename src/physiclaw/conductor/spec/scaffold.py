@@ -135,8 +135,9 @@ description: EDIT ME — what this pack automates, and when to adopt it
 #     page: detail
 
 # Pages more than one playbook lands on are declared here once and
-# referenced bare from every route; a page only one route uses may be
-# declared beside its waypoint instead. Anchors are semantics; geometry
+# referenced as `app.pages.<name>` from every route; a page only one
+# route uses is declared in that route's own `pages:` block or beside
+# its waypoint instead, bare there. Anchors are semantics; geometry
 # is captured on YOUR device via `physiclaw playbooks pages calibrate`.
 # A `recover:` here is the hand every route inherits for the page (a
 # gesture, a tap on a landmark, or a pack macro BY NAME — the manifest
@@ -217,6 +218,11 @@ inputs:
   message:
     description: EDIT ME — what this value means
     example: "hello"
+# pages:                   # this route's own pages in the manifest's shape,
+#   sheet:                 # bare in the route below; `recover:` here is the
+#     anchors: ["EDIT ME"] # page's default hand on this route. One
+#     recover: go_back     # declaration per page: here, beside a waypoint,
+#                          # or in APP.yml (then `app.pages.<name>`).
 route:
   # An agent step with no tools may open the route — derive values
   # from the user's words before the phone is touched:
@@ -320,7 +326,8 @@ One directory per app, self-contained — everything its playbooks use:
                            inside must agree) and the body is the
                            playbook: name, description, enabled,
                            inputs, route (page → move → page → move),
-                           and optionally returns and scope.
+                           and optionally pages (this route's own, the
+                           manifest's shape), returns and scope.
         macros/<n>.yml     this route's own recorded hands (dispatch
                            <app>/<name>.<n>): `macro: <n>` here; the pack's
                            is `macro: app.macros.<n>`.
@@ -425,10 +432,11 @@ Replay a walk offline against a recorded session's screens —
 `physiclaw playbooks replay <app>/<name> --session <id>` — to see
 where it would hand over before touching the phone.
 
-A page is declared ONCE per pack — beside its waypoint in one file,
-or in the manifest's `pages:` appendix when routes share it — and
-referenced bare everywhere else; the same page declared in two files
-is a pack error, never a merge.
+A page is declared ONCE per pack — in the manifest's `pages:` appendix
+when routes share it (`page: app.pages.<n>`), or as one route's own, in
+that file's `pages:` block or beside its waypoint (`page: <n>`, bare, in
+that route only); a second declaration, in another file or in the
+same one, is a pack error, never a merge.
 Macros embed as `macro: {{steps: [...]}}` (the macro-file grammar minus
 name/description/enabled, enabled with the playbook); an ask's
 `resume:` and a page's `recover:` take the same form and dispatch

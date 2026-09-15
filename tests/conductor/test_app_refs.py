@@ -56,7 +56,7 @@ def test_a_route_declared_page_is_bare_and_its_own() -> None:
 
     assert _entry("demo", "buy").error is None
     err = _entry("demo", "track").error or ""
-    assert "declared beside a waypoint of 'buy'" in err and "move it to APP.yml" in err
+    assert "declared in buy.yml" in err and "move it to APP.yml" in err
 
 
 def test_a_declaration_under_an_app_pages_waypoint_is_refused() -> None:
@@ -99,3 +99,81 @@ def test_a_pack_cannot_be_named_app() -> None:
     write_pack("app", playbooks={})
     with pytest.raises(PlaybookError, match="reference word"):
         pb.load_pack("app")
+
+
+# ---------- a route's own `pages:` block ----------
+
+BLOCK = """\
+description: one move
+inputs:
+  keyword:
+    description: k
+pages:
+  mine:
+    anchors: ["Mine"]
+    recover: go_back
+    tries: 3
+route:
+  - page: mine
+  - do: open
+    macro: app.macros.open-app
+    with: {message: "{inputs.keyword}"}
+  - page: mine
+"""
+
+
+def test_a_pages_block_declares_the_routes_own_pages_bare() -> None:
+    write_pack("demo", playbooks={"buy": BLOCK})
+
+    pack = pb.load_pack("demo")
+    assert pack.route_pages == {"mine": "buy"} and "mine" in pack.pages
+    entry = _entry("demo", "buy")
+    assert entry.error is None, entry.error
+    assert entry.spec is not None and entry.spec.start == "mine"
+    # The block's hand is the page's default on the route.
+    r = entry.spec.recovers["mine"]
+    assert r.tries == 3 and r.elsewhere is not None and r.elsewhere.tool == "go_back"
+
+
+def test_a_waypoint_overrides_the_blocks_hand() -> None:
+    text = BLOCK.replace(
+        "  - page: mine\n  - do: open",
+        "  - page: mine\n    recover: home_screen\n  - do: open",
+    )
+    write_pack("demo", playbooks={"buy": text})
+
+    r = _entry("demo", "buy").spec.recovers["mine"]
+    assert r.elsewhere is not None and r.elsewhere.tool == "home_screen"
+
+
+def test_a_block_page_is_private_and_declared_once() -> None:
+    write_pack(
+        "demo",
+        playbooks={
+            "buy": BLOCK,
+            "track": ROUTE.replace("app.pages.home", "app.pages.mine"),
+        },
+    )
+    err = _entry("demo", "track").error or ""
+    assert "declared in buy.yml" in err and "move it to APP.yml" in err
+
+    twice = BLOCK.replace(
+        "  - page: mine\n  - do: open",
+        '  - page: mine\n    anchors: ["Again"]\n  - do: open',
+    )
+    write_pack("demo", playbooks={"buy": twice})
+    with pytest.raises(PlaybookError, match="declared twice"):
+        pb.load_pack("demo")
+
+    write_pack("demo", playbooks={"buy": BLOCK.replace("mine", "home")})
+    with pytest.raises(PlaybookError, match="declared twice"):
+        pb.load_pack("demo")
+
+
+def test_a_block_is_validated_like_the_manifests_pages() -> None:
+    # The pack door parses every declaration site, the block included.
+    write_pack(
+        "demo", playbooks={"buy": BLOCK.replace('anchors: ["Mine"]', "anchors: []")}
+    )
+    with pytest.raises(PlaybookError, match="non-empty"):
+        pb.load_pack("demo")

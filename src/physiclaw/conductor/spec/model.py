@@ -582,8 +582,9 @@ class Pack:
     # The channel pack's `thread: {incoming}` — the box the user's
     # bubbles' centers fall in; None for every other pack.
     thread_incoming: Bbox | None = None
-    # Pages declared beside a waypoint, by the route that declared them
-    # — a route's page is its own: another route may not name it.
+    # Pages a route declared itself (its `pages:` block or beside a
+    # waypoint), by route — a route's page is its own: another route
+    # may not name it.
     route_pages: dict[str, str] = field(default_factory=dict)
 
     # The pack's declared fixed spots (`landmarks:`) — recover hands and

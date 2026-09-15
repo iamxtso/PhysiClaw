@@ -197,11 +197,21 @@ def recovery_fields(spec: dict) -> dict:
     return {k: spec[k] for k in PAGE_RECOVERY_FIELDS if k in spec}
 
 
+def decl_fields(spec: Any) -> Any:
+    """The declaration half of a page mapping in the manifest's shape
+    (the manifest's `pages:` and a route's `pages:` block alike): all
+    but the recovery fields, unknown keys kept for the page parser to
+    refuse. A non-mapping passes through for the same reason."""
+    if not isinstance(spec, dict):
+        return spec
+    return {k: v for k, v in spec.items() if k not in PAGE_RECOVERY_FIELDS}
+
+
 def collect_page_recovers(doc: dict) -> dict[str, dict]:
     """The RAW recovery the manifest's `pages:` declare, by page name —
     `{recover: hand(s), tries: n, on_fail: word}`, whichever keys the
     page carries —
-    resolved by the route compiler (`route._inherited_hands`) against
+    resolved by the route compiler (`route._route_defaults`) against
     the pack's macros and landmarks, so the grammar has one home. Shape
     errors surface at that parse; this only collects."""
     appendix = doc.get("pages")
@@ -234,9 +244,10 @@ def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
 
 
 def route_declared_pages(doc: dict, playbook_docs: dict | None) -> dict[str, str]:
-    """Page name → the route that declares it beside a waypoint. A
-    route's page is its own (`route._waypoint_id` refuses it from
-    another route); this is how the refusal knows whose it is."""
+    """Page name → the route that declares it, in its `pages:` block or
+    beside a waypoint. A route's page is its own (`route._waypoint_id`
+    refuses it from another route); this is how the refusal knows whose
+    it is."""
     return {
         name: route
         for name, (_, route) in page_sites(doc, playbook_docs).items()
@@ -248,7 +259,8 @@ def page_sites(
     doc: dict, playbook_docs: dict | None = None
 ) -> dict[str, tuple[Any, str | None]]:
     """Every page declaration with where it was written — the raw spec
-    and the declaring route (None: the manifest's `pages:` appendix),
+    and the declaring route (None: the manifest's `pages:` appendix; a
+    route declares in its own `pages:` block or beside a waypoint),
     across every playbook file. Data-level on purpose — this runs at
     the pack door (`scan_app_decls`, `load_pack`) before any playbook
     parses, so the matcher sees route-declared pages through every
@@ -258,21 +270,34 @@ def page_sites(
     a silent merge. Malformed playbook shapes are skipped here — each
     playbook excludes itself at its own parse, never the pack."""
     out: dict[str, tuple[Any, str | None]] = {}
+    sites: dict[str, str] = {}
+
+    def declare(name: str, decl: Any, owner: str | None, site: str) -> None:
+        if name in sites:
+            raise PagesError(
+                f"page {name!r} declared twice — in {sites[name]} and in {site}; "
+                f"declare once (the manifest's is `{app_ref(PAGES_KIND, name)}`, "
+                f"a route's own is bare)"
+            )
+        out[name] = (decl, owner)
+        sites[name] = site
+
     appendix = doc.get("pages")
     if appendix is not None:
         if not isinstance(appendix, dict):
             raise PagesError("`pages` must be a YAML mapping of page name → spec")
         for name, spec in appendix.items():
-            # The declaration half only: a manifest page may also carry
-            # `recover:`, the pack-level hand (`collect_page_recovers`).
-            decl = (
-                {k: v for k, v in spec.items() if k not in PAGE_RECOVERY_FIELDS}
-                if isinstance(spec, dict)
-                else spec
-            )
-            out[str(name)] = (decl, None)
+            declare(str(name), decl_fields(spec), None, "the manifest")
     for pb_name, pb in (playbook_docs or {}).items():
-        route = pb.get("route") if isinstance(pb, dict) else None
+        if not isinstance(pb, dict):
+            continue
+        block = pb.get("pages")
+        if isinstance(block, dict):
+            for name, spec in block.items():
+                declare(
+                    str(name), decl_fields(spec), pb_name, f"{pb_name}.yml's `pages:`"
+                )
+        route = pb.get("route")
         if not isinstance(route, list):
             continue
         for entry in route:
@@ -286,14 +311,7 @@ def page_sites(
                 # built-in — its own route's parse refuses a declaration
                 # there with the exact reason, never the whole pack.
                 continue
-            if name in out:
-                was = out[name][1]
-                site = "the manifest" if was is None else f"{was}.yml's route"
-                raise PagesError(
-                    f"page {name!r} declared twice — in {site} and on {pb_name}.yml's "
-                    f"route; declare once (the manifest's is `{app_ref(PAGES_KIND, name)}`)"
-                )
-            out[name] = (decl, pb_name)
+            declare(name, decl, pb_name, f"{pb_name}.yml's route")
     return out
 
 
