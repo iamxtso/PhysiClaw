@@ -33,11 +33,11 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: home
   - do: search
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "go"}
   - page: results
 """
@@ -255,7 +255,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: home
 """
@@ -344,7 +344,7 @@ inputs:
 route:
   - page: results
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - ask: go
@@ -479,7 +479,7 @@ route:
       keyword: the keyword
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{parse.keyword}"}
   - page: home
 """

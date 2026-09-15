@@ -157,7 +157,7 @@ route:
       term: the search term
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{parse.term}"}
   - page: results
 """
@@ -188,7 +188,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - agent: choose
@@ -198,7 +198,7 @@ route:
       pick: the pick
   - page: done
   - do: wrap
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "x"}
   - page: done
 """
@@ -224,7 +224,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - ask: gate
@@ -234,9 +234,9 @@ route:
     yes: ["好的"]
     no: ["不用"]
     think: off
-    resume: open-app
+    resume: demo.macros.open-app
   - do: pay
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
   - page: home
@@ -491,13 +491,13 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - tell: tell
     message: "已下单{inputs.keyword}，稍后汇报进度"
   - do: wrap
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "done"}
   - page: done
 """
@@ -919,7 +919,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - ask: address
@@ -927,7 +927,7 @@ route:
     message: "地址没变吧？回复 好的 或 不用"
     yes: ["好的"]
     no: ["不用", "cancel"]
-    resume: open-app
+    resume: demo.macros.open-app
   - ask: handoff
     approve: handoff
     message: "现在下单吗？回复 好的 或 不用"
@@ -1453,8 +1453,8 @@ def test_trailing_tell_completes_the_walk() -> None:
 
 
 def test_check_warns_when_an_ask_without_resume_precedes_a_screen_move() -> None:
-    flow = TWO_ASKS.replace("    resume: open-app\n", "") + (
-        "  - page: results\n  - do: wrap\n    macro: add-cart\n"
+    flow = TWO_ASKS.replace("    resume: demo.macros.open-app\n", "") + (
+        "  - page: results\n  - do: wrap\n    macro: demo.macros.add-cart\n"
         '    with: {message: "x"}\n  - page: done\n'
     )
     write_channel(CHANNEL_OPEN)
@@ -1692,9 +1692,9 @@ def test_failed_agent_call_records_handover_with_micro_count() -> None:
 # ---------- inline macros (a move's embedded body) ----------
 
 
-# FLOW's first move with the body embedded in place of `macro: open-app`.
+# FLOW's first move with the body embedded in place of `macro: demo.macros.open-app`.
 INLINE_FLOW = FLOW.replace(
-    "    macro: open-app\n",
+    "    macro: demo.macros.open-app\n",
     "    macro:\n"
     "      inputs:\n"
     "        message: {description: the text}\n"
@@ -1749,7 +1749,8 @@ def test_suspended_walk_with_a_broken_spec_is_dropped() -> None:
 # ---------- on_fail: stop — the model never inherits the pay hand ----------
 
 STOPPING = GATED.replace(
-    "    resume: open-app\n", "    resume: open-app\n    on_fail: stop\n"
+    "    resume: demo.macros.open-app\n",
+    "    resume: demo.macros.open-app\n    on_fail: stop\n",
 )
 
 

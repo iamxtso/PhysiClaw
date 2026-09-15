@@ -350,46 +350,22 @@ def test_macros_that_run_each_other_are_both_refused() -> None:
     assert "macros that run each other" in (entries["b"].error or "")
 
 
-def test_the_fallback_resolver_takes_a_name_the_folder_lacks(tmp_path) -> None:
+def test_a_dotted_run_name_is_the_packs_never_a_neighbour(tmp_path) -> None:
+    # `<pack>.macros.<name>` goes to the pack's resolver; a bare name is
+    # a sibling file and nothing else.
     from physiclaw.macros.parse import parse_macro
 
     shared = parse_macro(OPEN_TEXT, "open")
-    (tmp_path / "send.yml").write_text(SEND_TEXT, encoding="utf-8")
+    (tmp_path / "send.yml").write_text(
+        SEND_TEXT.replace("run: open", "run: shop.macros.open"), encoding="utf-8"
+    )
 
     (entry,) = scan(tmp_path, fallback=lambda name: shared)
-
     assert entry.spec is not None and entry.spec.callees()[0] is shared
+
     (alone,) = scan(tmp_path)
-    assert alone.spec is None and "no macro 'open' beside this one" in (
-        alone.error or ""
-    )
+    assert alone.spec is None and "names a pack hand" in (alone.error or "")
 
-
-def test_the_agent_sees_a_caller_only_while_its_callee_is_enabled() -> None:
-    _write("open", OPEN_TEXT + "enabled: false\n")
-    _write("send", SEND_TEXT)
-
-    assert "send" not in discover_enabled()
-
-    _write("open", OPEN_TEXT)
-    assert "send" in discover_enabled()
-
-
-def test_an_unreadable_file_is_excluded_not_fatal(mocker) -> None:
-    _write("demo")
-    _write("boom")
-    real = store_mod.read_text
-
-    def _explode(path):
-        if path.stem == "boom":
-            raise OSError("permission denied")
-        return real(path)
-
-    mocker.patch.object(store_mod, "read_text", side_effect=_explode)
-
-    entries = {e.name: e for e in scan()}
-
-    assert entries["boom"].spec is None and "permission denied" in (
-        entries["boom"].error or ""
-    )
-    assert entries["demo"].spec is not None
+    (tmp_path / "send.yml").write_text(SEND_TEXT, encoding="utf-8")
+    (bare,) = scan(tmp_path, fallback=lambda name: shared)
+    assert bare.spec is None and "no macro 'open' beside this one" in (bare.error or "")

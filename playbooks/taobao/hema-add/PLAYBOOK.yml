@@ -13,7 +13,7 @@ returns:
 
 route:
   - agent: parse
-    prompt: prompts.item-keyword  # the product words, no quantity or unit
+    prompt: taobao.prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
@@ -22,12 +22,12 @@ route:
 
   - do: find                      # type the keyword into the storefront's search, run it
     with: {keyword: "{parse.keyword}"}
-    macro: store-search
+    macro: taobao.macros.store-search
 
   - page: store-results           # the store's sort row (综合排序 / 销量优先)
 
   - agent: pick
-    prompt: prompts.store-pick    # rows to an item, one add, the sheets that follow
+    prompt: taobao.prompts.store-pick  # rows to an item, one add, the sheets that follow
     tools: [tap, scroll]
     give: [landmarks.close, landmarks.pairing-close]   # a promo ✕, the 推荐搭配 sheet's ✕
     never_tap:
@@ -46,6 +46,6 @@ route:
   - page: store-detail            # the item page: 加入购物车 and the 店铺 tab
 
   - do: back-to-store             # the item page's arrow, then the results' — lands on hema-home
-    macro: hema-back
+    macro: taobao.macros.hema-back
 
   - page: hema-home

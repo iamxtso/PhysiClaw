@@ -33,18 +33,18 @@ route:
     message: "收到，正在天猫超市为你挑选：\n{parse.items}"
 
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
-    macro: open-shangou
+    macro: taobao.macros.open-shangou
 
   - page: shangou-home            # 闪购外卖 over 我的闪购
 
   - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "天猫超市"}
-    macro: shangou-search
+    macro: taobao.macros.shangou-search
 
   - page: shangou-results         # the 闪购 search header's slogan
 

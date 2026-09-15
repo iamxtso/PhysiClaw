@@ -36,18 +36,18 @@ route:
     message: "收到，正在淘宝闪购为你点单：{parse.store}\n{parse.dishes}"
 
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
-    macro: open-shangou
+    macro: taobao.macros.open-shangou
 
   - page: shangou-home            # 闪购外卖 over 我的闪购
 
   - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "{parse.store}"}
-    macro: shangou-search
+    macro: taobao.macros.shangou-search
 
   - page: shangou-results         # the 闪购 search header's slogan
 
@@ -72,7 +72,7 @@ route:
 
   - do: settle                    # 去结算 on the store's cart bar, to the order page
     on_fail: stop                 # nothing is paid yet
-    macro: settle
+    macro: taobao.macros.settle
 
   - page: shangou-order           # 外卖到家 over the 立即支付 button
 
@@ -88,7 +88,7 @@ route:
     rounds: 3
     think: off
     on_fail: stop
-    resume: foreground            # the ask left the app — come back where it was
+    resume: taobao.macros.foreground  # the ask left the app — come back where it was
 
   - do: pay
     irreversible: payment

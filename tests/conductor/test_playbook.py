@@ -21,7 +21,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: home
   - agent: choose
@@ -32,7 +32,7 @@ route:
     limit: {calls: 4, scrolls: 2}
   - page: results
   - do: to-cart
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "{choose.pick}"}
   - page: done
   - tell: confirm
@@ -43,14 +43,14 @@ route:
     message: "Total ¥{ask.total}, reply ok to pay, or no to cancel"
     yes: ["ok"]
     no: ["no"]
-    resume: open-app
+    resume: demo.macros.open-app
 """
 
 # A payment move appended as the ask's fall-through — several money
 # tests share it.
 PAY_TAIL = """\
   - do: do-pay
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
   - page: results
@@ -177,7 +177,10 @@ def _mutate(old: str, new: str) -> str:
         # unknown entry kind
         (_mutate("  - tell: confirm\n", "  - shout: confirm\n"), "exactly one of"),
         # unknown macro
-        (_mutate("macro: add-cart", "macro: ghost"), "not found in this pack"),
+        (
+            _mutate("macro: demo.macros.add-cart", "macro: ghost"),
+            "no macro 'ghost' in buy/macros/",
+        ),
         # unknown page
         (_mutate("  - page: results\n", "  - page: mars\n"), "not declared"),
         # foreign app page
@@ -340,7 +343,7 @@ def test_payment_move_must_directly_follow_its_ask() -> None:
     text = (
         VALID
         + """  - do: detour
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "x"}
   - page: results
 """
@@ -398,7 +401,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: home
   - ask: addr
@@ -407,7 +410,7 @@ route:
     yes: ["ok"]
     no: ["no"]
   - do: pay
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "pay"}
     irreversible: payment
   - page: home
@@ -679,8 +682,8 @@ INLINE_OPEN = """\
 
 
 def _inline(text: str = VALID) -> str:
-    assert text.count("    macro: open-app\n") == 1
-    return text.replace("    macro: open-app\n", INLINE_OPEN)
+    assert text.count("    macro: demo.macros.open-app\n") == 1
+    return text.replace("    macro: demo.macros.open-app\n", INLINE_OPEN)
 
 
 def test_do_macro_may_embed_the_body() -> None:
@@ -696,7 +699,9 @@ def test_do_macro_may_embed_the_body() -> None:
 def test_do_names_its_macro() -> None:
     # `do: open-app` alone no longer runs a same-named directory macro: a
     # reader must not need the rule to know where the hand lives.
-    text = _mutate("  - do: open\n    macro: open-app\n", "  - do: open-app\n")
+    text = _mutate(
+        "  - do: open\n    macro: demo.macros.open-app\n", "  - do: open-app\n"
+    )
 
     with pytest.raises(PlaybookError, match="names its `macro:`"):
         pb.parse_playbook(text, "buy", _pack())
@@ -727,7 +732,7 @@ def test_inline_body_errors_are_framed_with_the_move() -> None:
 
 
 def test_do_macro_rejects_a_non_string_non_mapping() -> None:
-    text = VALID.replace("macro: open-app", "macro: 3")
+    text = VALID.replace("macro: demo.macros.open-app", "macro: 3")
 
     with pytest.raises(PlaybookError, match="macro name or an inline mapping"):
         pb.parse_playbook(text, "buy", _pack())
@@ -771,7 +776,7 @@ def test_pack_doc_rejects_yaml_aliases() -> None:
 
 def test_ask_resume_may_embed_the_body() -> None:
     text = _mutate(
-        "    resume: open-app\n",
+        "    resume: demo.macros.open-app\n",
         "    resume:\n      steps:\n        - home_screen\n",
     )
     pack = _pack()
@@ -792,7 +797,7 @@ def test_inline_role_body_with_required_input_rejected() -> None:
     # only abort at run time (right after a confirmed ask), so the lint
     # runs on the RESOLVED macro.
     text = _mutate(
-        "    resume: open-app\n",
+        "    resume: demo.macros.open-app\n",
         "    resume:\n"
         "      inputs:\n"
         "        x: {description: d}\n"
@@ -850,7 +855,7 @@ def test_disabled_recover_macro_is_reported_not_run() -> None:
     pack = pb.load_pack("demo")
     text = _mutate(
         "route:\n  - page: home\n",
-        "route:\n  - page: home\n    recover: {macro: go-home}\n",
+        "route:\n  - page: home\n    recover: {macro: demo.macros.go-home}\n",
     )
 
     spec = pb.parse_playbook(text, "buy", pack)
@@ -868,7 +873,7 @@ route:
   - page: thread
     recover:
       locked: unlock_phone
-      elsewhere: {macro: open}
+      elsewhere: {macro: wechat.macros.open}
     tries: 4
   - select: parse
 """
@@ -921,7 +926,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         (
             lambda t: t.replace(
                 "  - select: parse\n",
-                "  - do: nudge\n    macro: open\n  - page: other\n"
+                "  - do: nudge\n    macro: wechat.macros.open\n  - page: other\n"
                 '    anchors: ["Somewhere else"]\n'
                 "  - select: parse\n",
             ),
@@ -929,7 +934,9 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         ),
         # activate ends the boot
         (
-            lambda t: t + "  - do: after\n    macro: open\n  - page: thread\n",
+            lambda t: (
+                t + "  - do: after\n    macro: wechat.macros.open\n  - page: thread\n"
+            ),
             "must end with a `select`",
         ),
         # …and only one does
@@ -944,7 +951,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
         (
             lambda t: t.replace(
                 "  - select: parse\n",
-                "  - do: nudge\n    macro: open\n  - page: thread\n",
+                "  - do: nudge\n    macro: wechat.macros.open\n  - page: thread\n",
             ),
             "must end with a `select`",
         ),
@@ -1249,9 +1256,9 @@ def test_a_granted_macro_with_a_templated_box_is_refused_under_never_tap() -> No
 
     with pytest.raises(PlaybookError, match="placeholder"):
         pb.parse_playbook(
-            spec('    never_tap: ["Pay"]\n    give: [macros.tmpl]\n'), "buy", pack
+            spec('    never_tap: ["Pay"]\n    give: [demo.macros.tmpl]\n'), "buy", pack
         )
-    pb.parse_playbook(spec("    give: [macros.tmpl]\n"), "buy", pack)
+    pb.parse_playbook(spec("    give: [demo.macros.tmpl]\n"), "buy", pack)
 
 
 def test_the_same_grant_twice_is_named_without_its_body() -> None:
@@ -1260,7 +1267,7 @@ def test_the_same_grant_twice_is_named_without_its_body() -> None:
         pb.parse_playbook(
             _mutate(
                 "    tools: [tap, scroll]\n",
-                "    tools: [tap, scroll]\n    give: [macros.add-cart, macros.add-cart]\n",
+                "    tools: [tap, scroll]\n    give: [demo.macros.add-cart, demo.macros.add-cart]\n",
             ),
             "buy",
             pack,
@@ -1341,7 +1348,7 @@ def test_never_tap_is_allowed_on_an_episode_that_only_runs_a_macro() -> None:
         _mutate(
             "    tools: [tap, scroll]\n",
             "    tools: [scroll]\n"
-            "    give: [macros.add-cart]\n"
+            "    give: [demo.macros.add-cart]\n"
             '    never_tap: ["Pay Now"]\n',
         ),
         "buy",
@@ -1373,6 +1380,10 @@ def test_a_grant_that_walks_around_never_tap_is_refused_at_parse() -> None:
         pb.parse_playbook(spec(guarded + "    give: [landmarks.pay]\n"), "buy", pack)
     # The shared fixture macro taps "t" too.
     with pytest.raises(PlaybookError, match="presses"):
-        pb.parse_playbook(spec(guarded + "    give: [macros.add-cart]\n"), "buy", pack)
+        pb.parse_playbook(
+            spec(guarded + "    give: [demo.macros.add-cart]\n"), "buy", pack
+        )
     # The same grants, with nothing declared, stay legal.
-    pb.parse_playbook(spec("    give: [landmarks.pay, macros.add-cart]\n"), "buy", pack)
+    pb.parse_playbook(
+        spec("    give: [landmarks.pay, demo.macros.add-cart]\n"), "buy", pack
+    )

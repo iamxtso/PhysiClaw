@@ -12,7 +12,7 @@ inputs:
 
 route:
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
@@ -27,7 +27,7 @@ route:
   - page: cart                    # the 购物车 title over the 全选 footer
 
   - do: nudge                     # a short stroke up: the first line's checkbox sits
-    macro: nudge                  # under this phone's floating button
+    macro: taobao.macros.nudge    # under this phone's floating button
 
   - page: cart
 
@@ -37,7 +37,7 @@ route:
   - agent: tick
     prompt: prompts.tick          # the list, the checkbox geometry, 合计 as the check
     tools: [tap, scroll]
-    give: [landmarks.select-all, landmarks.close, macros.nudge]   # 全选, a promo ✕, the stroke
+    give: [landmarks.select-all, landmarks.close, taobao.macros.nudge]   # 全选, a promo ✕, the stroke
     never_tap:
       - {label: ["结算", "删除"], within: bottom}
       - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}
@@ -72,7 +72,7 @@ route:
     rounds: 3
     think: off
     on_fail: stop
-    resume: foreground            # the ask left the app — come back where it was
+    resume: taobao.macros.foreground  # the ask left the app — come back where it was
 
   - do: pay
     irreversible: payment
@@ -82,6 +82,6 @@ route:
         - tap: ["免密支付", "提交订单", "立即支付"]   # one button, three spellings — recorded
           at: [0.300, 0.918, 0.720, 0.960]     # 免密支付￥… read at [0.333,0.927,0.682,0.950]
         - wait: 4
-        - run: cashier                            # 立即支付 / 确认支付, only while one shows
+        - run: taobao.macros.cashier  # 立即支付 / 确认支付, only while one shows
 
   - page: paid

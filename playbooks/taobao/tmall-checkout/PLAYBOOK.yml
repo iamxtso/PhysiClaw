@@ -23,14 +23,14 @@ route:
   - page: tmall-cart              # the sheet's 全选 row under the store header
 
   - do: nudge                     # a short stroke up while the 全选 row sits under
-    macro: store-nudge            # this phone's floating button
+    macro: taobao.macros.store-nudge  # this phone's floating button
 
   - page: tmall-cart
 
   - agent: tick
-    prompt: prompts.store-tick    # the list, the checkbox geometry, the footer total
+    prompt: taobao.prompts.store-tick  # the list, the checkbox geometry, the footer total
     tools: [tap, scroll]
-    give: [landmarks.close, macros.store-nudge]   # a promo ✕, the stroke
+    give: [landmarks.close, taobao.macros.store-nudge]   # a promo ✕, the stroke
     never_tap:
       - ["去结算", "领券结算"]
       - "清空"
@@ -45,7 +45,7 @@ route:
 
   - do: settle                    # 去结算 / 领券结算 in the sheet's footer, to the order page
     on_fail: stop                 # nothing is paid yet
-    macro: settle
+    macro: taobao.macros.settle
 
   - page: store-order             # 闪购天猫超市闪购 over 提交订单
 
@@ -60,11 +60,11 @@ route:
     rounds: 3
     think: off
     on_fail: stop
-    resume: foreground            # the ask left the app — come back where it was
+    resume: taobao.macros.foreground  # the ask left the app — come back where it was
 
   - do: pay                       # 提交订单, then the cashier's button when one shows
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
-    macro: submit-order
+    macro: taobao.macros.submit-order
 
   - page: paid

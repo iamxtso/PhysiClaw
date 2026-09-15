@@ -562,6 +562,46 @@ class Macro:
         return self.live_gap is None
 
 
+# A reference inside a pack, `[<pack>.]<kind>.<name>`: `macros.<n>`,
+# `prompts.<n>` or `landmarks.<n>` beside the referring file, or the
+# pack's shared file with the pack's folder name in front
+# (`taobao.macros.launch`). A bare name (one part) is a sibling by name.
+# The one parse every reader shares — the route compiler, the pack
+# loader, a macro file's `run:` — so the shape has one spelling.
+MACROS_KIND = "macros"
+PROMPTS_KIND = "prompts"
+LANDMARKS_KIND = "landmarks"
+REF_KINDS = frozenset({MACROS_KIND, PROMPTS_KIND, LANDMARKS_KIND})
+
+
+@dataclass(frozen=True)
+class Ref:
+    pack: str | None  # `<pack>.` — the pack's shared file
+    kind: str | None  # a REF_KINDS word; None for a bare name
+    name: str
+
+
+def parse_ref(value: str) -> "Ref | None":
+    """`value` as a reference, or None when it is not that shape (a
+    prompt may be prose; a dotted name with a kind nobody declares is
+    no reference either)."""
+    parts = value.split(".")
+    if not all(parts):
+        return None
+    if len(parts) == 1:
+        return Ref(None, None, parts[0])
+    if len(parts) == 2 and parts[0] in REF_KINDS:
+        return Ref(None, parts[0], parts[1])
+    if len(parts) == 3 and parts[1] in REF_KINDS:
+        return Ref(parts[0], parts[1], parts[2])
+    return None
+
+
+def pack_macro_ref(pack: str, name: str) -> str:
+    """The pack's own spelling of one of its hands: `<pack>.macros.<name>`."""
+    return f"{pack}.{MACROS_KIND}.{name}"
+
+
 def check_name(name: str, where: str = "name", extra: str = "") -> None:
     """Enforce the identifier rule (the skill-folder convention). Shared by
     `parse.parse_macro` and `macros init`, so a name that scaffolds also

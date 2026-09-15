@@ -83,7 +83,7 @@ route:
   - page: home
     recover: force_quit
   - do: search
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{parse.keyword}"}
   - page: results
     recover: {tap: landmarks.back}
@@ -182,7 +182,7 @@ def test_route_shape_lints(mutate, fragment) -> None:
 def test_give_may_grant_a_pack_macro() -> None:
     spec = _parse(
         AGENTED.replace(
-            "give: [landmarks.back]", "give: [landmarks.back, macros.add-cart]"
+            "give: [landmarks.back]", "give: [landmarks.back, demo.macros.add-cart]"
         )
     )
     pick = spec.nodes[3]
@@ -194,7 +194,8 @@ def test_give_may_grant_a_pack_macro() -> None:
 @pytest.mark.parametrize(
     "grant, fragment",
     [
-        ("macros.nope", "not found in this pack"),
+        ("demo.macros.nope", "not found in this pack"),
+        ("macros.nope", "no macro 'nope' in walk/macros/"),
         ("macros.done", "fixed episode answer"),
         ("gestures.back", "must look like"),
     ],
@@ -522,7 +523,7 @@ def test_episode_taps_an_icon_by_its_listed_box() -> None:
 def test_episode_runs_a_granted_macro_by_name() -> None:
     from physiclaw.conductor.walk.step_agent import KIND_MACRO
 
-    _write(AGENTED.replace("give: [landmarks.back]", "give: [macros.add-cart]"))
+    _write(AGENTED.replace("give: [landmarks.back]", "give: [demo.macros.add-cart]"))
     p = _program(name="walk", user_said="买牛奶")
     h = _history()
     _feed(h, p.advance(h), ELSEWHERE)
@@ -720,7 +721,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
   - ask: gate
@@ -730,7 +731,7 @@ route:
     yes: ["好的"]
     no: ["不用"]
     resume:
-      macro: open-app
+      macro: demo.macros.open-app
   - agent: pay
     irreversible: payment
     prompt: |
@@ -831,7 +832,7 @@ def test_give_refuses_one_name_as_both_landmark_and_macro() -> None:
     write_pack(
         playbooks={
             "walk": AGENTED.replace(
-                "give: [landmarks.back]", "give: [landmarks.back, macros.back]"
+                "give: [landmarks.back]", "give: [landmarks.back, demo.macros.back]"
             )
         },
         landmarks=BACK_LANDMARK,
@@ -842,7 +843,7 @@ def test_give_refuses_one_name_as_both_landmark_and_macro() -> None:
 
 
 def test_payment_ask_before_a_screen_move_needs_resume() -> None:
-    text = AGENT_PAY.replace("    resume:\n      macro: open-app\n", "")
+    text = AGENT_PAY.replace("    resume:\n      macro: demo.macros.open-app\n", "")
     write_channel()
     write_pack(playbooks={"pay": text})
     with pytest.raises(PlaybookError, match="declare `resume:`"):
@@ -928,13 +929,13 @@ def test_a_prompt_file_is_the_step_prompt_verbatim_with_refs_filled_later() -> N
     assert isinstance(parse, AgentNode)
     # Body only, trailing whitespace trimmed, headings are the author's prose.
     assert parse.prompt == '# Keyword\n\nDerive it.\nSaid: "{inputs.user_said}"'
-    assert spec.prompts_used == frozenset({"parse"})
+    assert spec.prompts_used == frozenset({"walk/prompts/parse.md"})
 
 
 def test_a_pack_level_prompt_is_shared_by_every_route() -> None:
     from physiclaw.common import paths
 
-    _write(FILE_PROMPT)
+    _write(FILE_PROMPT.replace("prompts.parse", "demo.prompts.parse"))
     root = paths.playbooks_dir() / "demo"
     write_prompt(root, None, "parse", "Shared brief.")
 
@@ -960,7 +961,7 @@ def test_a_missing_prompt_file_names_what_exists() -> None:
     write_prompt(paths.playbooks_dir() / "demo", "walk", "other", "x")
 
     with pytest.raises(
-        PlaybookError, match="no parse.md sits in.*Available: prompts.other"
+        PlaybookError, match=r"no file 'parse.md' in walk/prompts/ \(other\)"
     ):
         build.load_spec("demo", "walk", require_live=False)
 
@@ -980,7 +981,9 @@ def test_an_empty_prompt_file_fails_the_step_with_the_cause() -> None:
         build.load_spec("demo", "walk", require_live=False)
 
 
-def test_a_prompt_name_in_both_the_pack_and_the_route_is_refused() -> None:
+def test_a_prompt_name_in_both_the_pack_and_the_route_is_no_clash() -> None:
+    # `prompts.parse` is the route's own file, `demo.prompts.parse` the
+    # pack's: two spellings, so the same name may live in both.
     from physiclaw.common import paths
 
     _write(FILE_PROMPT)
@@ -988,10 +991,12 @@ def test_a_prompt_name_in_both_the_pack_and_the_route_is_refused() -> None:
     write_prompt(root, "walk", "parse", "mine")
     write_prompt(root, None, "parse", "ours")
 
-    with pytest.raises(
-        PlaybookError, match="declared both in walk/prompts/ and the pack's"
-    ):
-        build.load_spec("demo", "walk", require_live=False)
+    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    assert spec.nodes[0].prompt == "mine"
+
+    _write(FILE_PROMPT.replace("prompts.parse", "demo.prompts.parse"))
+    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    assert spec.nodes[0].prompt == "ours"
 
 
 def test_placeholders_fill_in_a_prompt_file_too() -> None:
@@ -1323,7 +1328,7 @@ def test_a_granted_macro_tapping_a_target_is_refused_at_run_time() -> None:
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
-        GUARDED.replace("give: [landmarks.back]", "give: [macros.pay-bar]"),
+        GUARDED.replace("give: [landmarks.back]", "give: [demo.macros.pay-bar]"),
         RESULTS_WITH_PAY,
     )
     assert req.macros == ("pay-bar",)

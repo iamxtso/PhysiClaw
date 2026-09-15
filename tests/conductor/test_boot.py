@@ -287,7 +287,7 @@ def test_the_boot_route_is_authorable() -> None:
         "description: mine\n"
         "route:\n"
         "  - page: thread\n"
-        "    recover: {elsewhere: {macro: open}}\n    tries: 1\n"
+        "    recover: {elsewhere: {macro: wechat.macros.open}}\n    tries: 1\n"
         "  - select: read\n"
         "    limit: {scrolls: 0}\n"
     )

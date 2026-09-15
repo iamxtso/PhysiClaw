@@ -16,17 +16,16 @@ per journey:
     <app>/
     ├── APP.yml              # the MANIFEST: meta + placeholders + landmarks + shared pages
     ├── README.md            # for people: what the pack does, the device, the traps (never loaded)
-    ├── macros/<n>.yml       # the pack's hands (recorded gestures) every route shares
+    ├── macros/<n>.yml       # the pack's hands every route shares (`macro: <app>.macros.<n>`)
     └── <name>/              # one playbook per folder; the folder is the name
         ├── PLAYBOOK.yml     # the route: name (= the folder), description, enabled, inputs, route
-        ├── macros/<n>.yml   # this route's own recorded hands (dispatch <app>/<name>.<n>)
+        ├── macros/<n>.yml   # this route's own recorded hands (`macro: <n>`; dispatch <app>/<name>.<n>)
         ├── prompts/<n>.md   # this route's prose for the model (`prompt: prompts.<n>`)
         └── README.md        # the route's notes for people (never loaded)
 
 A folder with `APP.yml` is a pack; a folder inside it with `PLAYBOOK.yml`
 is a playbook; `macros/` and `prompts/` hold leaf files and are never
-mistaken for one. A name resolves against the pack's `macros/` plus the
-route's own, and may not appear in both, so there is no lookup order.
+mistaken for one (a reference says which folder: see References below).
 `APP.yml` never carries a route. Every section is optional, so an
 empty file is a valid pack (the file is the pack marker):
 
@@ -62,7 +61,7 @@ playbook of another pack; `playbooks run` still rehearses it), `inputs` (a
 `default:` makes one optional; the boot's menu says so), and
 `route` — a ROUTE of `page:` waypoints (checked every time, each
 optionally declaring its own `recover:` — one hand (`go_back`,
-`{tap: landmarks.<name>}`, `{macro: <name>}`), or
+`{tap: landmarks.<name>}`, `{macro: <app>.macros.<name>}`), or
 `covered:`/`elsewhere:`/`locked:` hands per reading, with `tries:`
 beside it)
 alternating with moves — `start` (the cold launch, usually a pack
@@ -103,6 +102,19 @@ declares is what runs: a page without `recover:` hands over, a hand
 runs and the page is read again, at most `tries:` times, then `on_fail`
 decides — nothing before the page runs again, so a hand must land on
 its own page — and nothing retries or unlocks in the background.
+
+## References: beside this file, or the pack's
+
+A bare name is the file beside the one naming it: `macro: open-tmall`
+is this route's `macros/open-tmall.yml`, `prompt: prompts.pick` its
+`prompts/pick.md`, `give: [macros.nudge]` its hand. The pack's shared
+files carry the pack's name: `macro: taobao.macros.launch`, `prompt:
+taobao.prompts.item-keyword`, `give: [taobao.macros.nudge]`, `resume:
+taobao.macros.foreground`, and inside a macro `run: taobao.macros.cashier`.
+The manifest is the pack's own file, so its hands stay bare (`recover:
+{macro: launch}`), as does a macro file's `run:` of a sibling. Landmarks
+and pages are manifest entries, never files: `landmarks.<n>`, `page: <n>`.
+The same name may live in both places; the spelling says which.
 
 ## Values, and the one check shape
 

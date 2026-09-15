@@ -33,13 +33,13 @@ route:
     message: "收到，正在盒马为你挑选：\n{parse.items}"
 
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: enter                     # the feed's main search for 盒马 opens its storefront
     with: {keyword: "盒马"}
-    macro: search
+    macro: taobao.macros.search
 
   - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
 

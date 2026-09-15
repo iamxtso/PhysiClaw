@@ -13,19 +13,19 @@ returns:
 
 route:
   - agent: parse
-    prompt: prompts.item-keyword  # the product words, no quantity or unit
+    prompt: taobao.prompts.item-keyword  # the product words, no quantity or unit
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}
-    macro: search
+    macro: taobao.macros.search
 
   - page: results                 # the filter row (综合 / 销量)
 

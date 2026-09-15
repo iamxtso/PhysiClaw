@@ -32,7 +32,7 @@ route:
       term: the search term
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{parse.term}"}
   - page: results
 """
@@ -65,7 +65,7 @@ route:
     message: "starting {inputs.keyword}"
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
 """

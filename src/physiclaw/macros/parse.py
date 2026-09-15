@@ -120,6 +120,7 @@ from physiclaw.macros.model import (
     check_name,
     checked_readings,
     handle,
+    parse_ref,
     step_handle,
 )
 from physiclaw.macros.steps import (
@@ -669,7 +670,8 @@ def _parse_run(
     macros: MacroResolver | None,
 ) -> Step:
     """`- run: <name>` with `with: {input: text}`: a macro of the same
-    folder as one step. The callee is resolved and bound NOW, so a
+    folder — or `<pack>.macros.<name>`, one of the pack's — as one
+    step. The callee is resolved and bound NOW, so a
     missing or broken callee (a cycle included — the resolver's to
     refuse) is this file's load error, never a run-time surprise;
     `with` is judged against the callee's declared inputs the way a
@@ -685,7 +687,9 @@ def _parse_run(
             "`run: <name>` with `with: {input: text}` and `when` / `skip_when`"
         )
     name = _require_str(step[RUN], f"{where}: `run`")
-    check_name(name, f"{where}: `run`")
+    ref = parse_ref(name)
+    if ref is None or ref.pack is None:  # the pack's form is the resolver's to judge
+        check_name(name, f"{where}: `run`")
     if macros is None:
         raise MacroError(
             f"{where}: `run` names a macro of the same folder, and this macro "

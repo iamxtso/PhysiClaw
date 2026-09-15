@@ -17,13 +17,17 @@ never collides. Under an inline `macro:` the macro grammar applies
 (single-name `{x}` templates); outside it, refs stay dotted.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any, TypeVar
 
 from physiclaw.common import gesture_vocab
 from physiclaw.common.bbox import parse_within
-from physiclaw.common.paths import PACK_MACROS_DIRNAME, PACK_PROMPTS_DIRNAME
+from physiclaw.common.paths import (
+    PACK_MACROS_DIRNAME,
+    PACK_PROMPTS_DIRNAME,
+    PROMPT_SUFFIX,
+)
 from physiclaw.conductor.spec import context, lints, match, reply
 from physiclaw.conductor.spec.calls import AGENT_TOOLS, CONTRACT_FIELDS, RESERVED_KEYS
 from physiclaw.conductor.spec.conventions import (
@@ -99,10 +103,14 @@ from physiclaw.conductor.spec.refs import (
 )
 from physiclaw.contract.dto import THINKING_LEVELS, Thinking
 from physiclaw.macros.model import (
+    LANDMARKS_KIND,
+    MACROS_KIND,
+    PROMPTS_KIND,
     Macro,
     MacroError,
     MacroInput,
     checked_readings,
+    parse_ref,
 )
 from physiclaw.macros.parse import parse_inline_macro
 
@@ -123,10 +131,9 @@ _HAND_KEYS = {"tap", "macro"}
 _RECOVER_KEYS = _HAND_KEYS | set(RECOVER_READINGS)
 
 # What an agent may be granted by name (`give:`): a landmark it may tap
-# blind, or a pack macro it may run.
-GRANT_LANDMARKS = "landmarks"
-GRANT_MACROS = "macros"
-_GRANT_ROOTS = (GRANT_LANDMARKS, GRANT_MACROS)
+# blind, or a macro it may run — the reference kinds of `parse_ref`.
+GRANT_LANDMARKS = LANDMARKS_KIND
+GRANT_MACROS = MACROS_KIND
 
 # Route entry vocabularies. An entry's KIND is its leading key and the
 # value is the entry's name — the map-key-is-the-name doctrine, applied
@@ -194,10 +201,11 @@ class _Ctx:
     payloads: dict[str, tuple[str, ...]] = field(
         default_factory=lambda: {"ask": ("replies",)}
     )
-    # The prompt files an agent step may name — the pack's and this
-    # route's own, one namespace (no overlap, checked at compile start)
-    # — and the ones it did name.
-    prompts: Scanned[str] = field(default_factory=Scanned)
+    # The prompt files an agent step may name — this route's own
+    # (`prompts.<name>`) and the pack's (`<pack>.prompts.<name>`) — and
+    # the files it did read, pack-relative (`buy/prompts/pick.md`).
+    prompts_local: Scanned[str] = field(default_factory=Scanned)
+    prompts_pack: Scanned[str] = field(default_factory=Scanned)
     prompts_used: set[str] = field(default_factory=set)
     # The pack's other playbooks, parsed on demand for a `run` entry —
     # None where the caller has no pack of playbooks to offer (a
@@ -252,7 +260,8 @@ def compile_route(
         pack,
         input_names,
         _macro_resolver(playbook, pack, inline, local.macros),
-        prompts=_prompt_namespace(playbook, pack, local.prompts),
+        prompts_local=local.prompts,
+        prompts_pack=pack.prompts,
         resolve_playbook=resolve_playbook,
     )
     # A run's returns are known before the route is walked, so a text
@@ -919,9 +928,10 @@ def _landmark_name(ctx: _Ctx, value: Any, where: str) -> str:
     spelling for `give:` entries and a recover hand's `tap:`. The name
     half rides the shared name grammar (`check_name`), so a landmark
     reference can never drift from the section's own naming rule."""
-    prefix, _, name = value.partition(".") if isinstance(value, str) else ("", "", "")
-    if prefix != GRANT_LANDMARKS or not name:
+    r = parse_ref(value) if isinstance(value, str) else None
+    if r is None or r.pack is not None or r.kind != GRANT_LANDMARKS:
         raise PlaybookError(f"{where}: {value!r} must look like `landmarks.<name>`")
+    name = r.name
     check_name(name, where)
     if name not in ctx.pack.landmarks:
         known = ", ".join(sorted(ctx.pack.landmarks)) or "(none)"
@@ -945,39 +955,32 @@ class _Grant:
 
 def _grant(ctx: _Ctx, value: Any, where: str, nid: str) -> _Grant:
     """One `give:` entry: a `landmarks.<name>` the episode may tap blind,
-    or a `macros.<name>` pack macro it may run — argument-less, like
-    every helper hand, and never spelled like a fixed answer (`done`,
+    or a macro it may run — `macros.<name>` for this route's own hand,
+    `<pack>.macros.<name>` for the pack's — argument-less, like every
+    helper hand, and never spelled like a fixed answer (`done`,
     `escalate`, a verb) that the episode legend already owns. A macro's
     name is its dispatch name (`_argless_macro`)."""
-    prefix, _, name = value.partition(".") if isinstance(value, str) else ("", "", "")
-    if prefix not in _GRANT_ROOTS or not name:
-        roots = " or ".join(f"`{r}.<name>`" for r in _GRANT_ROOTS)
-        raise PlaybookError(f"{where}: {value!r} must look like {roots}")
-    if name in RESERVED_KEYS:
+    r = parse_ref(value) if isinstance(value, str) else None
+    root = ctx.pack.folder
+    own = r is not None and r.pack is None and r.kind in (GRANT_LANDMARKS, GRANT_MACROS)
+    shared = r is not None and r.pack == root and r.kind == GRANT_MACROS
+    if r is None or not (own or shared):
         raise PlaybookError(
-            f"{where}: {name!r} is a fixed episode answer — a granted "
+            f"{where}: {value!r} must look like `landmarks.<name>`, "
+            f"`macros.<name>` (this route's own) or `{root}.macros.<name>` (the pack's)"
+        )
+    if r.name in RESERVED_KEYS:
+        raise PlaybookError(
+            f"{where}: {r.name!r} is a fixed episode answer — a granted "
             "landmark or macro cannot be spelled like one"
         )
-    if prefix == GRANT_LANDMARKS:
-        return _Grant(prefix, _landmark_name(ctx, value, where))
-    macro = _argless_macro(name, "give", where, nid, ctx.resolve)
-    return _Grant(prefix, macro.name, macro)
+    if r.kind == GRANT_LANDMARKS:
+        return _Grant(GRANT_LANDMARKS, _landmark_name(ctx, value, where))
+    macro = _argless_macro(value if shared else r.name, "give", where, nid, ctx.resolve)
+    return _Grant(GRANT_MACROS, macro.name, macro)
 
 
 # ---------- macros ----------
-
-
-def _refuse_shadow(
-    playbook: str, local: set[str], shared: set[str], kind: str, dirname: str
-) -> None:
-    """A name declared both in the playbook's own folder and the pack's
-    is refused, so a bare reference never needs a lookup order."""
-    both = sorted(local & shared)
-    if both:
-        raise PlaybookError(
-            f"{playbook}: {kind}(s) {', '.join(both)} declared both in "
-            f"{playbook}/{dirname}/ and the pack's {dirname}/ — keep one"
-        )
 
 
 def _local_registry(
@@ -986,11 +989,9 @@ def _local_registry(
     """The route's inline registry, opened with its recorded hands: each
     `<playbook>/macros/<name>.yml` dispatches as `<playbook>.<name>` —
     an inline body written down — referenced or not (a stepping tool,
-    an agent's `give:` may name it). A name the pack's `macros/` also
-    holds is refused."""
-    _refuse_shadow(
-        playbook, set(local.ok), set(pack.macros), "macro", PACK_MACROS_DIRNAME
-    )
+    an agent's `give:` may name it). A pack hand of the same name is no
+    clash: a bare reference is always the route's own, the pack's is
+    `<pack>.macros.<name>`."""
     return {
         f"{playbook}.{name}": replace(spec, name=f"{playbook}.{name}")
         for name, spec in local.ok.items()
@@ -1008,26 +1009,32 @@ def _macro_resolver(
     framing, the inline registry, and the file validation (a broken
     macro reports its cause, an unknown one lists what exists) — so
     the slots can never drift. Returns the resolved Macro; its `.name`
-    is the dispatch name either way. A bare name resolves against the
-    pack's `macros/` (dispatch `app/<name>`) or this playbook's own
-    (already in `inline`, dispatch `app/<playbook>.<name>`)."""
+    is the dispatch name either way. A bare name is this playbook's
+    own file (already in `inline`, dispatch `app/<playbook>.<name>`),
+    `<pack>.macros.<name>` one of the pack's (dispatch `app/<name>`)."""
 
     page_of = page_resolver(pack.app, pack.pages, pack.prints)
+    pack_macro = macro_resolver(pack.macros, pack.macro_errors, pack.folder)
 
-    pack_macro = macro_resolver(pack.macros, pack.macro_errors)
-
-    def macro_of(name: str) -> Macro:
-        """A bare name → this playbook's own file, else one of the
-        pack's shared hands — the one lookup a `do:` and an inline
-        body's `run:` share."""
-        if name in local.errors:
+    def macro_of(ref: str) -> Macro:
+        """The one lookup a `do:`, a hand, a grant and an inline body's
+        `run:` share."""
+        r = parse_ref(ref)
+        if r is not None and r.pack is not None:
+            return pack_macro(ref)
+        if ref in local.errors:
             raise MacroError(
-                f"macro {name!r} ({playbook}/{PACK_MACROS_DIRNAME}/{name}.yml) "
-                f"is invalid: {local.errors[name]}"
+                f"macro {ref!r} ({playbook}/{PACK_MACROS_DIRNAME}/{ref}.yml) "
+                f"is invalid: {local.errors[ref]}"
             )
-        if name in local.ok:
-            return inline[f"{playbook}.{name}"]
-        return pack_macro(name)
+        if ref in local.ok:
+            return inline[f"{playbook}.{ref}"]
+        raise MacroError(
+            _not_here("macro", ref, f"{playbook}/{PACK_MACROS_DIRNAME}/", local.ok)
+            + _pack_hint(
+                pack, GRANT_MACROS, ref, ref in pack.macros or ref in pack.macro_errors
+            )
+        )
 
     def resolve(raw: Any, where: str, nid: str, role: str | None = None) -> Macro:
         slot = role or "macro"
@@ -1059,50 +1066,56 @@ def _macro_resolver(
     return resolve
 
 
-# `prompt: prompts.<name>` — the reference form, the one string an agent
-# step's `prompt:` may carry that is not the prompt itself; the namespace
-# root is what tells them apart (the `landmarks.` / `macros.` idiom).
-PROMPT_ROOT = "prompts"
+def _not_here(kind: str, name: str, folder: str, have: "Mapping[str, Any]") -> str:
+    """The one wording of "no such file beside this one", listing what is."""
+    listed = ", ".join(sorted(have)) or "(none)"
+    return f"no {kind} {name!r} in {folder} ({listed})"
 
 
-def _prompt_namespace(playbook: str, pack: Pack, local: Scanned[str]) -> Scanned[str]:
-    """The prompt files this route may name: the pack's `prompts/` and
-    its own `<playbook>/prompts/`, one namespace — a name in both is
-    refused up front (the macro rule)."""
-    _refuse_shadow(
-        playbook, set(local.ok), set(pack.prompts.ok), "prompt", PACK_PROMPTS_DIRNAME
-    )
-    return Scanned(
-        ok={**pack.prompts.ok, **local.ok},
-        errors={**pack.prompts.errors, **local.errors},
-    )
+def _pack_hint(pack: Pack, kind: str, name: str, exists: bool) -> str:
+    """The clause that names the pack's spelling when a bare name only
+    the pack holds was written — "" otherwise."""
+    return f" — the pack's is `{pack.folder}.{kind}.{name}`" if exists else ""
 
 
 def _prompt_text(ctx: _Ctx, raw: str, where: str) -> str:
-    """An agent's `prompt:` — the prose itself, or `prompts.<name>` for
-    the file `prompts/<name>.md` (the pack's or this route's). Resolved
-    here, at parse, so the node carries text either way and nothing
-    downstream knows which form the author chose."""
-    root, sep, name = raw.strip().partition(".")
-    if not sep or root != PROMPT_ROOT or any(c.isspace() for c in name):
+    """An agent's `prompt:` — the prose itself, `prompts.<name>` for this
+    route's `prompts/<name>.md`, or `<pack>.prompts.<name>` for the
+    pack's. Resolved here, at parse, so the node carries text either
+    way and nothing downstream knows which form the author chose."""
+    ref = raw.strip()
+    r = parse_ref(ref) if not any(c.isspace() for c in ref) else None
+    if r is None or r.kind != PROMPTS_KIND:
         return raw
-    check_name(name, f"{where}: `prompt` ({PROMPT_ROOT}.<name>)")
-    if name in ctx.prompts.errors:
+    if r.pack is not None and r.pack != ctx.pack.folder:
         raise PlaybookError(
-            f"{where}: `prompt` names {PROMPT_ROOT}.{name}, and {PACK_PROMPTS_DIRNAME}/"
-            f"{name}.md is invalid: {ctx.prompts.errors[name]}"
+            f"{where}: `prompt` names {ref}, but this pack's prompts are "
+            f"`{ctx.pack.folder}.{PROMPTS_KIND}.<name>`"
         )
-    if name not in ctx.prompts.ok:
-        available = (
-            ", ".join(f"{PROMPT_ROOT}.{n}" for n in sorted(ctx.prompts.ok)) or "(none)"
-        )
+    local = r.pack is None
+    files = ctx.prompts_local if local else ctx.prompts_pack
+    folder = (
+        f"{ctx.playbook}/{PACK_PROMPTS_DIRNAME}/"
+        if local
+        else f"{PACK_PROMPTS_DIRNAME}/"
+    )
+    name = r.name
+    check_name(name, f"{where}: `prompt` ({ref})")
+    if name in files.errors:
         raise PlaybookError(
-            f"{where}: `prompt` names {PROMPT_ROOT}.{name}, but no {name}.md sits in "
-            f"this pack's {PACK_PROMPTS_DIRNAME}/ or {ctx.playbook}/"
-            f"{PACK_PROMPTS_DIRNAME}/. Available: {available}"
+            f"{where}: `prompt` names {ref}, and {folder}{name}{PROMPT_SUFFIX} is "
+            f"invalid: {files.errors[name]}"
         )
-    ctx.prompts_used.add(name)
-    return ctx.prompts.ok[name]
+    if name not in files.ok:
+        raise PlaybookError(
+            f"{where}: `prompt` names {ref}, but "
+            + _not_here("file", f"{name}{PROMPT_SUFFIX}", folder, files.ok)
+            + _pack_hint(
+                ctx.pack, PROMPTS_KIND, name, local and name in ctx.prompts_pack.ok
+            )
+        )
+    ctx.prompts_used.add(f"{folder}{name}{PROMPT_SUFFIX}")
+    return files.ok[name]
 
 
 def _argless_macro(
@@ -1501,13 +1514,29 @@ def _ask_wait(entry: dict, where: str) -> tuple[int, int]:
 
 
 def _inherited_hands(ctx: _Ctx) -> dict[str, Recovery]:
-    """The manifest's `pages: <name>: recover:` hands, resolved here with
-    the route's own context — the one hand grammar, the one resolver.
-    A manifest carries settings, never bodies: an inline `macro:
-    {steps: ...}` is refused, so the hand every route shares is a
-    recorded pack macro by name. Raises PlaybookError naming the page."""
+    """The manifest's hands every route inherits — resolved once, at
+    pack load (`manifest_recovers`)."""
+    return dict(ctx.pack.recovers)
+
+
+def manifest_recovers(pack: Pack, raw: dict[str, dict]) -> dict[str, Recovery]:
+    """The manifest's `pages: <name>: recover:` hands, resolved with the
+    pack's own resolver — a bare name is the pack's macro, since
+    nothing sits beside a manifest but its `macros/`. The one hand
+    grammar (`_parse_recover`), the pack's one resolver. A manifest
+    carries settings, never bodies: an inline `macro: {steps: ...}` is
+    refused. Raises PlaybookError naming the page."""
+    pack_macro = macro_resolver(pack.macros, pack.macro_errors, pack.folder)
+
+    def resolve(value: Any, where: str, nid: str, role: str | None = None) -> Macro:
+        try:
+            return pack_macro(require_str(value, f"{where}: `{role or 'macro'}`"))
+        except MacroError as e:
+            raise PlaybookError(f"{where}: {role or 'macro'} {e}") from e
+
+    ctx = _Ctx("", pack, set(), resolve)
     out: dict[str, Recovery] = {}
-    for name, spec in ctx.pack.page_recovers.items():
+    for name, spec in raw.items():
         # Every page here is declared: the pack door parses the same
         # entry's anchors first and refuses one without.
         where = f"manifest page {name!r}"

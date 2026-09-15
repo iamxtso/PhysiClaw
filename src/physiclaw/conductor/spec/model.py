@@ -81,7 +81,7 @@ and its lints turn a `route:` into the nodes.
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Generic, Protocol, TypeVar
 
 from physiclaw.common import paths
 from physiclaw.common.bbox import Bbox
@@ -94,7 +94,15 @@ from physiclaw.conductor.spec.limits import (
 )
 from physiclaw.conductor.spec.pages import AnchorDecl, Landmark, PageDecl, PagePrint
 from physiclaw.contract.dto import Thinking
-from physiclaw.macros.model import MACRO_SUFFIX, Macro, MacroError, MacroInput
+from physiclaw.macros.model import (
+    MACRO_SUFFIX,
+    MACROS_KIND,
+    Macro,
+    MacroError,
+    MacroInput,
+    pack_macro_ref,
+    parse_ref,
+)
 from physiclaw.macros.parse import MacroResolver
 
 # The three readings a page's `recover:` may key its hands by: the page
@@ -187,7 +195,9 @@ class AgentNode:
     # owns the rule and says why they stay unnamed to the model.
     never_tap: tuple["NeverTap", ...] = ()
     context: tuple[str, ...] = ()  # `context:` — what to load (`context.py`)
-    macros: tuple[str, ...] = ()  # granted pack macros (`give: [macros.<name>]`)
+    macros: tuple[
+        str, ...
+    ] = ()  # granted macros (`give: [macros.<name>]` / `[<pack>.macros.<name>]`)
     # `think:` — how much hidden thinking each of its calls asks the
     # model for; None = the vendor's default for that model.
     think: Thinking | None = None
@@ -429,8 +439,9 @@ class Playbook:
     # Declared recovery, page name → its hands: a mismatched page runs
     # ITS hand for the reading, or hands over when it declares none.
     recovers: dict[str, Recovery] = field(default_factory=dict)
-    # The prompt files this route's agent steps read (`prompts.<name>`)
-    # — `playbooks check` names the files no route reads.
+    # The prompt files this route's agent steps read, pack-relative
+    # (`buy/prompts/pick.md`) — `playbooks check` names the files no
+    # route reads.
     prompts_used: frozenset[str] = frozenset()
     # `returns:` — what a run of this playbook yields, field → template
     # over its own refs, filled when the run's round ends.
@@ -511,23 +522,35 @@ class Files:
     prompts: Scanned[str] = field(default_factory=Scanned)
 
 
-def macro_resolver(ok: Mapping[str, Macro], errors: Mapping[str, str]) -> MacroResolver:
-    """A name → one of the pack's shared macros, or why not: the
-    lookup a playbook's bare `macro:` makes, a playbook folder's file
-    falls back to for its `run:`, and an inline body's `run:` ends in.
-    One wording for "broken" and "not here"."""
+def macro_resolver(
+    ok: Mapping[str, Macro], errors: Mapping[str, str], pack: str
+) -> MacroResolver:
+    """A pack's shared hand by reference — `<pack>.macros.<name>` from a
+    playbook or a macro beside it, the bare name from the pack's own
+    manifest — or why not. The one lookup a playbook's `macro:`, an
+    agent's `give:`, a manifest hand and a macro file's `run:` all end
+    in. One wording for "broken" and "not here"."""
 
-    def resolve(name: str) -> Macro:
-        if name in errors:
-            raise MacroError(f"pack macro {name!r} is invalid: {errors[name]}")
-        if name not in ok:
-            available = ", ".join(sorted(ok)) or "(none)"
+    def resolve(ref: str) -> Macro:
+        r = parse_ref(ref)
+        own = r is not None and r.pack is None and r.kind is None
+        shared = r is not None and r.pack == pack and r.kind == MACROS_KIND
+        if r is None or not (own or shared):
             raise MacroError(
-                f"{name!r} not found in this pack's {paths.PACK_MACROS_DIRNAME}/ — "
-                f"playbooks reference only their own pack's macros. "
-                f"Available: {available}"
+                f"{ref!r} is not a pack macro reference — the pack's hands are "
+                f"`{pack_macro_ref(pack, '<name>')}`"
             )
-        return ok[name]
+        if r.name in errors:
+            raise MacroError(f"pack macro {r.name!r} is invalid: {errors[r.name]}")
+        if r.name not in ok:
+            available = (
+                ", ".join(pack_macro_ref(pack, n) for n in sorted(ok)) or "(none)"
+            )
+            raise MacroError(
+                f"{ref!r} not found in this pack's {paths.PACK_MACROS_DIRNAME}/ — "
+                f"available: {available}"
+            )
+        return ok[r.name]
 
     return resolve
 
@@ -551,20 +574,25 @@ class Pack:
     # pack; the files that would not load ride as errors.
     playbook_docs: dict = field(default_factory=dict)
     playbook_errors: dict[str, str] = field(default_factory=dict)
-    # The pack's shared prose (`prompts/*.md`) and each playbook's own
-    # leaf folders, by playbook — the route's compiler registers a
-    # playbook's recorded hands under `<playbook>.<name>` beside its
-    # inline bodies and resolves `prompts.<name>` against both levels.
+    # The pack's shared prose (`prompts/*.md`, `<pack>.prompts.<name>`)
+    # and each playbook's own leaf folders, by playbook — the route's
+    # compiler registers a playbook's recorded hands under
+    # `<playbook>.<name>` beside its inline bodies.
     prompts: Scanned[str] = field(default_factory=Scanned)
     local: dict[str, Files] = field(default_factory=dict)
-    # The manifest's `pages: <name>: recover:` hands, RAW by page name —
-    # the route compiler resolves them (its grammar, its resolver) and
+    # The manifest's `pages: <name>: recover:` hands, resolved once at
+    # load through the pack's own resolver (`route.manifest_recovers`);
     # every route inherits them for a shared page unless it declares
     # its own.
-    page_recovers: dict[str, Any] = field(default_factory=dict)
+    recovers: dict[str, Recovery] = field(default_factory=dict)
     # The channel pack's `thread: {incoming}` — the box the user's
     # bubbles' centers fall in; None for every other pack.
     thread_incoming: Bbox | None = None
+    # The folder the pack loads from — the name a reference to its
+    # shared files carries (`<folder>.macros.<name>`); the app's name
+    # for every pack but the channel, whose folder is its IM's.
+    folder: str = ""
+
     # The pack's declared fixed spots (`landmarks:`) — recover hands and
     # agent grants name them. See `pages.Landmark`.
     landmarks: dict[str, Landmark] = field(default_factory=dict)

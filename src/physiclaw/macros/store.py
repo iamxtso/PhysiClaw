@@ -27,6 +27,7 @@ from physiclaw.macros.model import (
     Macro,
     MacroError,
     check_name,
+    parse_ref,
 )
 from physiclaw.macros.parse import MacroResolver, PageResolver, parse_macro
 
@@ -97,8 +98,8 @@ def scan(
     `paths.playbooks_dirs` layering rule). The CLI's view; the engine
     uses `discover_enabled`. Conductor packs point this at their private
     ``macros/`` roots, with ``pages`` the pack's page resolver a jump
-    reads through and ``fallback`` where a `run` step's name goes when
-    the folder holds no such file (`parse_folder`) — one scanner, one
+    reads through and ``fallback`` where a `run` step's dotted name
+    (`<pack>.macros.<name>`) goes (`parse_folder`) — one scanner, one
     traversal guard, one broad-except lesson."""
     if root is None:
         seen: set[str] = set()
@@ -144,8 +145,9 @@ def parse_folder(
     order given: each an entry with its spec or its reason. A `run`
     step names a sibling: the resolver here parses the named file on
     demand (each once, whichever order the folder lists them in), so
-    a caller binds the very object its callee's entry holds; a name
-    the folder lacks goes to ``fallback``; a file that reaches itself
+    a caller binds the very object its callee's entry holds; a dotted
+    name (`<pack>.macros.<name>`) goes to ``fallback``, the pack's
+    resolver; a file that reaches itself
     through its callees is a cycle, refused with the chain. The
     folder's whole rule, so `scan`, a pack's loader and a test over
     texts in memory cannot drift."""
@@ -181,13 +183,21 @@ def parse_folder(
                 else "macros that run each other"
             )
             raise MacroError(f"{chain} — {what}")
+        ref = parse_ref(name)
+        if ref is not None and ref.pack is not None:
+            # `<pack>.macros.<name>`: the pack's shared hand, resolved by
+            # the pack — a folder of the pack's own names its siblings bare.
+            if fallback is None:
+                raise MacroError(
+                    f"{name!r} names a pack hand from a playbook's folder — "
+                    "here a sibling is named bare"
+                )
+            return fallback(name)
         if name in texts:
             e = entry(name)
             if e.spec is None:
                 raise MacroError(f"{name}{MACRO_SUFFIX} is invalid: {e.error}")
             return e.spec
-        if fallback is not None:
-            return fallback(name)
         have = ", ".join(sorted(texts)) or "(none)"
         raise MacroError(f"no macro {name!r} beside this one. Here: {have}")
 

@@ -29,11 +29,11 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: home
   - do: search
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "go"}
   - page: results
 """

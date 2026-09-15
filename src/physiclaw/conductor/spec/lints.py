@@ -154,18 +154,21 @@ def pack_warnings(pack: Pack, entries: "list[PlaybookEntry]") -> list[str]:
     no route names — a rename that left the old file behind, or prose
     written before its step."""
     out = _ambiguous_pages(pack)
-    used_by = {e.name: e.spec.prompts_used for e in entries if e.spec is not None}
-    shared_used: set[str] = set().union(*used_by.values())
+    # `prompts_used` holds the files read, pack-relative — the spelling
+    # the messages below use, so the check is one set difference.
+    read: set[str] = set().union(
+        *(e.spec.prompts_used for e in entries if e.spec is not None)
+    )
     out += [
         f"{PACK_PROMPTS_DIRNAME}/{n}{PROMPT_SUFFIX} is read by no playbook"
-        for n in sorted(set(pack.prompts.ok) - shared_used)
+        for n in sorted(pack.prompts.ok)
+        if f"{PACK_PROMPTS_DIRNAME}/{n}{PROMPT_SUFFIX}" not in read
     ]
     for pb_name, files in sorted(pack.local.items()):
-        for n in sorted(set(files.prompts.ok) - used_by.get(pb_name, frozenset())):
-            out.append(
-                f"{pb_name}/{PACK_PROMPTS_DIRNAME}/{n}{PROMPT_SUFFIX} is read by "
-                f"no step of {pb_name}"
-            )
+        for n in sorted(files.prompts.ok):
+            rel = f"{pb_name}/{PACK_PROMPTS_DIRNAME}/{n}{PROMPT_SUFFIX}"
+            if rel not in read:
+                out.append(f"{rel} is read by no step of {pb_name}")
     return out
 
 

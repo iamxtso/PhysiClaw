@@ -13,19 +13,19 @@ route:
   - page: hema-home               # 盒马's home: 权益中心 over its own tab bar
 
   - do: open-cart                 # the tab bar's 购物车, then a stroke that snaps a
-    macro: hema-open-cart         # cart left scrolled back to its top
+    macro: taobao.macros.hema-open-cart  # cart left scrolled back to its top
 
   - page: hema-cart               # the 购物车 title over the footer's settle button
 
   - do: nudge                     # a short stroke up while the 全选 row sits under
-    macro: store-nudge            # this phone's floating button
+    macro: taobao.macros.store-nudge  # this phone's floating button
 
   - page: hema-cart
 
   - agent: tick
-    prompt: prompts.store-tick    # the list, the checkbox geometry, the footer total
+    prompt: taobao.prompts.store-tick  # the list, the checkbox geometry, the footer total
     tools: [tap, scroll]
-    give: [landmarks.close, macros.store-nudge]   # a promo ✕, the stroke
+    give: [landmarks.close, taobao.macros.store-nudge]   # a promo ✕, the stroke
     never_tap:
       - ["去结算", "领券结算"]
       - "清空"
@@ -40,7 +40,7 @@ route:
 
   - do: settle                    # 去结算 / 领券结算 in 盒马's footer, to the order page
     on_fail: stop                 # nothing is paid yet
-    macro: hema-settle
+    macro: taobao.macros.hema-settle
 
   - page: store-order             # 确认订单 over 提交订单
 
@@ -55,11 +55,11 @@ route:
     rounds: 3
     think: off
     on_fail: stop
-    resume: foreground            # the ask left the app — come back where it was
+    resume: taobao.macros.foreground  # the ask left the app — come back where it was
 
   - do: pay                       # 提交订单, then the cashier's button when one shows
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
-    macro: submit-order
+    macro: taobao.macros.submit-order
 
   - page: paid

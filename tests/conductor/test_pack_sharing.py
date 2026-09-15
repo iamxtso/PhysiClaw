@@ -48,10 +48,10 @@ inputs:
     description: what to search
 route:
   - start: app
-    macro: launch
+    macro: shop.macros.launch
   - page: home
   - do: search
-    macro: search
+    macro: shop.macros.search
     with: {message: "{inputs.keyword}"}
   - page: results
   - agent: pick
@@ -68,10 +68,10 @@ name: track
 description: track an order
 route:
   - start: app
-    macro: launch
+    macro: shop.macros.launch
   - page: home
   - do: orders
-    macro: search
+    macro: shop.macros.search
     with: {message: "orders"}
   - page: results
     recover: go_back
@@ -171,8 +171,8 @@ def test_the_matcher_sees_the_shared_pages_and_a_walk_builds(shop) -> None:
 
 
 def test_manifest_hand_must_name_a_recorded_macro_never_a_body(shop) -> None:
-    # Resolved by each route's compiler: every playbook of the pack
-    # reports the manifest's fault, the pack itself still loads.
+    # The manifest's hands are resolved once, at pack load: a body there
+    # is the pack's own fault, raised before any playbook compiles.
     (shop / "APP.yml").write_text(
         MANIFEST.replace(
             "elsewhere: {macro: launch}",
@@ -181,11 +181,8 @@ def test_manifest_hand_must_name_a_recorded_macro_never_a_body(shop) -> None:
         encoding="utf-8",
     )
 
-    entries = pb.scan_playbooks("shop")
-
-    assert all(
-        "record the body as macros/<name>.yml" in (e.error or "") for e in entries
-    )
+    with pytest.raises(PlaybookError, match="record the body as macros/<name>.yml"):
+        pb.load_pack("shop")
 
 
 def test_manifest_hand_on_an_undeclared_page_is_refused(shop) -> None:
@@ -220,7 +217,11 @@ def test_activation_menu_is_one_line_per_playbook_and_check_flags_twins(shop) ->
 
     from physiclaw.cli import app as cli_app
 
-    _write_pack("mall", MANIFEST.replace("app: shop", "app: mall"), buy=BUY)
+    _write_pack(
+        "mall",
+        MANIFEST.replace("app: shop", "app: mall"),
+        buy=BUY.replace("shop.macros.", "mall.macros."),
+    )
     entries = {}
     for app in ("shop", "mall"):
         pack = pb.load_pack(app)
@@ -246,7 +247,7 @@ name: buy
 description: buy with its own recorded search
 route:
   - start: open
-    macro: launch
+    macro: shop.macros.launch
   - page: home
   - do: find
     macro: search-own
@@ -285,15 +286,16 @@ def test_an_unreferenced_playbook_macro_is_still_the_routes_to_run() -> None:
     assert "shop/buy.spare" in qualified_all("shop", pack)
 
 
-def test_a_name_in_both_the_pack_and_the_playbook_is_refused() -> None:
-    root = _write_pack("shop", MANIFEST, buy=LOCAL_BUY)
+def test_a_bare_name_is_the_playbooks_own_file_even_when_the_pack_has_one() -> None:
+    # `macro: search` is buy/macros/search.yml; the pack's is
+    # `shop.macros.search` — two spellings, no clash.
+    root = _write_pack("shop", MANIFEST, buy=LOCAL_BUY.replace("search-own", "search"))
     write_local_macro(root, "buy", "search")  # the pack already records `search`
 
-    entries = {e.name: e for e in pb.scan_playbooks("shop")}
+    pack = pb.load_pack("shop")
+    (buy,) = (e.spec for e in pb.scan_playbooks("shop", pack) if e.name == "buy")
 
-    assert "declared both in buy/macros/ and the pack's macros/" in (
-        entries["buy"].error or ""
-    )
+    assert buy is not None and buy.nodes[1].macro == "buy.search"
 
 
 def test_two_playbooks_may_each_own_a_macro_of_the_same_name() -> None:
@@ -428,7 +430,7 @@ inputs:
 route:
   - page: home
   - do: open
-    macro: open-app
+    macro: demo.macros.open-app
     with: {message: "{inputs.keyword}"}
   - page: results
 """

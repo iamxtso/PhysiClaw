@@ -37,10 +37,10 @@ returns:
   did: "searched {inputs.what}"
 route:
   - start: app
-    macro: open-app
+    macro: demo.macros.open-app
   - page: home
   - do: search
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "{inputs.what}"}
   - page: results
 """
@@ -132,8 +132,8 @@ def test_a_leg_that_ends_on_a_move_cannot_be_run() -> None:
 
 def test_a_leg_may_not_run_a_playbook_itself() -> None:
     nested = LEG.replace(
-        "  - start: app\n    macro: open-app\n",
-        "  - run: flow\n  - page: results\n  - start: app\n    macro: open-app\n",
+        "  - start: app\n    macro: demo.macros.open-app\n",
+        "  - run: flow\n  - page: results\n  - start: app\n    macro: demo.macros.open-app\n",
     )
     # The leg's own parse fails first: `start` must sit right before the
     # first page; the depth rule is reached with a leg that parses.
@@ -142,7 +142,7 @@ def test_a_leg_may_not_run_a_playbook_itself() -> None:
 
 
 def test_a_leg_without_its_own_start_needs_the_page_before_the_run() -> None:
-    leg = LEG.replace("  - start: app\n    macro: open-app\n", "")
+    leg = LEG.replace("  - start: app\n    macro: demo.macros.open-app\n", "")
     with pytest.raises(PlaybookError, match="starts on page 'home'"):
         _parse(FLOW, leg=leg)
     # …and with that page in place, it frames like a do: enter = home.
@@ -204,7 +204,7 @@ ASKING_LEG = LEG.replace(
     '    message: "go on with {inputs.what}?"\n'
     '    yes: ["好的"]\n'
     '    no: ["不用"]\n'
-    "    resume: add-cart\n"
+    "    resume: demo.macros.add-cart\n"
     "  - page: results\n",
 )
 
@@ -387,10 +387,10 @@ route:
     returns:
       key: the keyword
   - start: app
-    macro: open-app
+    macro: demo.macros.open-app
   - page: home
   - do: search
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "{plan.key}"}
   - page: results
 """
@@ -439,7 +439,7 @@ route:
     message: "buy {inputs.lines}?"
     yes: ["好的"]
     no: ["不用"]
-    resume: add-cart
+    resume: demo.macros.add-cart
   - page: results
 """
 
@@ -735,7 +735,7 @@ TOP_ASK = EACH.replace(
     '    message: "all in?"\n'
     '    yes: ["好的"]\n'
     '    no: ["不用"]\n'
-    "    resume: add-cart\n"
+    "    resume: demo.macros.add-cart\n"
     "  - page: results\n"
     "  - tell: report\n",
 )
@@ -785,7 +785,7 @@ def test_a_revision_that_keeps_the_list_re_runs_no_round() -> None:
 
 PAY_LONG = PAY.replace(
     "  - page: results\n  - ask: confirm\n",
-    '  - page: results\n  - do: hop\n    macro: add-cart\n    with: {message: "x"}\n'
+    '  - page: results\n  - do: hop\n    macro: demo.macros.add-cart\n    with: {message: "x"}\n'
     "  - page: results\n  - ask: confirm\n",
 )
 
@@ -865,7 +865,7 @@ def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
     flow = EACH.replace(
         "  - page: results\n  - tell: report\n",
         "  - page: results\n    recover: go_back\n"
-        '  - do: after\n    macro: add-cart\n    with: {message: "x"}\n'
+        '  - do: after\n    macro: demo.macros.add-cart\n    with: {message: "x"}\n'
         "  - page: results\n  - tell: report\n",
     )
     p, h = _walk(flow=flow, keyword="milk and eggs")
@@ -896,14 +896,14 @@ returns:
   did: "added {inputs.what}"
 route:
   - start: app
-    macro: open-app
+    macro: demo.macros.open-app
   - page: home
   - do: add
-    macro: add-cart
+    macro: demo.macros.add-cart
     with: {message: "{inputs.what}"}
   - page: results
   - do: back
-    macro: open-app
+    macro: demo.macros.open-app
   - page: home
     recover: go_back
 """

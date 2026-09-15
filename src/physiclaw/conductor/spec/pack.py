@@ -14,6 +14,7 @@ requires of a playbook. The model is `model.py`; the compiler is
 `route.py`.
 """
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +59,7 @@ from physiclaw.conductor.spec.pages import (
     prints_for_app,
 )
 from physiclaw.conductor.spec.refs import check_refs, field_name, refs_in
-from physiclaw.conductor.spec.route import compile_route
+from physiclaw.conductor.spec.route import compile_route, manifest_recovers
 from physiclaw.macros import inputs as macro_inputs
 from physiclaw.macros import parse as macro_parse
 from physiclaw.macros import store as macro_store
@@ -166,8 +167,8 @@ def load_pack(app: str) -> Pack:
     prints = tuple(prints_for_app(app, decls=pages))
     page_of = page_resolver(app, pages, prints)
     macros = _scan_macros(root / PACK_MACROS_DIRNAME, page_of)
-    shared = macro_resolver(macros.ok, macros.errors)
-    return Pack(
+    shared = macro_resolver(macros.ok, macros.errors, root.name)
+    pack = Pack(
         app=app,
         pages=pages,
         macros=macros.ok,
@@ -184,9 +185,13 @@ def load_pack(app: str) -> Pack:
             for name in docs
         },
         landmarks=landmarks,
-        page_recovers=collect_page_recovers(doc),
         thread_incoming=thread_incoming,
+        folder=root.name,
     )
+    # The manifest's hands, resolved once here with the pack's own
+    # resolver: a broken one is the pack's load error, not every
+    # route's.
+    return replace(pack, recovers=manifest_recovers(pack, collect_page_recovers(doc)))
 
 
 def _scan_macros(

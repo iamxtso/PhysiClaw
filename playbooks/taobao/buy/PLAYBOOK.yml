@@ -24,13 +24,13 @@ route:
     think: off                    # a keyword is read off the words, not reasoned out
 
   - start: app
-    macro: launch                 # to the feed: resumed as it is, else cold-launched
+    macro: taobao.macros.launch   # to the feed: resumed as it is, else cold-launched
 
   - page: home                    # the feed: its tab row (推荐 / 关注)
 
   - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}  # suffix the search, not the field
-    macro: search
+    macro: taobao.macros.search
 
   - page: results                 # the filter row (综合 / 销量)
 
@@ -73,7 +73,7 @@ route:
     rounds: 3                     # …and silent polls before the session suspends
     think: off                    # a reply the words miss is read, not deliberated over
     on_fail: stop                 # a failure (or an answered no) ends the session; nothing paid
-    resume: foreground            # the ask left the app — come back where it was
+    resume: taobao.macros.foreground  # the ask left the app — come back where it was
 
   # One recorded tap once the consented amount still shows.
   - do: pay
@@ -84,7 +84,7 @@ route:
         - tap: ["免密支付", "立即支付", "提交订单"]   # one target, three spellings
           at: [0.368, 0.923, 0.629, 0.948]
         - wait: 4
-        - run: cashier                            # 立即支付 / 确认支付, only while one shows
+        - run: taobao.macros.cashier  # 立即支付 / 确认支付, only while one shows
 
   - page: paid
 
