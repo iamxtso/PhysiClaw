@@ -16,7 +16,7 @@ declared anchor of the `thread` page is rendered at its learned position
 (else its region band, else spread across the top), so `match_screen`
 scores the render like a genuine reading rather than being bypassed.
 Bubble geometry carries the semantics `reply.read_incoming` keys on:
-incoming bubbles centered left of `INCOMING_DEFAULT`, our own right of
+incoming bubbles centered left of `INCOMING_FALLBACK`, our own right of
 it, newest at the bottom, long texts split into wrapped-line rows.
 
 Block builders mirror the server's wire shapes (`core/server/tools.py`):
@@ -31,11 +31,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from physiclaw.common import paths
+from physiclaw.common.bbox import Bbox
 from physiclaw.common.listing import Element, format_elements
 from physiclaw.common.logger import write_json_atomic
 from physiclaw.common.text import read_text
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, THREAD_PAGE
-from physiclaw.conductor.spec.pages import PagePrint, prints_for_app
+from physiclaw.conductor.spec.pages import PagePrint
 
 log = logging.getLogger(__name__)
 
@@ -171,16 +172,20 @@ def peek_bubbles() -> list[Bubble]:
 # ---------- rendering ----------
 
 
-def thread_print() -> PagePrint | None:
-    """The channel pack's thread fingerprint, or None (anchorless
-    render). Loaded fresh here; per-session callers cache it — the pack
-    cannot change mid-session."""
+def channel_view() -> tuple[PagePrint | None, Bbox]:
+    """The channel pack's thread fingerprint (None: an anchorless
+    render) and its `thread: incoming` box (the fallback when the pack
+    is unreadable or declares none) — one load; per-session callers
+    cache the pair, the pack cannot change mid-session."""
+    from physiclaw.conductor.spec.pack import load_pack
+
     try:
-        prints = prints_for_app(CHANNEL_APP)
+        pack = load_pack(CHANNEL_APP)
     except Exception:
         log.warning("channel pack unreadable — rendering an anchorless thread")
-        return None
-    return next((p for p in prints if p.decl.name == THREAD_PAGE), None)
+        return None, INCOMING_FALLBACK
+    pp = next((p for p in pack.prints if p.decl.name == THREAD_PAGE), None)
+    return pp, pack.thread_incoming or INCOMING_FALLBACK
 
 
 def _element(idx: int, label: str, cx: float, cy: float, half_w: float) -> Element:
@@ -218,7 +223,7 @@ def _anchor_elements(pp: PagePrint | None) -> list[Element]:
     return out
 
 
-def render_listing(bubbles: list[Bubble], pp: PagePrint | None) -> str:
+def render_listing(bubbles: list[Bubble], pp: PagePrint | None, incoming: Bbox) -> str:
     """The virtual thread as one element listing: the channel pack's
     anchors, then the newest bubbles that fit, oldest first — a thread
     scrolled to its tail, the way every real peek reads it."""
@@ -231,8 +236,7 @@ def render_listing(bubbles: list[Bubble], pp: PagePrint | None) -> str:
     ]
     fit = int((_BUBBLE_BOTTOM - _BUBBLE_TOP) / _BUBBLE_STEP)
     y = _BUBBLE_TOP
-    box = (pp.decl.incoming if pp is not None else None) or INCOMING_FALLBACK
-    user_cx = (box[0] + box[2]) / 2
+    user_cx = (incoming[0] + incoming[2]) / 2
     for sender, line in lines[-fit:]:
         cx = 1.0 - user_cx if sender == AGENT else user_cx
         elements.append(_element(len(elements), line, cx, y, _BUBBLE_HALF_W))

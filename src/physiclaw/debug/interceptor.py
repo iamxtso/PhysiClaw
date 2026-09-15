@@ -77,16 +77,20 @@ class FakeChannel:
         self._on_thread = False
 
     @cached_property
+    def _view(self) -> "tuple[PagePrint | None, Bbox]":
+        # Per-session cache — the channel pack cannot change mid-session
+        # (a None fingerprint, a valid answer, is cached too).
+        return vthread.channel_view()
+
+    @property
     def _pp(self) -> PagePrint | None:
-        # Per-session cache — the channel fingerprint cannot change
-        # mid-session (None, a valid answer, is cached too).
-        return vthread.thread_print()
+        return self._view[0]
 
     @property
     def incoming(self) -> Bbox:
-        """The thread page's `incoming:` box, as the real channel's."""
-        box = self._pp.decl.incoming if self._pp is not None else None
-        return box if box is not None else vthread.INCOMING_FALLBACK
+        """The channel manifest's `thread: incoming` box, as the real
+        channel's."""
+        return self._view[1]
 
     def intercept(
         self, call: ToolCall, synthesized: bool, blocks: list[dict]
@@ -102,7 +106,7 @@ class FakeChannel:
             return None
 
     def _render(self, bubbles: list[vthread.Bubble]) -> str:
-        return vthread.render_listing(bubbles, self._pp)
+        return vthread.render_listing(bubbles, self._pp, self.incoming)
 
     def _intercept(
         self, call: ToolCall, synthesized: bool, blocks: list[dict]

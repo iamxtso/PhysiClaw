@@ -246,7 +246,7 @@ def test_catalog_lists_the_channel_boot_with_its_activate_step(pack) -> None:
     write_channel("name: open\ndescription: d\nsteps:\n  - home_screen\n")
     from physiclaw.conductor.spec import scaffold
 
-    scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel")
+    scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel" / "wechat")
 
     (channel,) = [p for p in stepping.catalog() if p["app"] == "channel"]
     (boot,) = channel["playbooks"]
@@ -267,7 +267,7 @@ def test_stepping_the_boot_reads_the_staged_reply_as_the_request(pack, mocker) -
     from physiclaw.debug import thread as vthread
 
     write_channel("name: open\ndescription: d\nsteps:\n  - home_screen\n")
-    scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel")
+    scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel" / "wechat")
     seen: list = []
 
     class _Micro:

@@ -68,11 +68,17 @@ playbooks_app.add_typer(
 
 @playbooks_app.command()
 def init(
-    app: Annotated[str, typer.Argument(help="App name (lowercase/digits/hyphens).")],
+    app: Annotated[
+        str,
+        typer.Argument(
+            help="App name (lowercase/digits/hyphens); `channel/<im>` for a "
+            "user-channel pack."
+        ),
+    ],
 ) -> None:
     """Scaffold a new app pack: APP.yml (meta + pages), a README, an
     example playbook folder, and an example pack macro — parse-clean,
-    disabled."""
+    disabled. `channel/<im>` scaffolds the user channel for one IM app."""
     from physiclaw.common.paths import PACK_FILENAME
     from physiclaw.conductor.spec import scaffold
     from physiclaw.conductor.spec.conventions import (
@@ -89,10 +95,11 @@ def init(
         exit_error(str(e))
     typer.echo(ok(str(root)))
     typer.echo("Next:")
-    if app == CHANNEL_APP:
+    if root.parent.name == CHANNEL_APP:
         typer.echo(
-            f"  1. anchor the `{THREAD_PAGE}` page on YOUR chat header in {PACK_FILENAME}"
+            f"  1. anchor the `{THREAD_PAGE}` page on YOUR chat header in {PACK_FILENAME},"
         )
+        typer.echo("     and set `thread: incoming` to where the user's bubbles sit")
         typer.echo("  2. record the send/open gesture paths in macros/*.yml")
         typer.echo("  3. rehearse both, then enable (physiclaw macros run is")
         typer.echo("     per-user-macro; drive a pack's via physiclaw playbooks run);")
@@ -161,8 +168,16 @@ def install(
 
     if not src.is_dir():
         exit_error(f"{src} is not a directory")
-    app = src.name
-    dest = paths.playbooks_dir() / app
+    # A channel IM folder (`channel/wechat`) keeps its place under
+    # `channel/`, beside any other IM already installed there — and the
+    # pack it installs is `channel`, whatever the folder is called.
+    under_channel = src.parent.name == paths.CHANNEL_DIRNAME
+    app = paths.CHANNEL_DIRNAME if under_channel else src.name
+    dest = (
+        paths.playbooks_dir() / paths.CHANNEL_DIRNAME / src.name
+        if under_channel
+        else paths.playbooks_dir() / app
+    )
 
     # Every declaration and every note travels: the yml files the
     # parsers read, the prompts and READMEs beside them.
@@ -288,7 +303,7 @@ def list_cmd() -> None:
         )
         return
     for app in apps:
-        typer.echo(f"{app}/")
+        typer.echo(f"{_pack_label(app)}/")
         try:
             entries = pb.scan_playbooks(app)
         except pb.PlaybookError as e:
@@ -828,6 +843,15 @@ def check() -> None:
         typer.echo(warn(line))
     if bad:
         raise typer.Exit(1)
+
+
+def _pack_label(app: str) -> str:
+    """The pack's name, with the folder it loads from when that is
+    named differently: `channel (wechat)`."""
+    from physiclaw.common import paths
+
+    folder = paths.pack_root(app).name
+    return app if folder == app else f"{app} ({folder})"
 
 
 def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":

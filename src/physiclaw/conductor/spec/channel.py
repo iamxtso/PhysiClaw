@@ -1,7 +1,10 @@
-"""The user channel — `playbooks/channel/`, the ONE infrastructure pack.
+"""The user channel — `playbooks/channel/<im>/`, the ONE infrastructure
+pack, a folder per IM app with `channel/ACTIVE.txt` naming the one in
+use (`paths.channel_root`).
 
-The IM thread's page fingerprint, the rehearsed send/open macros, and
-the boot playbook (`boot/PLAYBOOK.yml` — the walk every wake plays before any
+The IM thread's page fingerprint, the `thread: {incoming}` box the
+reply reader keys on, the rehearsed send/open macros, and the boot
+playbook (`boot/PLAYBOOK.yml` — the walk every wake plays before any
 app playbook), recorded and declared on-device like any pack — but
 app playbooks never name it: asks reach it through the conductor's
 node types, and the boot is the conductor's own to run. The
@@ -50,11 +53,10 @@ class Channel:
 
     @property
     def incoming(self) -> Bbox:
-        """Where the user's bubbles sit: the thread page's `incoming:`
+        """Where the user's bubbles sit: the manifest's `thread: incoming`
         (`load_channel` refuses a pack without it)."""
-        box = next(p.decl.incoming for p in self.prints if p.decl.name == THREAD_PAGE)
-        assert box is not None  # load_channel's contract
-        return box
+        assert self.pack.thread_incoming is not None  # load_channel's contract
+        return self.pack.thread_incoming
 
     def _live(self, name: str) -> str | None:
         key = qualified_macro(CHANNEL_APP, name)
@@ -80,10 +82,10 @@ def load_channel() -> Channel | None:
         log.warning("channel pack unusable (%s) — asks will hand over", e)
         return None
     thread = next((p.decl for p in prints if p.decl.name == THREAD_PAGE), None)
-    if thread is None or thread.incoming is None:
+    if thread is None or pack.thread_incoming is None:
         log.warning(
-            "channel pack declares no %r page with `incoming:` — unusable, "
-            "asks will hand over",
+            "channel pack declares no %r page or no `thread: {incoming}` box — "
+            "unusable, asks will hand over",
             THREAD_PAGE,
         )
         return None

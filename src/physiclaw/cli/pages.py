@@ -149,7 +149,9 @@ def calibrate(
         typer.echo(_report_line(r))
     if learned:
         pages.save_learned(app, learned)
-        typer.echo(f"saved learned/pages/{app}.json ({len(learned)} pages)")
+        typer.echo(
+            f"saved learned/pages/{pages.learned_file(app).name} ({len(learned)} pages)"
+        )
 
 
 def _guided_capture(app: str, page_names: list[str], shots: int) -> dict[str, list]:

@@ -1,7 +1,8 @@
-# The pack MANIFEST — the thread page and the placeholders; the hands
-# (open/send) are recorded beside it in macros/<name>.yml, and boot/
-# beside it is the walk every wake plays first.
-app: channel
+# The pack MANIFEST of the WeChat channel — the thread page, how it is
+# read, and the placeholders; the hands (open/send) are recorded beside
+# it in macros/<name>.yml, and boot/ beside it is the walk every wake
+# plays first.
+app: wechat
 description: >-
   The user-channel pack for WeChat — reach YOUR user's thread by in-app
   search (list-order independent) and send messages there. Required by
@@ -10,6 +11,12 @@ placeholders:
   CONTACT:
     description: the IM contact name of YOUR user thread, exactly as the chat app shows it
     example: QiaoQian
+
+# How the thread is read: the box the user's bubbles' centers fall in.
+# WeChat puts theirs on the left; ours, and centered system rows (time
+# stamps), sit outside it. A right-to-left system mirrors it.
+thread:
+  incoming: [0.0, 0.0, 0.45, 1.0]
 
 # The ONE page the conductor must recognize: your chat thread.
 pages:
@@ -24,10 +31,6 @@ pages:
     # system reads Weixin): forbidden there, not elsewhere on the page.
     forbid:
       - {text: ["微信", "Weixin"], within: [0.30, 0.03, 0.70, 0.12]}
-    # Where the user's bubbles sit: their centers fall in this box, the
-    # assistant's own outside it. The reader tells a reply from its own
-    # ask by it, and centered system rows (time stamps) fall outside.
-    incoming: [0.0, 0.0, 0.45, 1.0]
 
 # Adapting to your device
 # - `open` navigates via WeChat's search, never by chat-list position,

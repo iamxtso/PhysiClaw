@@ -561,7 +561,9 @@ def test_session_setup_builds_the_boot_and_hidden_registry() -> None:
 
     assert prog is not None
     assert prog.app == "channel" and prog.spec.name == "boot" and prog.dry
-    assert (paths.playbooks_dir() / "channel" / "boot" / "PLAYBOOK.yml").exists()
+    assert (
+        paths.playbooks_dir() / "channel" / "wechat" / "boot" / "PLAYBOOK.yml"
+    ).exists()
     assert isinstance(prog.spec.nodes[-1], ActivateNode)
     activation = prog.activation
     assert activation is not None
@@ -712,7 +714,7 @@ def test_activation_rejects_unresolvable_inputs_and_not_a_task() -> None:
 def test_scaffolded_channel_pack_parses_and_loads_disabled() -> None:
     from physiclaw.conductor.spec import scaffold
 
-    scaffold.init_pack("channel")
+    scaffold.init_pack("channel/wechat")
 
     ch = channel.load_channel()
     # Pages parse and the thread page exists; the macros are scaffolded

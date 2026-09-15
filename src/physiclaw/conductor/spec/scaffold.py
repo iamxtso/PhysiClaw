@@ -413,7 +413,7 @@ shape) showing reads the page out. No score: a screen reading exactly one page w
 is that page, none is unknown (the log names each page's missing
 anchor), two is ambiguous.
 
-The channel pack (`playbooks/channel/`) is the conductor's own: the
+The channel pack (`playbooks/channel/<im>/`) is the conductor's own: the
 thread page, the send/open macros an `ask` runs, and `boot/` — the
 walk every wake plays before any playbook (reach the thread, read the
 request, hand the matching playbook the baton), a route like any
@@ -439,21 +439,25 @@ Macro format: see ~/.physiclaw/macros/README.md (identical grammar).
 
 # ---------- the channel pack (conductor infrastructure) ----------
 
-CHANNEL_PACK_STUB = f"""\
-app: {CHANNEL_APP}
+CHANNEL_PACK_STUB = """\
+app: {im}
 description: >-
   The user-channel pack — the conductor's route to YOUR user's IM
   thread: the thread page, the send/open macros its asks run, and the
-  boot ({BOOT_PLAYBOOK}/PLAYBOOK.yml) every wake walks first.
+  boot ({boot}/PLAYBOOK.yml) every wake walks first.
+
+# How the user's thread is read: the box the user's bubbles' centers
+# fall in — ours, and centered system rows, sit outside it.
+thread:
+  incoming: [0.0, 0.0, 0.45, 1.0]  # EDIT ME on a right-to-left system: the right half
 
 # The ONE page the conductor must recognize: your own chat thread in
 # your IM app. Anchor on the chat header (your name / the contact
 # name) + stable chrome.
 pages:
-  {THREAD_PAGE}:
+  {thread}:
     anchors:
       - "EDIT ME"                  # the thread header text
-    incoming: [0.0, 0.0, 0.45, 1.0]  # where the user's bubbles' centers sit; ours outside it
 """
 
 # Rehearsable skeletons for the two channel macros. Steps are
@@ -520,9 +524,9 @@ route:
 
 
 def _init_channel_pack(root: Path) -> Path:
-    """`playbooks/channel/` — the infrastructure pack: the thread page,
-    the send/open macros the conductor's asks run, and the boot
-    playbook. App packs never name it."""
+    """`playbooks/channel/<im>/` — the infrastructure pack: the thread
+    page and its reading box, the send/open macros the conductor's asks
+    run, and the boot playbook. App packs never name it."""
     from physiclaw.common.text import write_text
 
     macros_root = root / PACK_MACROS_DIRNAME
@@ -532,7 +536,10 @@ def _init_channel_pack(root: Path) -> Path:
         (OPEN_MACRO, CHANNEL_OPEN_STUB),
     ):
         write_text(macro_store.macro_path(macros_root, name), stub)
-    write_text(root / PACK_FILENAME, CHANNEL_PACK_STUB)
+    write_text(
+        root / PACK_FILENAME,
+        CHANNEL_PACK_STUB.format(im=root.name, boot=BOOT_PLAYBOOK, thread=THREAD_PAGE),
+    )
     write_text(root / "README.md", render_pack_readme(CHANNEL_APP))
     (root / BOOT_PLAYBOOK).mkdir()
     write_text(root / BOOT_PLAYBOOK / PLAYBOOK_FILENAME, CHANNEL_BOOT_STUB)
@@ -622,7 +629,16 @@ def init_pack(app: str) -> Path:
     from physiclaw.common import paths
     from physiclaw.common.text import write_text
 
-    check_name(app, "app name")
+    # A pack's address is its path under playbooks/: one part for an
+    # app, `channel/<im>` for the channel (an IM folder under channel/).
+    head, sep, im = app.partition("/")
+    if head == CHANNEL_APP and not sep:
+        raise PlaybookError(
+            f"name the IM app: physiclaw playbooks init {CHANNEL_APP}/<im>"
+        )
+    if sep and (head != CHANNEL_APP or not im or "/" in im):
+        raise PlaybookError(f"{app!r} is not an app name or {CHANNEL_APP}/<im>")
+    check_name(im if sep else app, "IM app name" if sep else "app name")
     root = paths.playbooks_dir() / app
     if app == IOS_APP:
         # Idempotent on purpose: `session_setup` materializes this pack on
@@ -634,7 +650,7 @@ def init_pack(app: str) -> Path:
         return root
     if root.exists():
         raise PlaybookError(f"pack directory already exists: {root}")
-    if app == CHANNEL_APP:
+    if root.parent.name == CHANNEL_APP:
         return _init_channel_pack(root)
     (root / PACK_MACROS_DIRNAME).mkdir(parents=True)
     (root / EXAMPLE_PLAYBOOK).mkdir()

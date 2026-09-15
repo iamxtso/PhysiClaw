@@ -111,11 +111,13 @@ def load_pack_doc(app: str, error_cls: type[Exception]) -> dict | None:
             "it (the file body is the playbook: name, description, enabled, "
             "inputs, route)"
         )
-    unknown = sorted(set(map(str, data.keys())) - _PACK_TOP_KEYS)
+    # `thread:` (how the user's thread is read) is the channel's section.
+    keys = _PACK_TOP_KEYS | ({"thread"} if app == paths.CHANNEL_DIRNAME else set())
+    unknown = sorted(set(map(str, data.keys())) - keys)
     if unknown:
         raise error_cls(
             f"{app}/{PACK_FILENAME}: unknown key(s): {', '.join(unknown)} "
-            f"(sections: {', '.join(sorted(_PACK_TOP_KEYS))})"
+            f"(sections: {', '.join(sorted(keys))})"
         )
     return data
 

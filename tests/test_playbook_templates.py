@@ -18,31 +18,50 @@ from physiclaw.common.text import read_text
 
 TEMPLATES_ROOT = Path(__file__).resolve().parent.parent / "playbooks"
 
-PACKS = sorted(d.name for d in TEMPLATES_ROOT.iterdir() if d.is_dir())
+# A template is a folder holding a manifest: the app packs at the top,
+# and the channel's IM folders one level down (`channel/wechat`).
+PACKS = sorted(
+    str(m.parent.relative_to(TEMPLATES_ROOT))
+    for m in (
+        *TEMPLATES_ROOT.glob("*/APP.yml"),
+        *TEMPLATES_ROOT.glob("channel/*/APP.yml"),
+    )
+)
 
 
-def _pack_files(app: str) -> list[Path]:
+def _app_name(pack: str) -> str:
+    """The pack name a template installs as: the folder, or `channel`
+    for an IM folder under `channel/` (whose manifest names the IM)."""
+    return "channel" if pack.startswith("channel/") else pack
+
+
+def _pack_files(pack: str) -> list[Path]:
     """What the installer substitutes: every yml, manifest included."""
-    return sorted((TEMPLATES_ROOT / app).rglob("*.yml"))
+    return sorted((TEMPLATES_ROOT / pack).rglob("*.yml"))
 
 
-def _manifest(app: str) -> dict:
+def _manifest(pack: str) -> dict:
     from ruamel.yaml import YAML
 
-    return YAML(typ="safe", pure=True).load(read_text(TEMPLATES_ROOT / app / "APP.yml"))
+    return YAML(typ="safe", pure=True).load(
+        read_text(TEMPLATES_ROOT / pack / "APP.yml")
+    )
 
 
 def test_templates_exist() -> None:
-    assert "taobao" in PACKS and "channel" in PACKS
+    assert "taobao" in PACKS and "channel/wechat" in PACKS
+    # The channel catalogue names its active folder, and it is shipped.
+    assert (TEMPLATES_ROOT / "channel" / "ACTIVE.txt").read_text().strip() == "wechat"
 
 
 @pytest.mark.parametrize("app", PACKS)
 def test_manifest_is_the_canonical_entry(app: str) -> None:
     # The `action.yml` contract: one manifest, `app` matching the
-    # folder, a description that says what AND when.
+    # folder (the role `channel` for an IM folder), a description that
+    # says what AND when.
     meta = _manifest(app)
 
-    assert meta.get("app") == app
+    assert meta.get("app") == Path(app).name  # the folder: the app automated
     assert meta.get("description", "").strip(), "description is the tier-1 index"
 
 
@@ -75,6 +94,7 @@ def test_installed_pack_parses_whole_and_ships_disabled(app: str) -> None:
     )
     assert result.exit_code == 0, result.output
 
+    app = _app_name(app)
     pack = load_pack(app)  # raises on an invalid pages.yml
     assert not pack.macro_errors, pack.macro_errors
     assert all(not m.enabled for m in pack.macros.values()), "template macro enabled"

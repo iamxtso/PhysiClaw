@@ -142,17 +142,19 @@ runs `open`, then types.
 Adaptation notes and the rehearsal checklist ride as comments in the
 files.
 
-`channel/` is the conductor's own pack: the thread page, the
-send/open macros an `ask` runs, and `boot/` — the walk every wake
-plays before any playbook (reach the thread, read the request, hand
-the matching playbook the baton). Its `select` step is the one
-entry only that file may carry; the hands and limits around it are
-yours to edit, step, and replay like any route.
+`channel/<im>/` is the conductor's own pack, one folder per IM app,
+`channel/ACTIVE.txt` naming the one in use: the thread page, the
+`thread: incoming` box its replies are read by, the send/open macros
+an `ask` runs, and `boot/` — the walk every wake plays before any
+playbook (reach the thread, read the request, hand the matching
+playbook the baton). Its `select` step is the one entry only that
+file may carry; the hands and limits around it are yours to edit,
+step, and replay like any route.
 
 ## Install
 
     physiclaw playbooks install playbooks/taobao
-    physiclaw playbooks install playbooks/channel --set CONTACT=QiaoQian
+    physiclaw playbooks install playbooks/channel/wechat --set CONTACT=QiaoQian
 
 `install` copies a pack into `~/.physiclaw/playbooks/<app>` VERBATIM —
 tokens stay in the files, diffable against this template forever — and

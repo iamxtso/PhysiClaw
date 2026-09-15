@@ -125,10 +125,10 @@ def test_never_tap_judges_a_callees_taps_too() -> None:
 
 
 def test_the_channels_send_is_live_only_with_its_open() -> None:
-    scaffold.init_pack("channel")
+    scaffold.init_pack("channel/wechat")
     from physiclaw.common import paths
 
-    root = paths.playbooks_dir() / "channel"
+    root = paths.playbooks_dir() / "channel" / "wechat"
     for name in ("open", "send"):
         mp = root / "macros" / f"{name}.yml"
         mp.write_text(

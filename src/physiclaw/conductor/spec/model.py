@@ -562,6 +562,9 @@ class Pack:
     # every route inherits them for a shared page unless it declares
     # its own.
     page_recovers: dict[str, Any] = field(default_factory=dict)
+    # The channel pack's `thread: {incoming}` — the box the user's
+    # bubbles' centers fall in; None for every other pack.
+    thread_incoming: Bbox | None = None
     # The pack's declared fixed spots (`landmarks:`) — recover hands and
     # agent grants name them. See `pages.Landmark`.
     landmarks: dict[str, Landmark] = field(default_factory=dict)

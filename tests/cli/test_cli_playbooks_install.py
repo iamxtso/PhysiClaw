@@ -28,7 +28,7 @@ def _install(template: Path, *args: str, input: str | None = None):
 PAGES = 'thread:\n  anchors:\n    - {text: "<<CONTACT>>", within: top}\n'
 MACRO = 'name: open\ndescription: open the <<CONTACT>> thread\nenabled: false\nsteps:\n  - send_to_clipboard: "<<CONTACT>>"\n'
 MANIFEST = (
-    "app: channel\ndescription: reach the user thread\n"
+    "app: wechat\ndescription: reach the user thread\n"
     "placeholders:\n  CONTACT:\n    description: the contact\n"
     "    example: SomeOne\n"
     "pages:\n" + "\n".join("  " + line for line in PAGES.splitlines()) + "\n"
@@ -37,7 +37,7 @@ MANIFEST = (
 
 @pytest.fixture()
 def template(tmp_path: Path) -> Path:
-    src = tmp_path / "template" / "channel"
+    src = tmp_path / "template" / "channel" / "wechat"
     (src / "macros").mkdir(parents=True)
     (src / "macros" / "open.yml").write_text(MACRO, encoding="utf-8")
     (src / "README.md").write_text("# channel\nnotes for people\n", encoding="utf-8")
@@ -50,7 +50,8 @@ def test_install_copies_verbatim_and_records_the_value(template: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert "reach the user thread" in result.output  # tier-1 description echoed
-    dest = paths.playbooks_dir() / "channel"
+    assert "installed channel →" in result.output  # the pack, not the IM folder
+    dest = paths.playbooks_dir() / "channel" / "wechat"
     # Tokens stay in the installed files — diffable against the template.
     assert "<<CONTACT>>" in (dest / "APP.yml").read_text("utf-8")
     assert (
@@ -72,7 +73,7 @@ def test_installed_macro_resolves_from_the_values_file(template: Path) -> None:
     _install(template, "--set", "CONTACT=Alice")
 
     # Pack-private location — scan the pack's macro root directly.
-    entries = store.scan(paths.playbooks_dir() / "channel" / "macros")
+    entries = store.scan(paths.playbooks_dir() / "channel" / "wechat" / "macros")
     spec = entries[0].spec
     assert spec is not None and spec.steps[0].args == {"text": "Alice"}
 

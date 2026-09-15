@@ -21,6 +21,7 @@ the overlay reading, and mined OCR variants; it never adds a score.
 import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from physiclaw.common import paths
@@ -105,9 +106,6 @@ class PageDecl:
     # (readings of one text, `within:`), the other polarity.
     forbid: tuple[AnchorDecl, ...] = ()
     scrollable: bool = False
-    # A thread page: the band or box the other party's bubbles' centers
-    # fall in (`reply.read_incoming` keys on it).
-    incoming: Bbox | None = None
 
 
 # The pack-level fixed spots: `landmarks:`, an OPEN vocabulary of named
@@ -180,7 +178,7 @@ def parse_pages(text: str, app: str) -> dict[str, PageDecl]:
 # waypoint declares (vs merely references), and pack.py derives its
 # waypoint key set from it — a new page field lands here and reaches
 # every door.
-PAGE_DECL_FIELDS = ("anchors", "forbid", "scrollable", "incoming")
+PAGE_DECL_FIELDS = ("anchors", "forbid", "scrollable")
 # A manifest page's one non-declaration key: the recover hand every
 # route of the pack inherits for it (a route may declare its own).
 PAGE_RECOVERY_FIELDS = ("recover", "tries", "on_fail")
@@ -367,15 +365,24 @@ def _parse_page(name: str, spec: Any) -> PageDecl:
     if not isinstance(scrollable, bool):
         raise PagesError(f"{where}: `scrollable` must be true or false")
 
-    incoming = _parse_within(spec.get("incoming"), f"{where}: `incoming`")
+    return PageDecl(name=name, anchors=anchors, forbid=forbid, scrollable=scrollable)
 
-    return PageDecl(
-        name=name,
-        anchors=anchors,
-        forbid=forbid,
-        scrollable=scrollable,
-        incoming=incoming,
-    )
+
+def parse_thread(raw: Any) -> "Bbox | None":
+    """The channel manifest's `thread:` section — how the user's thread
+    is read: `incoming`, the band or box the user's bubbles' centers
+    fall in (ours and centered system rows sit outside it;
+    `reply.read_incoming` keys on it). None when absent."""
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise PagesError(
+            "`thread` must be a mapping — `thread: {incoming: [l, t, r, b]}`"
+        )
+    unknown = sorted(set(map(str, raw.keys())) - {"incoming"})
+    if unknown:
+        raise PagesError(f"`thread`: unknown key(s): {', '.join(unknown)}")
+    return _parse_within(raw.get("incoming"), "`thread: incoming`")
 
 
 def _parse_anchors(raw: Any, where: str) -> tuple[AnchorDecl, ...]:
@@ -490,11 +497,21 @@ def scan_app_decls(app: str) -> dict[str, PageDecl]:
 _LEARNED_SCHEMA = 1
 
 
+def learned_file(app: str) -> Path:
+    """`learned/pages/<app>.json` — keyed by the folder too when a pack
+    loads from one named differently (the channel's IM folder:
+    `channel-wechat.json`), so one IM's calibrated thread never stands
+    in for another's."""
+    folder = paths.pack_root(app).name
+    stem = app if folder == app else f"{app}-{folder}"
+    return paths.learned_pages_dir() / f"{stem}.json"
+
+
 def load_learned(app: str) -> dict[str, LearnedPage]:
     """The captured geometry for one app — {} on missing/unreadable/stale
     file (fail-open: a bad learned file degrades to declaration-only
     matching, never takes a session down)."""
-    p = paths.learned_pages_dir() / f"{app}.json"
+    p = learned_file(app)
     if not p.exists():
         return {}
     try:
@@ -549,7 +566,7 @@ def save_learned(app: str, pages: dict[str, LearnedPage]) -> None:
             for name, lp in pages.items()
         },
     }
-    write_json_atomic(paths.learned_pages_dir() / f"{app}.json", obj)
+    write_json_atomic(learned_file(app), obj)
 
 
 def prints_for_app(

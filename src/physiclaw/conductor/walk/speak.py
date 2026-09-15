@@ -46,7 +46,7 @@ def send(
     for replies to the previous send judges by its words."""
     if walk.channel is None or walk.channel.send is None:
         return walk.handover(
-            "no channel send macro — record playbooks/channel to enable asks and tells"
+            "no channel send macro — install a channel pack to enable asks and tells"
         )
     walk.gate.ask = text
     walk.gate.next_words = (yes, no)

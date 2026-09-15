@@ -54,6 +54,7 @@ from physiclaw.conductor.spec.pages import (
     collect_page_recovers,
     pack_landmarks,
     parse_pages_data,
+    parse_thread,
     prints_for_app,
 )
 from physiclaw.conductor.spec.refs import check_refs, field_name, refs_in
@@ -127,9 +128,9 @@ def load_pack(app: str) -> Pack:
     with the cause; a broken playbook file rides the same way."""
     doc = specfile.load_pack_doc(app, PlaybookError)
     if doc is None:
-        raise PlaybookError(f"no pack {app!r} on disk (missing {PACK_FILENAME})")
-    _check_pack_meta(doc, app)
+        raise PlaybookError(paths.pack_gap(app))
     root = paths.pack_root(app)
+    _check_pack_meta(doc, app, root.name)
     if app == CHANNEL_APP:
         # The boot file is a template the user owns, materialized beside
         # an existing channel pack on first look (the ios pack's
@@ -153,6 +154,10 @@ def load_pack(app: str) -> Pack:
         landmarks = pack_landmarks(doc)
     except PagesError as e:
         raise PlaybookError(f"{app}/{PACK_FILENAME} landmarks: {e}") from e
+    try:
+        thread_incoming = parse_thread(doc.get("thread"))
+    except PagesError as e:
+        raise PlaybookError(f"{app}/{PACK_FILENAME}: {e}") from e
     # One scanner per leaf kind, run on the pack's folders and on each
     # playbook's: traversal guard, skip convention, and the broad-except
     # lesson live in `store.scan` and `paths.leaf_files`. A macro's jump
@@ -180,6 +185,7 @@ def load_pack(app: str) -> Pack:
         },
         landmarks=landmarks,
         page_recovers=collect_page_recovers(doc),
+        thread_incoming=thread_incoming,
     )
 
 
@@ -224,7 +230,7 @@ def macros_root(app: str, playbook: str | None = None) -> Path:
     when the pack or the playbook is not on disk."""
     root = paths.pack_root(app)
     if not (root / PACK_FILENAME).exists():
-        raise PlaybookError(f"no pack {app!r} on disk (missing {root / PACK_FILENAME})")
+        raise PlaybookError(paths.pack_gap(app))
     if playbook is not None:
         if not (root / playbook / paths.PLAYBOOK_FILENAME).is_file():
             raise PlaybookError(
@@ -234,19 +240,20 @@ def macros_root(app: str, playbook: str | None = None) -> Path:
     return root / PACK_MACROS_DIRNAME
 
 
-def _check_pack_meta(doc: dict, app: str) -> None:
+def _check_pack_meta(doc: dict, app: str, folder: str) -> None:
     """The manifest's meta, every field optional: `app` (which app this
-    pack automates) must equal the directory when present — the folder
-    IS the app, the field catches a pack copied under the wrong name;
+    pack automates) must equal the directory it loads from when present
+    — the folder IS the app, the field catches a pack copied under the
+    wrong name;
     `description` is real prose when present (`install` prints it);
     `placeholders` (install-time constants, validated here so `check`
     catches a malformed map before install prompts read it) is
     name → {description, [example]}."""
     if "app" in doc:
         declared = require_str(doc.get("app"), "`app`")
-        if declared != app:
+        if declared != folder:
             raise PlaybookError(
-                f"app {declared!r} must equal the pack directory {app!r}"
+                f"app {declared!r} must equal the pack directory {folder!r}"
             )
     if app == "pages":
         raise PlaybookError(
@@ -315,8 +322,13 @@ def stray_dirs() -> list[str]:
 
 def list_apps() -> list[str]:
     """Packs across the search path (the `paths.playbooks_dirs` layering),
-    sorted — an APP.yml marks a pack."""
-    return sorted(paths.marked_subdirs(paths.playbooks_dirs(), PACK_FILENAME))
+    sorted — an APP.yml marks a pack. The channel is listed whenever a
+    `channel/` dir exists at all, so `check` can report why it does
+    not resolve."""
+    names = paths.marked_subdirs(paths.playbooks_dirs(), PACK_FILENAME)
+    if any((d / CHANNEL_APP).is_dir() for d in paths.playbooks_dirs()):
+        names.add(CHANNEL_APP)
+    return sorted(names)
 
 
 def parse_playbook(text: str, name: str, pack: Pack) -> Playbook:

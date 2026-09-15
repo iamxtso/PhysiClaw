@@ -14,6 +14,7 @@ Layout::
     ├── skills/<name>/SKILL.md           (user-authored; overrides built-in)
     ├── macros/{README.md, <name>.yml, stats.json}  (gesture macros + run stats)
     ├── playbooks/<app>/{APP.yml, README.md, macros/, <playbook>/{PLAYBOOK.yml, macros/, prompts/}}
+    ├── playbooks/channel/{ACTIVE.txt, <im>/}  (the user channel, one IM folder in use)
     ├── playbooks/placeholders.yml       (per-install <<TOKEN>> values, filled at load)
     ├── official/{source.json, skills/, .sync-state.json}  (synced official pack)
     ├── cache/update.json                (update-notice stage marker; Phase B→A)
@@ -149,14 +150,73 @@ def playbooks_dirs() -> list[Path]:
     return _layered(playbooks_dir(), "playbooks")
 
 
+# The user channel: `playbooks/channel/<im>/` is a pack per IM app, and
+# `channel/ACTIVE.txt` holds the one word naming the folder in use. One
+# folder needs no file.
+CHANNEL_DIRNAME = "channel"
+CHANNEL_ACTIVE_FILENAME = "ACTIVE.txt"
+
+
+def channel_folder(root: Path) -> tuple[Path | None, str | None]:
+    """The IM folder the channel under ``root`` resolves to, or why
+    none does: (folder, None) / (None, the gap) / (None, None) when
+    ``root`` holds no channel at all."""
+    base = root / CHANNEL_DIRNAME
+    if not base.is_dir():
+        return None, None
+    folders = sorted(marked_subdirs([base], PACK_FILENAME))
+    active = base / CHANNEL_ACTIVE_FILENAME
+    where = f"{CHANNEL_DIRNAME}/{CHANNEL_ACTIVE_FILENAME}"
+    if active.is_file():
+        word = read_text(active).strip()
+        if word in folders:
+            return base / word, None
+        have = ", ".join(folders) or "none"
+        return None, f"{where} names {word!r}, which is not an IM folder here ({have})"
+    if len(folders) == 1:
+        return base / folders[0], None
+    if not folders:
+        return None, f"{CHANNEL_DIRNAME}/ holds no IM folder with {PACK_FILENAME}"
+    return (
+        None,
+        f"{CHANNEL_DIRNAME}/ holds {', '.join(folders)} — write {where} naming one",
+    )
+
+
+def channel_root() -> tuple[Path | None, str | None]:
+    """The channel's pack folder, or why there is none: the first search
+    dir holding a channel dir at all decides (the layering rule, the
+    home first) — a misconfigured home channel is reported, never
+    silently shadowed by the tree's template."""
+    for d in playbooks_dirs():
+        folder, why = channel_folder(d)
+        if folder is not None or why is not None:
+            return folder, why
+    return None, None
+
+
 def pack_root(app: str) -> Path:
     """The directory pack ``app`` loads from — the first search dir
-    carrying ``<app>/APP.yml``; the home dir (the write target)
-    when none does."""
+    carrying ``<app>/APP.yml``; the home dir (the write target) when
+    none does. The channel is the one pack that lives a level down
+    (`channel_root`), so its root's name is the IM, not the app."""
+    if app == CHANNEL_DIRNAME:
+        folder, _ = channel_root()
+        return folder if folder is not None else playbooks_dir() / CHANNEL_DIRNAME
     for d in playbooks_dirs():
         if (d / app / PACK_FILENAME).exists():
             return d / app
     return playbooks_dir() / app
+
+
+def pack_gap(app: str) -> str:
+    """Why ``app`` has no manifest to load — the channel's own reason
+    (`channel_root`) when it has one, else the plain fact."""
+    if app == CHANNEL_DIRNAME:
+        _, gap = channel_root()
+        if gap is not None:
+            return gap
+    return f"no pack {app!r} on disk (missing {PACK_FILENAME})"
 
 
 def macros_dirs() -> list[Path]:

@@ -21,7 +21,7 @@ from physiclaw.debug import thread as vthread
 
 
 def _render(bubbles) -> Screen:
-    return Screen.read(vthread.render_listing(bubbles, vthread.thread_print()))
+    return Screen.read(vthread.render_listing(bubbles, *vthread.channel_view()))
 
 
 # ---------- the file ----------

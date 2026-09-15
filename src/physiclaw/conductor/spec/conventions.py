@@ -10,12 +10,14 @@ A leaf: nothing here imports the conductor.
 import re
 import unicodedata
 
+from physiclaw.common import paths
+
 # Reserved app namespaces a pack's page refs may cross into. Neither is
 # a task pack, and both are scaffolded into playbooks/<app>/ like any
 # other: `channel` is the user-channel IM pages + send macros, `ios` is
 # OS-level state. Playbooks never name either — the conductor reaches
 # them through node types, which is what "reserved" buys.
-CHANNEL_APP = "channel"
+CHANNEL_APP = paths.CHANNEL_DIRNAME
 
 # The OS-state pack. Same shape as any other pack — a scaffolded
 # `playbooks/ios/` the user owns and edits — but the conductor knows its

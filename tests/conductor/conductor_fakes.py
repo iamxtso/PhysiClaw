@@ -286,7 +286,6 @@ def build_program(
 CHANNEL_PAGES = """\
 thread:
   anchors: ["MyChat"]
-  incoming: [0.0, 0.0, 0.45, 1.0]
 """
 
 CHANNEL_OPEN = """\
@@ -308,14 +307,31 @@ steps:
 """
 
 
-def write_channel(open_macro: str | None = None) -> None:
+def channel_root(im: str = "wechat"):
+    """Where a test channel pack lives: an IM folder under `channel/`
+    (no ACTIVE.txt needed with a single folder)."""
     from physiclaw.common import paths
 
-    root = paths.playbooks_dir() / "channel"
+    return paths.playbooks_dir() / "channel" / im
+
+
+def write_active(word: str) -> None:
+    """`channel/ACTIVE.txt` — the IM folder in use."""
+    from physiclaw.common import paths
+
+    (paths.playbooks_dir() / "channel" / "ACTIVE.txt").write_text(
+        word + "\n", encoding="utf-8"
+    )
+
+
+def write_channel(open_macro: str | None = None, im: str = "wechat") -> None:
+    root = channel_root(im)
     (root / "macros").mkdir(parents=True, exist_ok=True)
     (root / "boot").mkdir(exist_ok=True)  # a test may write its own boot
     (root / "APP.yml").write_text(
-        compose_pack_doc("channel", CHANNEL_PAGES), encoding="utf-8"
+        compose_pack_doc(im, CHANNEL_PAGES)
+        + "thread:\n  incoming: [0.0, 0.0, 0.45, 1.0]\n",
+        encoding="utf-8",
     )
     (root / "macros" / "send.yml").write_text(CHANNEL_SEND, encoding="utf-8")
     if open_macro is not None:
