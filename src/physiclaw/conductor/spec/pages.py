@@ -63,7 +63,9 @@ _require_str, _prose, _opt_prose, _check_name = specfile.bind(PagesError)
 @dataclass(frozen=True)
 class AnchorDecl:
     """One declared identity anchor: the label text that should be on the
-    page, optionally pinned to where it must sit (`within`).
+    page, optionally pinned to where it must sit (`within`). The same
+    shape declares a page's `forbid:` terms — the text that must NOT
+    show, pinned the same way.
 
     `alts` are further acceptable READINGS of that SAME anchor — any one
     satisfies it, and it still counts ONCE toward the page score. They are
@@ -99,7 +101,9 @@ class AnchorDecl:
 class PageDecl:
     name: str
     anchors: tuple[AnchorDecl, ...]
-    forbid: tuple[str, ...] = ()
+    # Terms that read the page OUT while one shows — the anchor shape
+    # (readings of one text, `within:`), the other polarity.
+    forbid: tuple[AnchorDecl, ...] = ()
     scrollable: bool = False
     # A thread page: the band or box the other party's bubbles' centers
     # fall in (`reply.read_incoming` keys on it).
@@ -354,10 +358,10 @@ def _parse_page(name: str, spec: Any) -> PageDecl:
 
     raw_forbid = spec.get("forbid", [])
     if not isinstance(raw_forbid, list):
-        raise PagesError(f"{where}: `forbid` must be a list of strings")
+        raise PagesError(f"{where}: `forbid` must be a list of terms")
     if len(raw_forbid) > MAX_FORBID:
         raise PagesError(f"{where}: {len(raw_forbid)} forbid terms > max {MAX_FORBID}")
-    forbid = tuple(_anchor_text(t, f"{where} forbid") for t in raw_forbid)
+    forbid = tuple(_parse_anchor(t, f"{where} forbid") for t in raw_forbid)
 
     scrollable = spec.get("scrollable", False)
     if not isinstance(scrollable, bool):
@@ -379,7 +383,8 @@ def _parse_anchors(raw: Any, where: str) -> tuple[AnchorDecl, ...]:
     (every anchor must show; a forbid term must not).
     Each anchor is a text, a list of alternate readings of ONE text, or
     `{text, within}` with `within` a band (`top`, `bottom`, `left`,
-    `right`) or a box — the check shape a macro step's `require:` uses.
+    `right`) or a box — the check shape a macro step's `require:` uses,
+    and the shape each `forbid:` term takes too.
     Alternates go INSIDE an anchor, never as separate anchors: every
     declared anchor must show."""
     if isinstance(raw, str):

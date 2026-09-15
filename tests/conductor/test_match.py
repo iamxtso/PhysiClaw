@@ -113,7 +113,7 @@ def test_score_scrollable_page_votes_shared_dy() -> None:
 
 
 def test_score_forbid_vetoes() -> None:
-    pp = _print(anchors=[AnchorDecl("综合")], forbid=["直播中"])
+    pp = _print(anchors=[AnchorDecl("综合")], forbid=[AnchorDecl("直播中")])
     screen = make_screen(("综合", 0.2, 0.1), ("直播中", 0.5, 0.5))
 
     s = m.score_page(pp, screen)
@@ -222,7 +222,9 @@ def test_match_screen_two_pages_reading_whole_is_ambiguous() -> None:
 
 
 def test_forbid_names_itself_on_the_unknown_line() -> None:
-    sheet = _print(name="buysheet", anchors=[AnchorDecl("实付")], forbid=("支付成功",))
+    sheet = _print(
+        name="buysheet", anchors=[AnchorDecl("实付")], forbid=(AnchorDecl("支付成功"),)
+    )
     screen = make_screen(("实付", 0.5, 0.5), ("支付成功", 0.5, 0.2))
 
     v = m.match_screen(screen, [sheet])
@@ -411,7 +413,7 @@ def test_region_pinned_anchor_ignores_the_scroll_offset() -> None:
 def test_forbid_reads_row_labels_not_the_result_prose() -> None:
     # A macro result carries its step log beside the listing; a forbid
     # term in that prose (a step named after it) must not veto the page.
-    pp = _print(anchors=[AnchorDecl("综合")], forbid=["popup"])
+    pp = _print(anchors=[AnchorDecl("综合")], forbid=[AnchorDecl("popup")])
     text = make_screen(("综合", 0.5, 0.1)).text + "\nmacro demo/x: tool popup ran"
 
     v = m.match_screen(Screen.read(text), [pp])
@@ -480,3 +482,21 @@ def test_the_loose_tier_admits_a_two_char_confusion_only_when_asked() -> None:
     assert m.label_matches("综合", "综台", (), loose=True) is True
     assert m.label_matches("综合", "综台", ()) is False
     assert m.label_matches("合", "台", (), loose=True) is False
+
+
+def test_a_banded_forbid_vetoes_only_where_the_text_sits() -> None:
+    # The chat list's title is forbidden in the title box; the same word
+    # inside a message bubble is not the list.
+    pp = _print(
+        anchors=[AnchorDecl("Alice", within=(0.3, 0.03, 0.7, 0.12))],
+        forbid=[AnchorDecl("微信", alts=("Weixin",), within=(0.3, 0.03, 0.7, 0.12))],
+    )
+
+    bubble = make_screen(("Alice", 0.5, 0.07), ("我在微信等你", 0.3, 0.5))
+    assert m.score_page(pp, bubble).passes
+
+    listing = make_screen(("Weixin", 0.5, 0.07), ("Alice", 0.2, 0.3))
+    s = m.score_page(pp, listing)
+    assert (
+        not s.passes and s.forbid_term == "微信"
+    )  # the canonical reading, as hits are

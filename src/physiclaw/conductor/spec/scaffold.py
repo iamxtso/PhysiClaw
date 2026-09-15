@@ -242,7 +242,7 @@ route:
     anchors:
       - "EDIT ME"           # a label text that identifies this page
       # - {{text: ["Search", "Find"], within: top}}
-    # forbid: ["popup text"]  # veto terms — kills look-alike takeovers
+    # forbid: ["popup text"]  # veto terms, the anchor shape — kills look-alikes
     # scrollable: true        # content may scroll under fixed chrome
     recover:                # not this page → this hand, read again
       macro:                # (`tries` times), then `on_fail`
@@ -408,8 +408,8 @@ in the background; a page declaring none hands over. A page's
 `anchors:` is the list of texts that identify it, and EVERY one must
 show — declare few, unmistakable
 texts; alternate readings of one text go inside it (`text: [..]`),
-`within:` pins it to a band or a box, and a `forbid:` term showing
-reads the page out. No score: a screen reading exactly one page whole
+`within:` pins it to a band or a box, and a `forbid:` term (the same
+shape) showing reads the page out. No score: a screen reading exactly one page whole
 is that page, none is unknown (the log names each page's missing
 anchor), two is ambiguous.
 

@@ -42,10 +42,10 @@ empty file is a valid pack (the file is the pack marker):
   are the texts that identify the page and EVERY one must show, so
   declare few, unmistakable texts — alternate readings of one text go
   inside it (`text: [..]`), `within:` pins it to a band or a box, a
-  `forbid:` term showing reads the page out; no score, a screen reading
-  exactly one page whole is that page — semantics only; geometry is
-  learned on-device via
-  `physiclaw playbooks pages calibrate`. A page here may carry its
+  `forbid:` term (the same shape) showing reads the page out; no score,
+  a screen reading exactly one page whole is that page — semantics
+  only; geometry is learned on-device via `physiclaw playbooks pages
+  calibrate`. A page here may carry its
   `recover:` hand too — a gesture, a landmark tap, or a pack macro by
   name — which every route inherits unless it declares its own. The
   channel's thread page may declare `incoming:`, a band or a box the

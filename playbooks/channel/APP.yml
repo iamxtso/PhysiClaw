@@ -20,7 +20,10 @@ pages:
       # the same name left-aligned at the same height, and a wake often
       # opens on exactly that (home or lock screen, WeChat badge).
       - {text: "<<CONTACT>>", within: [0.30, 0.03, 0.70, 0.12]}
-    forbid: ["Weixin"]   # the chat LIST header — kills the list lookalike
+    # The chat LIST's title, in the same box as the thread's (an English
+    # system reads Weixin): forbidden there, not elsewhere on the page.
+    forbid:
+      - {text: ["微信", "Weixin"], within: [0.30, 0.03, 0.70, 0.12]}
     # Where the user's bubbles sit: their centers fall in this box, the
     # assistant's own outside it. The reader tells a reply from its own
     # ask by it, and centered system rows (time stamps) fall outside.

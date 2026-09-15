@@ -143,15 +143,21 @@ def label_matches(
     variants: tuple[str, ...],
     *,
     loose: bool = False,
+    exact: bool = False,
 ) -> bool:
     """The tiered text match. `anchor_norm`/`variants` are pre-normalized.
     `loose` is capture's mining tier: the one-substitution window opens
     from LOOSE_ANCHOR_MIN, so a two-character confusion at a vouched-for
-    spot can be learned; a single character stays exact everywhere."""
+    spot can be learned; a single character stays exact everywhere.
+    `exact` is a veto's rung: the base rule alone, no fuzzy tier — an
+    anchor wants recall (OCR noise must not hide the page), a forbid
+    wants precision (a near miss must not read the page out)."""
     if label_norm in variants:
         return True
     if label_hit(anchor_norm, label_norm):
         return True
+    if exact:
+        return False
     if len(anchor_norm) < (LOOSE_ANCHOR_MIN if loose else SHORT_ANCHOR_MIN):
         return False  # too short for a substitution: the base rule is final
     if len(anchor_norm) <= SHORT_ANCHOR_MAX:
@@ -256,7 +262,8 @@ def reads_as_locked(screen: Screen) -> bool:
 @dataclass(frozen=True)
 class PageScore:
     """One page read against one screen: which anchors showed, which
-    expected-visible ones did not, and the forbid term that showed."""
+    expected-visible ones did not, and the forbid term that showed (by
+    its canonical text, as hits and missing are named)."""
 
     print_: PagePrint
     hits: tuple[str, ...]  # anchor texts found (canonical spelling)
@@ -290,6 +297,7 @@ def candidate_rows(
     variants: tuple[str, ...],
     *,
     loose: bool = False,
+    exact: bool = False,
 ) -> list[Element]:
     """Rows satisfying one anchor. ANY of its declared readings matches
     (`AnchorDecl.readings` — the canonical text plus authored alts),
@@ -314,10 +322,11 @@ def candidate_rows(
         if sole is not None:
             # The overwhelmingly common shape (one declared reading) —
             # kept off the generator to stay a plain call per row.
-            if not label_matches(sole, label_norm, variants, loose=loose):
+            if not label_matches(sole, label_norm, variants, loose=loose, exact=exact):
                 continue
         elif not any(
-            label_matches(a, label_norm, variants, loose=loose) for a in anchor_norms
+            label_matches(a, label_norm, variants, loose=loose, exact=exact)
+            for a in anchor_norms
         ):
             continue
         out.append(row)
@@ -326,15 +335,13 @@ def candidate_rows(
 
 def score_page(pp: PagePrint, screen: Screen) -> PageScore:
     """Read one candidate page against one screen."""
-    if pp.decl.forbid:
+    for term in pp.decl.forbid:
         # Row labels only, one row at a time: a macro result's step log
         # rides `screen.content` too, and a term must never straddle two
-        # labels once whitespace is collapsed.
-        labels_norm = [normalize(r.label) for r in screen.rows if r.label]
-        for term in pp.decl.forbid:
-            t = normalize(term)
-            if any(t in label for label in labels_norm):
-                return PageScore(pp, (), (), 0.0, forbid_term=term)
+        # labels once whitespace is collapsed. The base rule alone: a
+        # veto has no mined variants and takes no fuzzy tier.
+        if candidate_rows(term, screen.rows, (), exact=True):
+            return PageScore(pp, (), (), 0.0, forbid_term=term.text)
 
     learned = pp.learned
     anchors = pp.decl.anchors

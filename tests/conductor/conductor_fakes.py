@@ -355,7 +355,10 @@ def make_print(
     from physiclaw.conductor.spec.pages import LearnedPage, PageDecl, PagePrint
 
     decl = PageDecl(
-        name=name, anchors=tuple(anchors), forbid=tuple(forbid), scrollable=scrollable
+        name=name,
+        anchors=tuple(anchors),
+        forbid=tuple(forbid),
+        scrollable=scrollable,
     )
     learned = None
     if learned_anchors is not None:

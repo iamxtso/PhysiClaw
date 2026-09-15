@@ -39,7 +39,7 @@ def test_parse_valid_pages() -> None:
     r = out["results"]
     assert r.anchors[0].text == "综合" and r.anchors[0].within is None
     assert r.anchors[1].within == BANDS["top"]
-    assert r.forbid == ("直播中",)
+    assert r.forbid[0].text == "直播中" and r.forbid[0].within is None
     assert r.scrollable is True
     assert out["item-detail"].scrollable is False
 
@@ -61,7 +61,7 @@ def test_parse_empty_file_is_no_pages() -> None:
         ("results:\n  anchors: {text: 'a', within: top}", "must be a list"),
         ("results:\n  anchors: [{or: ['a', 'b']}]", "unknown key"),
         ("results:\n  anchors: [123]", "a text, a list"),
-        ("results:\n  anchors: ['ok']\n  forbid: 'nope'", "list of strings"),
+        ("results:\n  anchors: ['ok']\n  forbid: 'nope'", "list of terms"),
         ("results:\n  anchors: ['ok']\n  scrollable: 1", "true or false"),
         ("thread:\n  anchors: ['ok']\n  incoming: sideways", "must be one of"),
     ],
@@ -297,3 +297,14 @@ def test_a_page_may_declare_where_incoming_bubbles_sit() -> None:
         parse_pages("thread:\n  anchors: ['ok']\n", "channel")["thread"].incoming
         is None
     )
+
+
+def test_a_forbid_text_takes_the_anchor_shape() -> None:
+    out = parse_pages(
+        "thread:\n  anchors: ['Alice']\n"
+        "  forbid:\n    - {text: ['微信', 'Weixin'], within: [0.3, 0.03, 0.7, 0.12]}\n",
+        "chat",
+    )
+
+    (f,) = out["thread"].forbid
+    assert f.readings == ("微信", "Weixin") and f.within == (0.3, 0.03, 0.7, 0.12)
