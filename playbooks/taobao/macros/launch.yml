@@ -4,14 +4,9 @@ description: bring Taobao to its feed from wherever the phone is — every route
 enabled: false
 steps:
   # ── 1. raise Taobao in whatever state it kept ──────────────────────
-  # force_quit (below) kills the FOREGROUND app, and the boot leaves the
-  # IM app in front.
-  - home_screen
-  - tap: "blank area below the app cards"    # home_screen FROM home can open the switcher
-    at: [0.42, 0.855, 0.58, 0.885]
-  - tap: "the taobao app icon"
-    at: [0.720, 0.425, 0.909, 0.551]
-  - wait: 2
+  # Raised first: a cold launch quits whatever is in front, and the
+  # boot leaves the IM app there.
+  - run: foreground                          # Taobao in front, as it kept itself
   # Taobao restores the last TAB: a walk that ended on 闪购外卖 comes
   # back on it, and that tab is not the feed. Its header still holds the
   # 推荐 tab — press it while the tab's own row (我的闪购) shows.
@@ -24,23 +19,7 @@ steps:
   - if_page: home
     goto: feed
   # ── 2. first cold launch ───────────────────────────────────────────
-  - force_quit                               # the card the switcher flings is taobao's
-  - home_screen
-  - tap: "blank area below the app cards"
-    at: [0.42, 0.855, 0.58, 0.885]
-  - tap: "the taobao app icon"               # the cold launch
-    at: [0.720, 0.425, 0.909, 0.551]
-  - wait: 5
-  # A cold launch may open on a full-screen ad — without this step
-  # every relaunch fails verify.
-  - tap: "跳过"
-    at: [0.79, 0.030, 0.87, 0.065]
-    when: {text: "跳过", within: [0.70, 0.0, 1.0, 0.12]}
-  - wait: 4
-  - tap: "推荐"
-    at: [0.14, 0.055, 0.26, 0.095]
-    when: ["我的闪购"]
-  - wait: 2
+  - run: cold-launch                         # quit, relaunch past the ad, onto 推荐, settled
   # Taobao restores the page it was quit on ONCE: the first cold launch
   # after a force_quit may come up on that page, and the launch after
   # that on the feed. So the feed already showing is done; otherwise
@@ -48,23 +27,7 @@ steps:
   - if_page: home
     goto: feed
   # ── 3. second cold launch ──────────────────────────────────────────
-  - force_quit
-  - home_screen
-  - tap: "blank area below the app cards"
-    at: [0.42, 0.855, 0.58, 0.885]
-  - tap: "the taobao app icon"
-    at: [0.720, 0.425, 0.909, 0.551]
-  - wait: 5
-  - tap: "跳过"
-    at: [0.79, 0.030, 0.87, 0.065]
-    when: {text: "跳过", within: [0.70, 0.0, 1.0, 0.12]}
-  # A post-ad cold render needs the slack before the tab row is read.
-  - wait: 4
-  - tap: "推荐"
-    at: [0.14, 0.055, 0.26, 0.095]
-    when: ["我的闪购"]
+  - run: cold-launch                         # quit, relaunch past the ad, onto 推荐, settled
   # ── the feed: every exit lands here ────────────────────────────────
-  # The mark re-peeks AFTER the sleep — THIS fresh view is what the home
-  # verify reads, once the tab switch has settled.
-  - wait: 2
+  # The mark peeks fresh — THIS view is what the home verify reads.
   - mark: feed

@@ -6,10 +6,4 @@ steps:
   - tap: "提交订单"
     at: [0.72, 0.905, 0.94, 0.955]
   - wait: 4
-  # The cashier after 提交订单 is unrecorded on both storefronts: this
-  # presses it only while one of its buttons shows (a screen that cannot
-  # be read skips it — `when` withholds).
-  - tap: ["立即支付", "确认支付"]
-    at: [0.30, 0.90, 0.70, 0.96]
-    when: ["立即支付", "确认支付"]
-  - wait: 4
+  - run: cashier                             # 立即支付 / 确认支付, only while one shows

@@ -35,9 +35,11 @@ taobao` on your phone so one OCR miss does not read a page unknown.
 
 ## Rehearsal
 
-`launch`, `search` and `foreground` are pack macros every route shares;
-each ships disabled and needs `physiclaw macros run taobao/<name>` on
-your device before a playbook that uses it is live.
+`launch`, `foreground`, `cold-launch`, `search` and `cashier` are pack
+macros the routes share (`launch` runs `foreground` and `cold-launch`;
+the marketplace and storefront pay hands run `cashier`); each ships
+disabled and needs `physiclaw macros run taobao/<name>` on your device
+before a playbook that uses it is live.
 
 ## Traps
 

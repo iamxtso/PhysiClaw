@@ -75,8 +75,7 @@ route:
     on_fail: stop                 # a failure (or an answered no) ends the session; nothing paid
     resume: foreground            # the ask left the app — come back where it was
 
-  # One recorded tap once the consented amount still shows; a two-step
-  # cashier gets its second tap only while its button is on screen.
+  # One recorded tap once the consented amount still shows.
   - do: pay
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
@@ -85,10 +84,7 @@ route:
         - tap: ["免密支付", "立即支付", "提交订单"]   # one target, three spellings
           at: [0.368, 0.923, 0.629, 0.948]
         - wait: 4
-        - tap: ["立即支付", "确认支付"]              # only a two-step cashier shows this
-          at: [0.30, 0.90, 0.70, 0.96]
-          when: ["立即支付", "确认支付"]
-        - wait: 4
+        - run: cashier                            # 立即支付 / 确认支付, only while one shows
 
   - page: paid
 

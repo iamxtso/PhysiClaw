@@ -74,7 +74,6 @@ route:
     on_fail: stop
     resume: foreground            # the ask left the app — come back where it was
 
-  # Payment: 提交订单, then the cashier's button when it shows.
   - do: pay
     irreversible: payment
     on_fail: handover             # money may have moved: the model verifies and reports
@@ -83,12 +82,6 @@ route:
         - tap: ["免密支付", "提交订单", "立即支付"]   # one button, three spellings — recorded
           at: [0.300, 0.918, 0.720, 0.960]     # 免密支付￥… read at [0.333,0.927,0.682,0.950]
         - wait: 4
-        - tap: ["立即支付", "确认支付"]           # the cashier, when it shows
-          at: [0.30, 0.90, 0.70, 0.96]
-          # NOT 免密支付: that is step 1's own target at an overlapping
-          # box, so a sheet that has simply not navigated in 4s would
-          # satisfy this and press the order button a second time.
-          when: ["立即支付", "确认支付"]
-        - wait: 4
+        - run: cashier                            # 立即支付 / 确认支付, only while one shows
 
   - page: paid
