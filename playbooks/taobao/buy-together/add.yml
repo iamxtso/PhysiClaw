@@ -22,13 +22,13 @@ route:
   - start: app
     macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home
 
   - do: search                    # type the keyword into the feed's bar, run it
     with: {keyword: "{parse.keyword} 非直播"}
     macro: app.macros.search
 
-  - page: app.pages.results       # the filter row (综合 / 销量)
+  - page: app.pages.results
 
   - agent: pick
     prompt: prompts.pick-to-cart  # rows to a listing, the sheet's spec and quantity, 加入购物车
@@ -46,4 +46,4 @@ route:
     on_fail: stop                 # alone, a pick that cannot finish ends the session;
                                   # under `miss: skip` the round is recorded as missed
 
-  - page: app.pages.detail        # the item page: 加入购物车 and 立即购买 in the footer
+  - page: app.pages.detail

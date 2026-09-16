@@ -36,13 +36,13 @@ route:
   - start: app
     macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home
 
   - do: enter                     # the feed's main search for 盒马 opens its storefront
     with: {keyword: "盒马"}
     macro: app.macros.search
 
-  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
+  - page: app.pages.hema-home
 
   - run: add                      # store search, pick, 加入购物车, back to this home; one
     each: {item: parse.items}     # round per item; a line already in the cart is not

@@ -22,6 +22,7 @@ thread:
 # The ONE page the conductor must recognize: your chat thread.
 pages:
   thread:
+    description: the <<CONTACT>> chat, open on its message list
     anchors:
       # The thread TITLE: the contact name centered in the top bar. The
       # box, not the whole top band — an iOS notification banner prints

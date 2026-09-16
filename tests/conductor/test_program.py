@@ -14,6 +14,7 @@ from conductor_fakes import (
     ELSEWHERE,
     FLOW,
     HOME,
+    PAGES,
     RESULTS,
     make_screen,
     write_channel,
@@ -1236,14 +1237,10 @@ def test_hand_that_does_not_restore_runs_again_then_hands_over() -> None:
     assert "recover tries (2) spent" in summary
 
 
-OCCLUDABLE_PAGES = """\
-home:
-  anchors: ["Files"]
-results:
-  anchors: ["综合", "销量"]
-done:
-  anchors: ["AllDone"]
-"""
+# `results` with a SECOND anchor, so an overlay can hide one while the
+# other still reads — which is what makes the page "covered" rather
+# than unknown, and what a keyed `covered:` hand fires on.
+OCCLUDABLE_PAGES = PAGES.replace('anchors: ["综合"]', 'anchors: ["综合", "销量"]')
 
 KEYED = FLOW.replace(
     "  - page: app.pages.results\n",

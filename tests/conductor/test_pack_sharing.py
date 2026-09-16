@@ -31,9 +31,11 @@ landmarks:
     at: [0.35, 0.16, 0.65, 0.24]
 pages:
   home:
+    description: the home page
     anchors: ["Files"]
     recover: force_quit
   results:
+    description: the results page
     anchors: ["综合"]
     recover:
       covered: {tap: app.landmarks.dismiss}
@@ -213,7 +215,9 @@ def test_a_page_declared_in_the_manifest_and_a_file_is_refused(shop) -> None:
     (shop / "track").mkdir(exist_ok=True)
     (shop / "track" / "PLAYBOOK.yml").write_text(
         TRACK.replace(
-            "  - page: app.pages.home\n", '  - page: home\n    anchors: ["Files"]\n', 1
+            "  - page: app.pages.home\n",
+            '  - page: home\n    description: the home page\n    anchors: ["Files"]\n',
+            1,
         ),
         encoding="utf-8",
     )
@@ -394,7 +398,9 @@ def test_check_warns_when_one_page_reads_whole_on_anothers_screen() -> None:
     from physiclaw.conductor.spec import lints
 
     pack = _pages_pack(
-        '  sheet:\n    anchors: ["实付", "免密支付"]\n  total:\n    anchors: ["实付"]\n'
+        "  sheet:\n    description: the pay sheet\n"
+        '    anchors: ["实付", "免密支付"]\n'
+        '  total:\n    description: the total row\n    anchors: ["实付"]\n'
     )
 
     lines = [w for w in lints.pack_warnings(pack, []) if "also reads" in w]
@@ -411,9 +417,12 @@ def test_ambiguity_is_judged_by_the_matcher_not_by_text_sets() -> None:
     # A band tells the pages apart (the same text pinned to the bottom is
     # not the mid-screen row), and a forbid term does too.
     pack = _pages_pack(
-        '  sheet:\n    anchors: ["实付", "免密支付"]\n'
-        '  bar:\n    anchors: [{text: "实付", within: bottom}]\n'
-        '  receipt:\n    anchors: ["实付"]\n    forbid: ["免密支付"]\n'
+        "  sheet:\n    description: the pay sheet\n"
+        '    anchors: ["实付", "免密支付"]\n'
+        "  bar:\n    description: the pay bar\n"
+        '    anchors: [{text: "实付", within: bottom}]\n'
+        "  receipt:\n    description: the receipt\n"
+        '    anchors: ["实付"]\n    forbid: ["免密支付"]\n'
     )
 
     lines = [w for w in lints.pack_warnings(pack, []) if "also reads" in w]
@@ -433,8 +442,7 @@ def test_a_manifest_pages_on_fail_is_inherited_and_a_route_may_override() -> Non
     from conductor_fakes import PAGES, write_pack
 
     pages = PAGES.replace(
-        'results:\n  anchors: ["综合"]\n',
-        'results:\n  anchors: ["综合"]\n  on_fail: stop\n',
+        '  anchors: ["综合"]\n', '  anchors: ["综合"]\n  on_fail: stop\n'
     )
     route = """\
 description: d

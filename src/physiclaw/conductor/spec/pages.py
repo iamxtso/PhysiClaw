@@ -20,6 +20,7 @@ the overlay reading, and mined OCR variants; it never adds a score.
 
 import json
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -63,7 +64,7 @@ class PagesError(specfile.SpecError):
 
 # Shared spec substrate (`specfile`): the macro naming/prose rules bound
 # to this spec's error class.
-_require_str, _prose, _opt_prose, _check_name = specfile.bind(PagesError)
+_require_str, _prose, _, _check_name = specfile.bind(PagesError)
 
 
 @dataclass(frozen=True)
@@ -107,6 +108,12 @@ class AnchorDecl:
 class PageDecl:
     name: str
     anchors: tuple[AnchorDecl, ...]
+    # What this page IS, in the author's words — the one home for a
+    # meaning that would otherwise be retyped as a comment at every
+    # `page:` that names it, and what the refusals that list a pack's
+    # pages read. Required, as a macro's and a playbook's are: a page
+    # nobody can say in prose is one nobody can tell from its neighbour.
+    description: str
     # Terms that read the page OUT while one shows — the anchor shape
     # (readings of one text, `within:`), the other polarity.
     forbid: tuple[AnchorDecl, ...] = ()
@@ -178,12 +185,14 @@ def parse_pages(text: str, app: str) -> dict[str, PageDecl]:
     return parse_pages_data(data, app)
 
 
-# The page-declaration field vocabulary, spelled ONCE: `_parse_page`
-# validates exactly these keys, `route_decl` decides whether a route
-# waypoint declares (vs merely references), and pack.py derives its
-# waypoint key set from it — a new page field lands here and reaches
-# every door.
-PAGE_DECL_FIELDS = ("anchors", "forbid", "scrollable")
+# The page-field vocabulary, spelled ONCE. What IDENTIFIES a page is a
+# reading of the screen, and that alone is what makes a route waypoint
+# a declaration rather than a reference (`route_decl`): a `description:`
+# says what an already-declared page is and declares nothing. The wider
+# set is what `_parse_page` validates and what route.py admits on a
+# waypoint — a new page field lands there and reaches every door.
+PAGE_IDENTITY_FIELDS = ("anchors", "forbid", "scrollable")
+PAGE_DECL_FIELDS = ("description", *PAGE_IDENTITY_FIELDS)
 # A manifest page's one non-declaration key: the recover hand every
 # route of the pack inherits for it (a route may declare its own).
 PAGE_RECOVERY_FIELDS = ("recover", "tries", "on_fail")
@@ -227,14 +236,29 @@ def collect_page_recovers(doc: dict) -> dict[str, dict]:
     return out
 
 
+def page_menu(decls: "Mapping[str, PageDecl]") -> str:
+    """The pack's pages for a refusal — one per line, each with what its
+    `description:` says it is, so an author picks from a menu instead of
+    a wall of names. The ONE rendering: a waypoint's refusal and a
+    macro's read alike."""
+    if not decls:
+        return " (none)"
+    return "".join(
+        f"\n  {app_ref(PAGES_KIND, n)} — {d.description}"
+        for n, d in sorted(decls.items())
+    )
+
+
 def route_decl(entry: dict) -> "dict | None":
     """The declaration half of one route waypoint — its PAGE_DECL_FIELDS
     subset, or None for a bare reference. The ONE predicate for "does
     this waypoint declare": `collect_page_decls` (the pack door) and the
     playbook parser's prepass (the text door) must never disagree on
-    it."""
-    decl = {k: entry[k] for k in PAGE_DECL_FIELDS if k in entry}
-    return decl or None
+    it. What DECLARES is a reading (`PAGE_IDENTITY_FIELDS`); a
+    `description:` rides along and never declares on its own."""
+    if not any(k in entry for k in PAGE_IDENTITY_FIELDS):
+        return None
+    return {k: entry[k] for k in PAGE_DECL_FIELDS if k in entry}
 
 
 def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
@@ -273,9 +297,12 @@ def page_sites(
     sites: dict[str, str] = {}
 
     def declare(name: str, decl: Any, owner: str | None, site: str) -> None:
+        # Led by the site that declares it a second time: the author just
+        # wrote that one, and every refusal from this door names a file
+        # first.
         if name in sites:
             raise PagesError(
-                f"page {name!r} declared twice — in {sites[name]} and in {site}; "
+                f"{site}: page {name!r} declared twice — also in {sites[name]}; "
                 f"declare once (the manifest's is `{app_ref(PAGES_KIND, name)}`, "
                 f"a route's own is bare)"
             )
@@ -285,9 +312,12 @@ def page_sites(
     appendix = doc.get("pages")
     if appendix is not None:
         if not isinstance(appendix, dict):
-            raise PagesError("`pages` must be a YAML mapping of page name → spec")
+            raise PagesError(
+                f"{paths.PACK_FILENAME}: `pages` must be a YAML mapping of "
+                "page name → spec"
+            )
         for name, spec in appendix.items():
-            declare(str(name), decl_fields(spec), None, "the manifest")
+            declare(str(name), decl_fields(spec), None, paths.PACK_FILENAME)
     for pb_name, pb in (playbook_docs or {}).items():
         if not isinstance(pb, dict):
             continue
@@ -370,25 +400,38 @@ def pack_landmarks(doc: dict) -> dict[str, Landmark]:
     return parse_landmarks(doc.get("landmarks"), set(collect_page_decls(doc)))
 
 
-def parse_pages_data(data: Any, app: str) -> dict[str, PageDecl]:
-    """The `pages:` section of a pack file → validated declarations."""
+def parse_pages_data(
+    data: Any,
+    app: str,
+    files: "Mapping[str, str] | None" = None,
+    section: str = "",
+) -> dict[str, PageDecl]:
+    """The `pages:` section of a pack file → validated declarations.
+    A pack's pages come from several files, so a refusal must send the
+    author to the right one: `files` names the pack-relative file each
+    page was declared in (a route declares its own beside a waypoint or
+    in its `pages:` block), and `section` names the file the `pages:`
+    key itself lives in, for what is wrong with the section rather than
+    with one page. Both empty when the caller has one file anyway."""
     _check_name(app, "app name")
     if data is None:
         return {}
+    at = f"{section}: " if section else ""
     if not isinstance(data, dict):
-        raise PagesError("`pages` must be a YAML mapping of page name → spec")
+        raise PagesError(f"{at}`pages` must be a YAML mapping of page name → spec")
     if len(data) > MAX_PAGES:
-        raise PagesError(f"{len(data)} pages > max {MAX_PAGES}")
+        raise PagesError(f"{at}{len(data)} pages > max {MAX_PAGES}")
 
     out: dict[str, PageDecl] = {}
     for name, spec in data.items():
-        _check_name(name, "page name")
-        out[name] = _parse_page(name, spec)
+        file = (files or {}).get(name, "")
+        _check_name(name, f"{file}: page name" if file else "page name")
+        out[name] = _parse_page(name, spec, file)
     return out
 
 
-def _parse_page(name: str, spec: Any) -> PageDecl:
-    where = f"page `{name}`"
+def _parse_page(name: str, spec: Any, file: str = "") -> PageDecl:
+    where = f"{file}: page `{name}`" if file else f"page `{name}`"
     if not isinstance(spec, dict):
         raise PagesError(f"{where}: spec must be a mapping")
     unknown = sorted(set(spec.keys()) - set(PAGE_DECL_FIELDS))
@@ -408,7 +451,13 @@ def _parse_page(name: str, spec: Any) -> PageDecl:
     if not isinstance(scrollable, bool):
         raise PagesError(f"{where}: `scrollable` must be true or false")
 
-    return PageDecl(name=name, anchors=anchors, forbid=forbid, scrollable=scrollable)
+    return PageDecl(
+        name=name,
+        anchors=anchors,
+        description=_prose(spec.get("description"), f"{where}: `description`"),
+        forbid=forbid,
+        scrollable=scrollable,
+    )
 
 
 def parse_thread(raw: Any) -> "Bbox | None":

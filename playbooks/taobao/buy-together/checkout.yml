@@ -15,7 +15,7 @@ route:
   - start: app
     macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home
 
   - do: open-cart                 # the home footer's 购物车 tab
     macro:
@@ -25,7 +25,7 @@ route:
         - wait: 3
           expect: "结算"
 
-  - page: app.pages.cart          # the 购物车 title over the 全选 footer
+  - page: app.pages.cart
 
   - do: nudge                     # a short stroke up: the first line's checkbox sits
     macro: nudge                  # under this phone's floating button

@@ -47,13 +47,13 @@ from physiclaw.conductor.spec.pages import (
     LearnedAnchor,
     PageDecl,
     PagePrint,
+    page_menu,
 )
 from physiclaw.macros.model import (
     PAGES_KIND,
     Clause,
     MacroError,
     app_ref,
-    app_refs,
     parse_ref,
 )
 
@@ -552,8 +552,7 @@ def page_resolver(
             )
         if r.name not in decls:
             raise MacroError(
-                f"no page {r.name!r} in pack {app!r} — it declares: "
-                f"{app_refs(PAGES_KIND, decls)}"
+                f"no page {r.name!r} in pack {app!r} — it declares:{page_menu(decls)}"
             )
         return PageCheck(page_id=page_id(app, r.name), prints=prints)
 

@@ -45,8 +45,9 @@ pack (the file is the pack marker):
   a `page:` scope offers the spot only while that page reads
 - `pages:` — fingerprints more than one route lands on (a page only
   one route uses is declared in that route's own `pages:` block, or
-  beside its waypoint). Anchors are the texts that identify the page
-  and EVERY one must show, so declare few, unmistakable texts —
+  beside its waypoint). A page's `description:` says what it IS, once,
+  for every route that names it. Anchors are the texts that identify
+  the page and EVERY one must show, so declare few, unmistakable texts —
   alternate readings of one text go
   inside it (`text: [..]`), `within:` pins it to a band or a box, a
   `forbid:` term (the same shape) showing reads the page out; no score,

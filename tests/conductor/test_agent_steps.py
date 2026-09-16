@@ -272,10 +272,13 @@ def test_anchor_forms_parse() -> None:
     decls = pages.parse_pages(
         """\
 home:
+  description: the home page
   anchors: [{text: ["推荐", "关注"], within: top}]
 results:
+  description: the results page
   anchors: ["综合", {text: ["销量", "销售"], within: top}]
 paid:
+  description: the paid page
   anchors: [["支付成功", "购买成功"]]
 """,
         "demo",

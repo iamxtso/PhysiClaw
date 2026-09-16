@@ -20,7 +20,8 @@ vocabulary and the model classes below carry the same names)::
     playbook  ::= description [enabled] [inputs] [pages] [returns] route
     inputs    ::= {id: {description, [default], [example]}}   # ≤ MAX_INPUTS
     route     ::= [agent...] [start] page (move page | ask | tell)*
-    entry     ::= "page" name [anchors] [forbid] [scrollable] [recover] [tries]
+    entry     ::= "page" name [description] [anchors] [forbid] [scrollable]
+                  [recover] [tries]
                 | "start" name macro          # the unconditional cold-launch
                 | "do" name macro [with] [irreversible]
                 | "agent" name prompt [tools] [give] [returns] [limit]
@@ -598,6 +599,12 @@ class Pack:
     # The pack's declared fixed spots (`landmarks:`) — recover hands and
     # agent grants name them. See `pages.Landmark`.
     landmarks: dict[str, Landmark] = field(default_factory=dict)
+
+    def shared_pages(self) -> dict[str, "PageDecl"]:
+        """The pages the whole pack may name — the manifest's, which is
+        every declaration that is not some route's own. The one spelling
+        of the rule `route_pages` is the other half of."""
+        return {n: d for n, d in self.pages.items() if n not in self.route_pages}
 
     def local_for(self, playbook: str) -> Files:
         """A playbook's own leaf folders — its entry's, for a playbook

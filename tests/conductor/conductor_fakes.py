@@ -159,10 +159,13 @@ def finish(driver, history: list, step) -> str:
 
 PAGES = """\
 home:
+  description: the home page
   anchors: ["Files"]
 results:
+  description: the results page
   anchors: ["综合"]
 done:
+  description: the done page
   anchors: ["AllDone"]
 """
 
@@ -293,6 +296,7 @@ def build_program(
 # the test's walk needs the resume/boot hand).
 CHANNEL_PAGES = """\
 thread:
+  description: the user's chat thread
   anchors: ["MyChat"]
 """
 
@@ -382,6 +386,7 @@ def make_print(
 
     decl = PageDecl(
         name=name,
+        description=f"the {name} page",
         anchors=tuple(anchors),
         forbid=tuple(forbid),
         scrollable=scrollable,

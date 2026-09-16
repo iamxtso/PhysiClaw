@@ -150,13 +150,21 @@ def load_pack(app: str) -> Pack:
         # validate against the same set, and the same walk says whose
         # a route-declared page is.
         sites = page_sites(doc, docs)
-        pages = parse_pages_data({n: spec for n, (spec, _) in sites.items()}, app)
+        pages = parse_pages_data(
+            {n: spec for n, (spec, _) in sites.items()},
+            app,
+            {
+                n: PACK_FILENAME if pb is None else paths.playbook_file(pb)
+                for n, (_, pb) in sites.items()
+            },
+            PACK_FILENAME,
+        )
     except PagesError as e:
-        raise PlaybookError(f"{app}/{PACK_FILENAME} pages: {e}") from e
+        raise PlaybookError(f"{app}/{e}") from e
     try:
         landmarks = pack_landmarks(doc)
     except PagesError as e:
-        raise PlaybookError(f"{app}/{PACK_FILENAME} landmarks: {e}") from e
+        raise PlaybookError(f"{app}/{PACK_FILENAME}: {e}") from e
     try:
         thread_incoming = parse_thread(doc.get("thread"))
     except PagesError as e:

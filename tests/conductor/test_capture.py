@@ -10,6 +10,7 @@ from physiclaw.conductor.spec.pages import AnchorDecl, PageDecl
 
 DECL = PageDecl(
     name="results",
+    description="a search's results",
     anchors=(AnchorDecl("综合"), AnchorDecl("销量"), AnchorDecl("罕见")),
 )
 
@@ -64,7 +65,9 @@ def test_capture_app_reports_how_the_whole_rule_fares() -> None:
 
 
 def test_capture_report_flags_a_page_negatives_also_read() -> None:
-    decl = PageDecl(name="results", anchors=(AnchorDecl("综合"),))
+    decl = PageDecl(
+        name="results", description="a search's results", anchors=(AnchorDecl("综合"),)
+    )
     obs = [make_screen(("综合", 0.2, 0.1)) for _ in range(3)]
     negatives = [make_screen(("综合", 0.2, 0.1), ("结算", 0.5, 0.9))]
 
@@ -112,7 +115,9 @@ def test_propose_anchors_keeps_chrome_shaped_labels() -> None:
 def test_mining_reads_a_two_char_confusion_only_at_the_vouched_spot() -> None:
     # 综台 at the spot 综合 was read exactly is mined as a variant; the same
     # confusion elsewhere on the screen is not the anchor.
-    decl = PageDecl(name="results", anchors=(AnchorDecl("综合"),))
+    decl = PageDecl(
+        name="results", description="a search's results", anchors=(AnchorDecl("综合"),)
+    )
     obs = [make_screen(("综合", 0.2, 0.1)) for _ in range(3)]
     obs.append(make_screen(("综台", 0.2, 0.1)))
     obs.append(make_screen(("综台", 0.8, 0.9)))  # far away: not vouched for

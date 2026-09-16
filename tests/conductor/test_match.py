@@ -340,7 +340,10 @@ def test_match_screen_reads_the_lock_screen_first_by_shape() -> None:
     from physiclaw.conductor.spec.conventions import LOCKED_ID
 
     pp = PagePrint(
-        app="app", decl=PageDecl(name="home", anchors=(AnchorDecl(text="Files"),))
+        app="app",
+        decl=PageDecl(
+            name="home", description="the home", anchors=(AnchorDecl(text="Files"),)
+        ),
     )
     for text in (COVER_RESTING, COVER_WOKEN, COVER_WITH_NOTIFICATION):
         v = m.match_screen(Screen.read(text), [pp])
@@ -444,15 +447,18 @@ TAOBAO_PAGES = [
     for d in parse_pages(
         """
 results:
+  description: the results page
   anchors:
     - {text: "综合", within: top}
     - {text: "销量", within: top}
 buysheet:
+  description: the buysheet page
   anchors:
     - {text: ["免密支付", "提交订单", "立即支付"], within: bottom}
     - {text: ["实付", "优惠后", "价格明细"], within: [0.0, 0.15, 1.0, 0.85]}
   forbid: ["支付成功"]
 paid:
+  description: the paid page
   anchors:
     - ["支付成功", "付款成功", "购买成功"]
 """,

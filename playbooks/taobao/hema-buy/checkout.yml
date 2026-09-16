@@ -10,12 +10,12 @@ inputs:
     description: the cart lines to buy, one per line, with quantities
 
 route:
-  - page: app.pages.hema-home     # 盒马's home: 权益中心 over its own tab bar
+  - page: app.pages.hema-home
 
   - do: open-cart                 # the tab bar's 购物车, then a stroke that snaps a
     macro: open-cart              # cart left scrolled back to its top
 
-  - page: app.pages.hema-cart     # the 购物车 title over the footer's settle button
+  - page: app.pages.hema-cart
 
   - do: nudge                     # a short stroke up while the 全选 row sits under
     macro: app.macros.store-nudge  # this phone's floating button

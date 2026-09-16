@@ -93,7 +93,7 @@ def test_install_keeps_an_im_folder_under_channel(tmp_path: Path) -> None:
     (src / "macros").mkdir(parents=True)
     (src / "APP.yml").write_text(
         "app: whatsapp\ndescription: WhatsApp channel\nthread:\n  incoming: left\n"
-        "pages:\n  thread:\n    anchors: ['Alice']\n",
+        "pages:\n  thread:\n    description: the thread\n    anchors: ['Alice']\n",
         encoding="utf-8",
     )
 

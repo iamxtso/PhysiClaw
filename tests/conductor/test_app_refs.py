@@ -6,7 +6,7 @@ waypoint and written bare in that route only."""
 from __future__ import annotations
 
 import pytest
-from conductor_fakes import write_pack
+from conductor_fakes import PAGES, write_pack
 
 from physiclaw.conductor.spec import pack as pb
 from physiclaw.conductor.spec.model import PlaybookError
@@ -48,7 +48,8 @@ def test_a_manifest_page_is_app_pages_and_a_bare_name_is_refused_with_the_hint()
 def test_a_route_declared_page_is_bare_and_its_own() -> None:
     own = ROUTE.replace(
         "  - page: app.pages.home\n  - do: open",
-        '  - page: mine\n    anchors: ["Mine"]\n  - do: open',
+        "  - page: mine\n    description: this route's own\n"
+        '    anchors: ["Mine"]\n  - do: open',
         1,
     ).replace("  - page: app.pages.home\n", "  - page: mine\n")
     other = ROUTE.replace("app.pages.home", "app.pages.mine")
@@ -77,7 +78,8 @@ def test_a_manifest_hand_and_a_landmark_use_the_app_root_too() -> None:
         "demo",
         playbooks={"buy": ROUTE},
         pages=PAGES.rstrip("\n")
-        + '\nextra:\n  anchors: ["Extra"]\n  recover: {macro: open-app}\n',
+        + '\nextra:\n  description: one more\n  anchors: ["Extra"]\n'
+        + "  recover: {macro: open-app}\n",
     )
     with pytest.raises(PlaybookError, match=r"app\.macros\.<name>"):
         pb.load_pack("demo")
@@ -101,6 +103,49 @@ def test_a_pack_cannot_be_named_app() -> None:
         pb.load_pack("app")
 
 
+# ---------- a page says what it is ----------
+
+
+def test_a_page_says_what_it_is_and_the_refusal_reads_as_a_menu() -> None:
+    described = PAGES.replace("description: the home page", "description: the feed")
+    write_pack(
+        "demo",
+        pages=described,
+        playbooks={"buy": ROUTE.replace("app.pages.home", "app.pages.homme", 1)},
+    )
+
+    assert pb.load_pack("demo").pages["home"].description == "the feed"
+    # Misname one and the pack hands back its pages with what each IS,
+    # one per line, instead of a wall of names.
+    assert "\n  app.pages.home — the feed" in (_entry("demo", "buy").error or "")
+
+
+def test_a_page_that_says_nothing_is_no_page() -> None:
+    # Required, as a macro's and a playbook's description is: a page
+    # nobody can say in prose is one nobody can tell from its neighbour.
+    write_pack("demo", pages='home:\n  anchors: ["Files"]\n')
+
+    with pytest.raises(PlaybookError, match=r"`description` is required"):
+        pb.load_pack("demo")
+
+
+def test_a_description_beside_a_waypoint_that_declares_nothing_is_refused() -> None:
+    # It would say what an already-declared page is, from a file that
+    # does not declare it — inert, so it is refused where it is written.
+    write_pack(
+        "demo",
+        playbooks={
+            "buy": ROUTE.replace(
+                "  - page: app.pages.home\n",
+                "  - page: app.pages.home\n    description: a note\n",
+                1,
+            )
+        },
+    )
+
+    assert "belongs where the page is declared" in (_entry("demo", "buy").error or "")
+
+
 # ---------- a route's own `pages:` block ----------
 
 BLOCK = """\
@@ -110,6 +155,7 @@ inputs:
     description: k
 pages:
   mine:
+    description: the mine page
     anchors: ["Mine"]
     recover: go_back
     tries: 3

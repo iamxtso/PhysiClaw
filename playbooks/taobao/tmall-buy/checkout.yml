@@ -10,7 +10,7 @@ inputs:
     description: the cart lines to buy, one per line, with quantities
 
 route:
-  - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
+  - page: app.pages.tmall-home
 
   - do: open-cart                 # the footer's running total opens the cart sheet
     macro:
@@ -20,7 +20,7 @@ route:
         - wait: 3
           expect: ["去结算", "领券结算", "起送"]   # the footer's button, whatever it reads
 
-  - page: app.pages.tmall-cart    # the sheet's 全选 row under the store header
+  - page: app.pages.tmall-cart
 
   - do: nudge                     # a short stroke up while the 全选 row sits under
     macro: app.macros.store-nudge  # this phone's floating button

@@ -18,13 +18,13 @@ route:
       keyword: the search keyword, exactly as it should be typed
     think: off
 
-  - page: app.pages.tmall-home    # the store: 天猫超市闪购 over 全部商品
+  - page: app.pages.tmall-home
 
   - do: find                      # type the keyword into the store's search, run it
     with: {keyword: "{parse.keyword}"}
     macro: app.macros.store-search
 
-  - page: app.pages.store-results  # the store's sort row (综合排序 / 销量优先)
+  - page: app.pages.store-results
 
   - agent: pick
     prompt: app.prompts.store-pick  # rows to an item, one add, the sheets that follow
@@ -43,7 +43,7 @@ route:
     think: low
     on_fail: stop
 
-  - page: app.pages.store-detail  # the item page: 加入购物车 and the 店铺 tab
+  - page: app.pages.store-detail
 
   - do: back-to-store             # the item page's arrow while it shows, an edge swipe,
     macro: app.macros.store-back  # the search page's arrow while it shows

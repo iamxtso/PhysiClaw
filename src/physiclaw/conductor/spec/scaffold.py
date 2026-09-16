@@ -33,16 +33,11 @@ from physiclaw.conductor.spec.limits import (
     DEFAULT_ASK_ROUNDS,
     DEFAULT_ASK_WAIT_SECONDS,
     DEFAULT_RECOVER_LIMIT,
-    MAX_AGENT_CALLS,
     MAX_NODES,
 )
 from physiclaw.conductor.spec.model import (
-    IRREVERSIBLE_CLASSES,
     PlaybookError,
     check_name,
-)
-from physiclaw.conductor.spec.route import (
-    BARE_HANDS,
 )
 from physiclaw.macros import scaffold as macro_scaffold
 from physiclaw.macros import store as macro_store
@@ -93,13 +88,9 @@ def render_playbook_stub(app: str) -> str:
         playbook=EXAMPLE_PLAYBOOK,
         macro=EXAMPLE_MACRO,
         max_inputs=MAX_INPUTS,
-        max_nodes=MAX_NODES,
-        classes="|".join(IRREVERSIBLE_CLASSES),
         agent_tools=", ".join(AGENT_TOOLS),
-        max_agent_calls=MAX_AGENT_CALLS,
         agent_calls=DEFAULT_AGENT_CALLS,
         agent_scrolls=DEFAULT_AGENT_SCROLLS,
-        recover_tools=" / ".join(BARE_HANDS),
         recover_limit=DEFAULT_RECOVER_LIMIT,
         bands=" / ".join(BANDS),
         ask_wait=DEFAULT_ASK_WAIT_SECONDS,
@@ -148,6 +139,7 @@ description: EDIT ME — what this pack automates, and when to adopt it
 # hand must land on its own page.
 # pages:
 #   home:
+#     description: EDIT ME — what this page IS, in one line
 #     anchors:
 #       - {{text: ["Search", "Find"], within: top}}
 #     recover: {{macro: app.macros.launch}}   # a pack hand, the one spelling everywhere
@@ -155,59 +147,10 @@ description: EDIT ME — what this pack automates, and when to adopt it
 
 
 PLAYBOOK_TEMPLATE = """\
-# One playbook — this folder is its name ({app}/{playbook}); the pack's
-# APP.yml holds what every playbook shares, and this folder holds what
-# is this route's alone: macros/<name>.yml it recorded, prompts/<name>.md
-# its agent steps read (`prompt: prompts.<name>` — its own; `app.prompts.<name>` — the pack's), README.md for people.
-# A route alternates
-# WHERE (a page, checked every time) with WHAT (a move), forward-only,
-# ≤ {max_nodes} moves. What you declare is what runs: nothing retries,
-# unlocks, or waits unless a line here says so. The entries:
-#   page   — where the walk must BE; `recover:` is the hand that runs when
-#            it is not ({recover_tools}, `{{tap: app.landmarks.<name>}}`,
-#            `{{macro: app.macros.<name>}}`, or one per reading: covered / elsewhere /
-#            locked), `tries:` beside it (default {recover_limit}).
-#   start  — the cold launch, once, right before the first page.
-#   do     — a recorded macro (`macro:` a pack macro or an inline body,
-#            `with:` its inputs); the page after it is the landing check.
-#            Money: `irreversible: {classes}` right after an `approve:
-#            payment` ask.
-#   agent  — the model drives inside YOUR prompt (inline, or
-#            `prompt: prompts.<name>` for its own prompts/<name>.md,
-#            `app.prompts.<name>` for the pack's) with the
-#            `tools:` and `give:` grants you list (`never_tap:` is the
-#            opposite — readings, or `{{label, within}}`, this episode's
-#            taps may never land on, a granted macro's recorded taps
-#            included; never shown to the model);
-#            `returns:` fields read downstream as
-#            {{name.field}}. No tools = a pure-text call, legal before the
-#            first page. `limit: {{calls, scrolls}}` bounds an episode
-#            (≤ {max_agent_calls} calls). `think: off|low|medium|high` says
-#            how much the model may think per call (its `reason` field
-#            is always written; hidden thinking is minutes per call).
-#   ask    — message the user and wait for `yes:` / `no:` (whole-message);
-#            `denied:` is the line sent back on a no, before `on_fail`
-#            decides; `wait:` × `rounds:` is its patience (default
-#            {ask_wait}s × {ask_rounds}); `approve: payment` reads the
-#            amount beside `total_label:` into {{ask.total}}; `think:`
-#            bounds the model's reading of a reply the words miss;
-#            `resume:` re-enters the app.
-#   on_fail — on any entry, pages included: what a failure of that entry
-#            does once its own means are spent — `handover` (the default:
-#            the model takes the session with every tool) or `stop` (the
-#            session ends, the next wake reads the thread again).
-#   tell   — message the user and move on (a trailing tell ends the walk).
-#   run    — a playbook of this pack walked as one move: `with:` fills
-#            its inputs, it lands on that playbook's last page, and its
-#            `returns:` read downstream as {{<run>.<field>}}. `each:
-#            {{<input>: <move>.<field>}}` runs it once per line of a list
-#            an earlier agent returned (`miss: skip` records a failed
-#            round and goes on; `revise: <agent>` re-plans from there
-#            when an ask inside reads a reply its words miss; `limit:
-#            {{rounds, revisions}}` bounds both).
-# Values: the manifest's placeholders fill at install, {{inputs.x}} /
-# {{node.field}} / {{ask.total}} when the walk reaches the move, {{x}}
-# inside a macro from its `with:`. Reference: ~/.physiclaw/playbooks/README.md.
+# One playbook — this folder is its name ({app}/{playbook}). A route
+# alternates WHERE (a page, checked every time) with WHAT (a move).
+# Every key below, and the layout around this file, is explained in
+# ~/.physiclaw/playbooks/README.md.
 kind: entry              # the workflow the boot may offer; a playbook this
                          # one runs is `kind: playbook` in a file beside it
 name: {playbook}         # = this folder's name; referenced as {app}/{playbook}
@@ -222,10 +165,10 @@ inputs:
     description: EDIT ME — what this value means
     example: "hello"
 # pages:                   # this route's own pages in the manifest's shape,
-#   sheet:                 # bare in the route below; `recover:` here is the
-#     anchors: ["EDIT ME"] # page's default hand on this route. One
-#     recover: go_back     # declaration per page: here, beside a waypoint,
-#                          # or in APP.yml (then `app.pages.<name>`).
+#   sheet:                  # bare in the route below; `recover:` here is the
+#     description: EDIT ME — what this page IS, in one line
+#     anchors: ["EDIT ME"] # page's default hand on this route. One declaration
+#     recover: go_back     # per page: here, beside a waypoint, or in APP.yml.
 route:
   # An agent step with no tools may open the route — derive values
   # from the user's words before the phone is touched:
@@ -244,6 +187,7 @@ route:
           at: [0.1, 0.1, 0.3, 0.2]
         - wait: 3
   - page: home
+    description: EDIT ME — what this page IS, in one line
     # `anchors:` is a list; EVERY one must show for the page to read, so
     # declare few, unmistakable texts. Alternate readings of ONE anchor
     # go inside it as a list — never as separate anchors, since each
@@ -344,7 +288,9 @@ One directory per app, self-contained — everything its playbooks use:
                            (`prompt: prompts.<n>`; the pack's: `app.prompts.<n>`).
         README.md          the entry's notes for people. Never loaded.
 
-Validate everything: `physiclaw playbooks check`. Scaffold a pack:
+Everything ships disabled: rehearse a macro and a route on YOUR device
+(`physiclaw macros run`, `physiclaw playbooks run`), then set
+`enabled: true`. Validate everything: `physiclaw playbooks check`. Scaffold a pack:
 `physiclaw playbooks init <app>` — or start from a shared template
 (`physiclaw playbooks install <dir>` records its `<<PLACEHOLDER>>`
 values in `playbooks/placeholders.yml`; the repo's `playbooks/`
@@ -356,6 +302,8 @@ prefix of pure-text `agent` steps, `tell`s and self-starting `run`s
 plus one `start` (the unconditional cold-launch) opens the route, the
 first page is the start contract, every `do` — and every acting
 `agent` episode — is followed by the page it lands on,
+the route runs forward only and never loops back, a trailing `tell`
+ends the walk,
 `{{inputs.name}}` refs name declared inputs and `{{move.field}}` refs
 name EARLIER agent outputs or the quoting step's own last answer, and
 `irreversible: payment` moves (do and agent alike) directly follow an
@@ -373,7 +321,8 @@ both. It declares `returns: {{field: template}}`, read downstream as
 offered on its own and never runs a playbook itself: only an entry
 runs, one level deep.
 
-What the playbook declares is what runs — no more, no less. An
+What the playbook declares is what runs — no more, no less: nothing
+retries, unlocks, waits or recovers unless a line says so. An
 `agent` step is the model's, inside the author's fence: `prompt:` is
 the whole brief (refs fill once when the step opens; the conductor
 adds only the output contract), `tools:` the closed gesture allowlist,
@@ -427,9 +376,11 @@ in the background; a page declaring none hands over. A page's
 show — declare few, unmistakable
 texts; alternate readings of one text go inside it (`text: [..]`),
 `within:` pins it to a band or a box, and a `forbid:` term (the same
-shape) showing reads the page out. No score: a screen reading exactly one page whole
-is that page, none is unknown (the log names each page's missing
-anchor), two is ambiguous.
+shape) showing reads the page out. Its `description:` says what the
+page IS, once, for every route that names it, and `scrollable: true`
+lets the matcher look for its anchors under fixed chrome. No score: a
+screen reading exactly one page whole is that page, none is unknown
+(the log names each page's missing anchor), two is ambiguous.
 
 The channel pack (`playbooks/channel/<im>/`) is the conductor's own: the
 thread page, the send/open macros an `ask` runs, and `boot/` — the
@@ -476,6 +427,7 @@ thread:
 # name) + stable chrome.
 pages:
   {thread}:
+    description: EDIT ME — your own chat thread, open on its message list
     anchors:
       - "EDIT ME"                  # the thread header text
 """
@@ -733,6 +685,7 @@ pages:
   # version that DOES print a hint it is the sharper signal, and it
   # costs nothing when it never matches.
   {LOCKED_PAGE}:
+    description: the phone's lock screen, when it prints an unlock hint
     anchors:
       # ONE anchor, several acceptable readings — never separate
       # anchors: every declared anchor must show, so a second spelling

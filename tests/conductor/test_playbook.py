@@ -64,6 +64,7 @@ FLOW_MIN = """\
 description: minimal
 route:
   - page: home
+    description: the home page
     anchors: ["Files"]
   - do: open
     macro: {steps: [home_screen]}
@@ -284,7 +285,8 @@ def test_route_declared_page_reaches_the_pack() -> None:
 
     text = _mutate(
         "  - page: app.pages.results\n",
-        '  - page: app.pages.results\n  - page: cart\n    anchors: ["Cart"]\n',
+        "  - page: app.pages.results\n  - page: cart\n"
+        '    description: the cart\n    anchors: ["Cart"]\n',
     )
     write_pack(playbooks={"buy": text})
 
@@ -301,7 +303,7 @@ def test_page_declared_twice_rejected() -> None:
     # route is a conflict, not an override.
     text = _mutate(
         "route:\n  - page: app.pages.home\n",
-        'route:\n  - page: home\n    anchors: ["Files"]\n',
+        'route:\n  - page: home\n    description: the home page\n    anchors: ["Files"]\n',
     )
     write_pack(playbooks={"buy": text})
 
@@ -577,7 +579,8 @@ def test_load_pack_bad_pages_raises_playbook_error() -> None:
         compose_pack_doc("demo", "Bad Name:\n  anchors: ['x']"), encoding="utf-8"
     )
 
-    with pytest.raises(PlaybookError, match="pages"):
+    # The refusal names the file that declares the page, not just the pack.
+    with pytest.raises(PlaybookError, match=r"demo/APP\.yml: page name"):
         pb.load_pack("demo")
 
 
@@ -650,7 +653,8 @@ def test_manifest_refuses_a_playbooks_section() -> None:
 
 def test_a_playbook_file_that_will_not_load_is_an_invalid_entry() -> None:
     root = write_pack(
-        pages='results:\n  anchors: ["综合"]\n', playbooks={"flow": FLOW_MIN}
+        pages='results:\n  description: the results\n  anchors: ["综合"]\n',
+        playbooks={"flow": FLOW_MIN},
     )
     write_playbook(root, "broken", "route: [\n")
     write_playbook(root, "Bad Name", "description: d\n")
@@ -670,7 +674,7 @@ def test_a_playbook_file_that_will_not_load_is_an_invalid_entry() -> None:
 
 def test_a_page_declared_in_two_files_is_a_pack_error() -> None:
     write_pack(
-        pages='results:\n  anchors: ["综合"]\n',
+        pages='results:\n  description: the results\n  anchors: ["综合"]\n',
         playbooks={"a": FLOW_MIN, "b": FLOW_MIN},
     )
 
@@ -847,7 +851,7 @@ def test_text_door_validates_inplace_declarations_too() -> None:
     # grammar at both (here: a single-char anchor without a region).
     text = _mutate(
         "  - page: app.pages.results\n",
-        '  - page: cart\n    anchors: ["x"]\n',
+        '  - page: cart\n    description: the cart\n    anchors: ["x"]\n',
     )
 
     with pytest.raises(PlaybookError, match="single-character"):
@@ -939,6 +943,7 @@ def test_activate_belongs_to_the_channel_boot_only() -> None:
             lambda t: t.replace(
                 "  - select: parse\n",
                 "  - do: nudge\n    macro: app.macros.open\n  - page: other\n"
+                "    description: somewhere else\n"
                 '    anchors: ["Somewhere else"]\n'
                 "  - select: parse\n",
             ),

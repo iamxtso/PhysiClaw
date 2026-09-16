@@ -418,8 +418,7 @@ def test_a_recover_hand_inside_a_round_never_re_derives_the_rounds_answer() -> N
     # A hand that does not restore its page runs again in place; the
     # round's recorded answer is never asked for a second time.
     pages = PAGES.replace(
-        'home:\n  anchors: ["Files"]\n',
-        'home:\n  anchors: ["Files"]\n  recover: force_quit\n',
+        'anchors: ["Files"]\n', 'anchors: ["Files"]\n  recover: force_quit\n'
     )
     write_channel()
     write_pack(playbooks={"flow.leg": RECOVERING_LEG, "flow": EACH}, pages=pages)
@@ -743,7 +742,7 @@ def test_two_files_cannot_claim_one_inline_dispatch_name() -> None:
     # second file is refused rather than silently merged over the first.
     write_pack(
         playbooks={"flow.leg": CLAIMING_LEG, "flow": CLAIMING_ENTRY},
-        pages=PAGES + 'leg:\n  anchors: ["Leg"]\n',
+        pages=PAGES + 'leg:\n  description: a leg\n  anchors: ["Leg"]\n',
     )
 
     entries = {e.name: e for e in pb.scan_playbooks("demo")}

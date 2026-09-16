@@ -39,19 +39,18 @@ route:
   - start: app
     macro: app.macros.launch      # to the feed: resumed as it is, else cold-launched
 
-  - page: app.pages.home          # the feed: its tab row (推荐 / 关注)
+  - page: app.pages.home
 
   - do: open-shangou              # the feed's 闪购外卖 tab, its coupon card closed
     macro: app.macros.open-shangou
 
-  - page: app.pages.shangou-home  # 闪购外卖 over 我的闪购
+  - page: app.pages.shangou-home
 
   - do: find-store                # type the store's name into the 闪购 search, run it
     with: {keyword: "{parse.store}"}
     macro: app.macros.shangou-search
 
-  - page: app.pages.shangou-results  # the 闪购 search header's slogan
-
+  - page: app.pages.shangou-results
   # One episode: open the store's card, then add every dish. Which card
   # is the store is a reading of names the results reorder, so it is
   # the model's; the dishes follow in the same context.
@@ -69,14 +68,13 @@ route:
     think: low
     on_fail: stop
 
-  - page: app.pages.shangou-store  # the store's menu: 外送 / 自取 up top
+  - page: app.pages.shangou-store
 
   - do: settle                    # 去结算 on the store's cart bar, to the order page
     on_fail: stop                 # nothing is paid yet
     macro: app.macros.settle
 
-  - page: app.pages.shangou-order  # 外卖到家 over the 立即支付 button
-
+  - page: app.pages.shangou-order
   # The order page pays from its own button, which carries the total.
   - ask: confirm-pay
     approve: payment

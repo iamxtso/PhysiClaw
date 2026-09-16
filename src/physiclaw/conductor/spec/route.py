@@ -96,6 +96,7 @@ from physiclaw.conductor.spec.pages import (
     PAGE_RECOVERY_FIELDS,
     PagesError,
     decl_fields,
+    page_menu,
     parse_pages_data,
     recovery_fields,
     route_decl,
@@ -116,7 +117,6 @@ from physiclaw.macros.model import (
     MacroError,
     MacroInput,
     app_ref,
-    app_refs,
     checked_readings,
     parse_ref,
 )
@@ -705,6 +705,11 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
             f"reserved namespace ({', '.join(sorted(RESERVED_APPS))}).<page>"
         )
     check_name(page, f"{where}: `page`")
+    if "description" in entry and not declares:
+        raise PlaybookError(
+            f"{where}: a `description:` says what a page IS — it belongs where "
+            f"the page is declared, with its anchors"
+        )
     if declares and shared:
         raise PlaybookError(
             f"{where}: {name!r} carries a declaration — a page declared beside "
@@ -725,10 +730,9 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
             f"not in {PACK_FILENAME} — {hint}"
         )
     if shared and page not in pack.pages:
-        manifest = [n for n in pack.pages if n not in pack.route_pages]
         raise PlaybookError(
             f"{where}: page {page!r} is not declared in {PACK_FILENAME}. "
-            f"Declared: {app_refs(PAGES_KIND, manifest)}"
+            f"Declared:{page_menu(pack.shared_pages())}"
         )
     if declares:
         _check_decl(where, page, route_decl(entry), pack)

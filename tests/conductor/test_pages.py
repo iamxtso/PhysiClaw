@@ -19,12 +19,14 @@ from physiclaw.conductor.spec.pages import (
 
 VALID = """\
 results:
+  description: the results page
   anchors:
     - "综合"
     - {text: "搜索", within: top}
   forbid: ["直播中"]
   scrollable: true
 item-detail:
+  description: the item-detail page
   anchors: ["加入购物车", "立即购买"]
 """
 
@@ -71,7 +73,11 @@ def test_parse_rejects_with_named_error(text: str, fragment: str) -> None:
 
 
 def test_single_char_anchor_allowed_with_region() -> None:
-    out = parse_pages("results:\n  anchors: [{text: 'x', within: top}]", "app")
+    out = parse_pages(
+        "results:\n  description: a search's results\n"
+        "  anchors: [{text: 'x', within: top}]",
+        "app",
+    )
 
     assert out["results"].anchors[0].text == "x"
 
@@ -90,7 +96,9 @@ def test_bare_string_anchor_has_no_alternates() -> None:
 
 def test_anchor_alternates_parse_as_one_anchor() -> None:
     out = parse_pages(
-        'lock:\n  anchors: [{text: ["Swipe up", "轻扫以打开"], within: top}]', "ios2"
+        "lock:\n  description: the lock screen\n"
+        '  anchors: [{text: ["Swipe up", "轻扫以打开"], within: top}]',
+        "ios2",
     )
     (a,) = out["lock"].anchors
 
@@ -299,7 +307,7 @@ def test_the_channel_manifests_thread_section_says_where_incoming_sits() -> None
 
 def test_a_forbid_text_takes_the_anchor_shape() -> None:
     out = parse_pages(
-        "thread:\n  anchors: ['Alice']\n"
+        "thread:\n  description: the chat thread\n  anchors: ['Alice']\n"
         "  forbid:\n    - {text: ['微信', 'Weixin'], within: [0.3, 0.03, 0.7, 0.12]}\n",
         "chat",
     )
