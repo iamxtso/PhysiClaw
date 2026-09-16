@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: shangou-search
 description: type a store or dish name into the 闪购 search and run it
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/shangou-search

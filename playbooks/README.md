@@ -29,10 +29,12 @@ is an ENTRY — the whole workflow, tell and ask and pay, that the boot
 may offer for a request; any other `<name>.yml` beside that file is one
 of the playbooks it runs — walked by that entry's `run: <name>` only,
 never offered, never named from another entry or pack
-(`<app>/<entry>.<name>` to rehearse it). Every file says which it is on
-its first line (`kind:`), checked against where it sits, so a file in
-the wrong folder is told which folder it wants. `macros/` and `prompts/`
-hold leaf files and are never mistaken for either. `APP.yml` never
+(`<app>/<entry>.<name>` to rehearse it). Every file opens with `kind:`
+then `schema:` — what it is, and which grammar it is written in — read
+before any other key, so a file in the wrong folder is told which folder
+it wants, and a pack that meets a physiclaw it was not written for is
+told "older" or "newer". `macros/` and `prompts/` hold leaf files and
+are never mistaken for either. `APP.yml` never
 carries a route. Every section is optional, so an empty file is a valid
 pack (the file is the pack marker):
 

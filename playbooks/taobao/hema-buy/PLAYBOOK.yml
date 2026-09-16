@@ -3,6 +3,7 @@
 # and `checkout`, the playbooks beside this file. Starts anywhere. Ends
 # on the paid page, the buyer told.
 kind: entry
+schema: 1
 name: hema-buy
 description: >-
   buy groceries from 盒马 (Hema) inside 淘宝, one order in ~30 min: fresh food,

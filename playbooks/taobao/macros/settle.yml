@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: settle
 description: press 去结算 (or 领券结算) on a storefront cart or a 闪购 store's cart bar, landing on its order page
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/settle

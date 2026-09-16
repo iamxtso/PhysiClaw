@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: open-tmall
 description: open the 天猫超市闪购 store from the 闪购 search results for 天猫超市 — its card comes first
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/tmall-buy.open-tmall

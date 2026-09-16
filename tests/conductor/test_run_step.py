@@ -14,6 +14,7 @@ from physiclaw.conductor.spec.model import PlaybookError
 
 SEND = """\
 kind: macro
+schema: 1
 name: send
 description: reach, then speak
 inputs:

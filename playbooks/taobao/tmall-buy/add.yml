@@ -2,6 +2,7 @@
 # `tmall-buy`, once per item, after it opens the store. Starts and ends
 # on the store's page, so the rounds chain without a relaunch.
 kind: playbook
+schema: 1
 name: add
 description: put one item in the 天猫超市 (Tmall Supermarket) store cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable

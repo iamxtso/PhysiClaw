@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: submit-order
 description: 提交订单 on a storefront order page, then the cashier's button when one shows
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/submit-order

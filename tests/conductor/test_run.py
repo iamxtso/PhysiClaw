@@ -29,6 +29,7 @@ from physiclaw.conductor.walk.step import Paused
 
 LEG = """\
 kind: playbook
+schema: 1
 name: leg
 description: one leg — open, then search
 inputs:
@@ -48,6 +49,7 @@ route:
 
 FLOW = """\
 kind: entry
+schema: 1
 name: flow
 description: runs a leg then reports
 inputs:
@@ -259,6 +261,7 @@ def test_a_suspension_inside_a_round_resumes_inside_it() -> None:
 
 EACH = """\
 kind: entry
+schema: 1
 name: flow
 description: one leg per item
 inputs:
@@ -392,6 +395,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
 
 RECOVERING_LEG = """\
 kind: playbook
+schema: 1
 name: leg
 description: a leg that decides a keyword, then searches
 inputs:
@@ -445,6 +449,7 @@ def test_a_recover_hand_inside_a_round_never_re_derives_the_rounds_answer() -> N
 
 PAY = """\
 kind: playbook
+schema: 1
 name: pay
 description: confirm the lines
 inputs:
@@ -463,6 +468,7 @@ route:
 
 REVISING = """\
 kind: entry
+schema: 1
 name: flow
 description: legs, then a confirmation that may revise them
 inputs:
@@ -707,6 +713,7 @@ def test_naming_no_file_of_its_entry_says_the_entrys_folder() -> None:
 
 CLAIMING_ENTRY = """\
 kind: entry
+schema: 1
 name: flow
 description: an entry with a page named for the file beside it
 route:
@@ -722,6 +729,7 @@ route:
 
 CLAIMING_LEG = """\
 kind: playbook
+schema: 1
 name: leg
 description: one leg with a move named for a hand's role
 route:
@@ -780,7 +788,8 @@ def test_a_macro_in_a_playbooks_place_is_told_where_it_belongs() -> None:
     # instead of failing on a key the other grammar does not know.
     root = write_pack(playbooks={"flow.leg": LEG, "flow": FLOW})
     (root / "flow" / "hand.yml").write_text(
-        "kind: macro\nname: hand\ndescription: d\nsteps:\n  - peek\n", encoding="utf-8"
+        "kind: macro\nschema: 1\nname: hand\ndescription: d\nsteps:\n  - peek\n",
+        encoding="utf-8",
     )
 
     assert {e.name: e for e in pb.scan_playbooks("demo")}["flow.hand"].error == (
@@ -1041,6 +1050,7 @@ def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
 
 ADDING_LEG = """\
 kind: playbook
+schema: 1
 name: leg
 description: a leg whose move has an effect the phone keeps
 inputs:

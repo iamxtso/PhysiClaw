@@ -13,6 +13,7 @@ from physiclaw.conductor.spec.model import PlaybookError
 
 VALID = """\
 kind: entry
+schema: 1
 name: buy
 description: test playbook
 enabled: false
@@ -265,7 +266,7 @@ def test_route_must_start_at_a_page() -> None:
 
 
 def test_route_needs_at_least_one_move() -> None:
-    text = "kind: entry\nname: buy\ndescription: only a place\nroute:\n  - page: app.pages.home\n"
+    text = "kind: entry\nschema: 1\nname: buy\ndescription: only a place\nroute:\n  - page: app.pages.home\n"
 
     with pytest.raises(PlaybookError, match="needs at least one move"):
         pb.parse_playbook(text, "buy", _pack())
@@ -406,6 +407,7 @@ def test_non_payment_ask_does_not_approve_payment() -> None:
     pack = _pack()
     text = """\
 kind: entry
+schema: 1
 name: buy
 description: bypass probe
 inputs:
@@ -883,6 +885,7 @@ def test_disabled_recover_macro_is_reported_not_run() -> None:
 
 BOOT = """\
 kind: entry
+schema: 1
 name: boot
 description: reach the thread and read it
 route:
@@ -1267,7 +1270,7 @@ def test_a_granted_macro_with_a_templated_box_is_refused_under_never_tap() -> No
         None,
         "macros",
         "tmpl.yml",
-        "kind: macro\nname: tmpl\ndescription: templated\ninputs:\n  x:\n"
+        "kind: macro\nschema: 1\nname: tmpl\ndescription: templated\ninputs:\n  x:\n"
         '    description: left edge\n    default: "0.1"\nsteps:\n'
         '  - tap: t\n    at: ["{x}", 0.9, 0.5, 0.95]\n',
     )

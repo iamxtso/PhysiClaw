@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: open
 description: open the <<CONTACT>> WeChat thread via in-app search unless it already shows (resume reads)
 enabled: false

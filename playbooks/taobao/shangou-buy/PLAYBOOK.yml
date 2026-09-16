@@ -3,6 +3,7 @@
 # dish, settle, confirm, pay. Starts anywhere. Ends on the paid page,
 # the buyer told.
 kind: entry
+schema: 1
 name: shangou-buy
 description: >-
   order takeout from ONE restaurant or shop on 淘宝闪购 (ex-饿了么) inside 淘宝,

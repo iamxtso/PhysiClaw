@@ -616,7 +616,7 @@ def _macro_spec(name: str = "demo"):
     from physiclaw.macros.parse import parse_macro
 
     return parse_macro(
-        f"kind: macro\nname: {name}\ndescription: d\nenabled: true\n"
+        f"kind: macro\nschema: 1\nname: {name}\ndescription: d\nenabled: true\n"
         "inputs:\n  msg:\n    description: text\n"
         'steps:\n  - send_to_clipboard: "{msg}"\n',
         name,
@@ -706,7 +706,7 @@ async def test_run_macro_zero_gesture_abort_does_not_burn(mocker) -> None:
     from physiclaw.macros.parse import parse_macro
 
     guarded = parse_macro(
-        'kind: macro\nname: demo\ndescription: d\nsteps:\n  - tap: t\n    at: [0.1, 0.2, 0.3, 0.4]\n    require: "Home"\n',
+        'kind: macro\nschema: 1\nname: demo\ndescription: d\nsteps:\n  - tap: t\n    at: [0.1, 0.2, 0.3, 0.4]\n    require: "Home"\n',
         "demo",
     )
 

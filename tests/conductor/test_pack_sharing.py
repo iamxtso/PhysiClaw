@@ -19,6 +19,7 @@ from physiclaw.conductor.spec.pages import prints_for_app
 
 MANIFEST = """\
 kind: manifest
+schema: 1
 app: shop
 description: two tasks in one app
 placeholders:
@@ -45,6 +46,7 @@ pages:
 
 BUY = """\
 kind: entry
+schema: 1
 name: buy
 description: buy something
 inputs:
@@ -69,6 +71,7 @@ route:
 
 TRACK = """\
 kind: entry
+schema: 1
 name: track
 description: track an order
 route:
@@ -106,9 +109,13 @@ def shop():
     return _write_pack("shop", MANIFEST, buy=BUY, track=TRACK)
 
 
-def test_the_manifest_says_what_it_is_too() -> None:
+def test_the_manifest_says_what_it_is_and_which_grammar_it_is_in() -> None:
     _write_pack("shop", MANIFEST.replace("kind: manifest\n", ""), buy=BUY)
     with pytest.raises(PlaybookError, match="shop/APP.yml: no `kind:`"):
+        pb.load_pack("shop")
+
+    _write_pack("shop", MANIFEST.replace("schema: 1\n", ""), buy=BUY)
+    with pytest.raises(PlaybookError, match="shop/APP.yml: no `schema:`"):
         pb.load_pack("shop")
 
     _write_pack("shop", MANIFEST.replace("kind: manifest", "kind: entry"), buy=BUY)
@@ -261,6 +268,7 @@ def test_activation_menu_is_one_line_per_playbook_and_check_flags_twins(shop) ->
 
 LOCAL_BUY = """\
 kind: entry
+schema: 1
 name: buy
 description: buy with its own recorded search
 route:

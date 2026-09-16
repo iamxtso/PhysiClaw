@@ -12,6 +12,7 @@ from physiclaw.agent.runtime.hook import Trigger
 from physiclaw.common import paths
 
 MACRO = """kind: macro
+schema: 1
 name: notify-user
 description: Ping the user
 enabled: true

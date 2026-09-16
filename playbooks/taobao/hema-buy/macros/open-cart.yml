@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: open-cart
 description: open the 盒马 cart from the storefront's tab bar, snapped to its top
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-buy.open-cart

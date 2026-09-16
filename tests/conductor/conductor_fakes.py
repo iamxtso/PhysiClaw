@@ -171,6 +171,7 @@ done:
 
 PACK_MACRO = """\
 kind: macro
+schema: 1
 name: {name}
 description: test leg
 inputs:
@@ -192,7 +193,7 @@ def compose_pack_doc(
     `pages:` appendix, optional landmarks. Playbooks are files beside
     it (`write_pack` writes them), never manifest content."""
     doc = (
-        f"kind: manifest\napp: {app}\ndescription: test pack\n"
+        f"kind: manifest\nschema: 1\napp: {app}\ndescription: test pack\n"
         f"pages:\n{indent(pages, '  ')}\n"
     )
     if landmarks:
@@ -238,7 +239,10 @@ def write_playbook(root, name: str, text: str):
     from physiclaw.common.text import write_text
 
     if not text.startswith("kind:"):
-        text = f"kind: {paths.kind_of(name)}\nname: {paths.own_name(name)}\n{text}"
+        text = (
+            f"kind: {paths.kind_of(name)}\nschema: {paths.PACK_SCHEMA}\n"
+            f"name: {paths.own_name(name)}\n{text}"
+        )
     path = root / paths.playbook_file(name)
     path.parent.mkdir(parents=True, exist_ok=True)
     write_text(path, text)
@@ -302,6 +306,7 @@ thread:
 
 CHANNEL_OPEN = """\
 kind: macro
+schema: 1
 name: open
 description: open the thread
 steps:
@@ -311,6 +316,7 @@ steps:
 
 CHANNEL_SEND = """\
 kind: macro
+schema: 1
 name: send
 description: send to the user
 inputs:

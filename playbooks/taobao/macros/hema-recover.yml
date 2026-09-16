@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: hema-recover
 description: back to the 盒马 storefront home — close the promo card it opens under, else pop one screen
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/hema-recover

@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: store-nudge
 description: shift a storefront cart's list a finger's width up — the 全选 row under the floating button moves clear of it
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/store-nudge

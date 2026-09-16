@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: send
 description: reach the <<CONTACT>> WeChat thread (open) and send {message} there
 enabled: false

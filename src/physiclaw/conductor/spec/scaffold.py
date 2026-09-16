@@ -14,6 +14,7 @@ from physiclaw.common.paths import (
     KIND_MANIFEST,
     PACK_FILENAME,
     PACK_MACROS_DIRNAME,
+    PACK_SCHEMA,
     PLAYBOOK_FILENAME,
 )
 from physiclaw.conductor.spec import specfile
@@ -78,13 +79,14 @@ EXAMPLE_PLAYBOOK = "example"
 
 
 def render_manifest_stub(app: str) -> str:
-    return MANIFEST_TEMPLATE.format(app=app)
+    return MANIFEST_TEMPLATE.format(app=app, schema=PACK_SCHEMA)
 
 
 def render_playbook_stub(app: str) -> str:
     """The scaffold's example playbook file (`<EXAMPLE_PLAYBOOK>.yml`)."""
     return PLAYBOOK_TEMPLATE.format(
         app=app,
+        schema=PACK_SCHEMA,
         playbook=EXAMPLE_PLAYBOOK,
         macro=EXAMPLE_MACRO,
         max_inputs=MAX_INPUTS,
@@ -105,6 +107,7 @@ MANIFEST_TEMPLATE = """\
 # hands routes share live in macros/<name>.yml. Every section here is
 # optional; an empty manifest is a valid pack.
 kind: manifest       # what this file is; the pack marker, never a route
+schema: {schema}            # the pack grammar this file is written in
 app: {app}           # which app this pack automates = the directory name
 description: EDIT ME — what this pack automates, and when to adopt it
 
@@ -151,8 +154,9 @@ PLAYBOOK_TEMPLATE = """\
 # alternates WHERE (a page, checked every time) with WHAT (a move).
 # Every key below, and the layout around this file, is explained in
 # ~/.physiclaw/playbooks/README.md.
-kind: entry              # the workflow the boot may offer; a playbook this
-                         # one runs is `kind: playbook` in a file beside it
+kind: entry              # the workflow the boot may offer; a playbook
+                         # this one runs is `kind: playbook` beside it
+schema: {schema}                # the pack grammar this file is written in
 name: {playbook}         # = this folder's name; referenced as {app}/{playbook}
 description: EDIT ME — one line saying what task this playbook does
 # A valid playbook is enabled by default; this scaffold starts off.
@@ -288,6 +292,12 @@ One directory per app, self-contained — everything its playbooks use:
                            (`prompt: prompts.<n>`; the pack's: `app.prompts.<n>`).
         README.md          the entry's notes for people. Never loaded.
 
+Every file above starts with what it IS and which grammar it is written
+in — `kind:` then `schema:`, read before anything else. The number moves
+only when a change makes an existing file invalid, so a pack that meets
+a physiclaw it was not written for is told "older", "newer" or "not
+numbered" instead of being refused for a key its author never typed.
+
 Everything ships disabled: rehearse a macro and a route on YOUR device
 (`physiclaw macros run`, `physiclaw playbooks run`), then set
 `enabled: true`. Validate everything: `physiclaw playbooks check`. Scaffold a pack:
@@ -411,6 +421,7 @@ Macro format: see ~/.physiclaw/macros/README.md (identical grammar).
 
 CHANNEL_PACK_STUB = """\
 kind: manifest
+schema: {schema}
 app: {im}
 description: >-
   The user-channel pack — the conductor's route to YOUR user's IM
@@ -438,6 +449,7 @@ pages:
 # enable both — `send` runs `open` as its first step, then types.
 CHANNEL_SEND_STUB = f"""\
 kind: {KIND_MACRO}
+schema: {PACK_SCHEMA}
 name: {SEND_MACRO}
 description: open the user's IM thread ({OPEN_MACRO}) and send {{{{message}}}} there
 enabled: false
@@ -459,6 +471,7 @@ steps:
 
 CHANNEL_OPEN_STUB = f"""\
 kind: {KIND_MACRO}
+schema: {PACK_SCHEMA}
 name: {OPEN_MACRO}
 description: open the user's IM thread (read only, no send)
 enabled: false
@@ -481,6 +494,7 @@ CHANNEL_BOOT_STUB = """\
 # limits, step it (physiclaw playbooks step {app}/{boot}),
 # replay it over a recorded wake. Live once `{open}` is enabled.
 kind: entry
+schema: {schema}
 name: {boot}
 description: reach the user's thread and read the request there
 enabled: true
@@ -513,7 +527,12 @@ def _init_channel_pack(root: Path) -> Path:
         write_text(macro_store.macro_path(macros_root, name), stub)
     write_text(
         root / PACK_FILENAME,
-        CHANNEL_PACK_STUB.format(im=root.name, boot=BOOT_PLAYBOOK, thread=THREAD_PAGE),
+        CHANNEL_PACK_STUB.format(
+            im=root.name,
+            boot=BOOT_PLAYBOOK,
+            thread=THREAD_PAGE,
+            schema=PACK_SCHEMA,
+        ),
     )
     write_text(root / "README.md", render_pack_readme(CHANNEL_APP))
     (root / BOOT_PLAYBOOK).mkdir()
@@ -539,6 +558,7 @@ def ensure_channel_boot(root: Path) -> None:
 def channel_boot_stub(root: Path) -> str:
     """The boot for a channel pack: its hands are the pack's `open`."""
     return CHANNEL_BOOT_STUB.format(
+        schema=PACK_SCHEMA,
         app=CHANNEL_APP,
         boot=BOOT_PLAYBOOK,
         open=OPEN_MACRO,
@@ -661,6 +681,7 @@ def init_pack(app: str) -> Path:
 
 IOS_PACK_STUB = f"""\
 kind: {KIND_MANIFEST}
+schema: {PACK_SCHEMA}
 app: {IOS_APP}
 description: >-
   iOS system states the conductor must name — no playbooks, no macros.

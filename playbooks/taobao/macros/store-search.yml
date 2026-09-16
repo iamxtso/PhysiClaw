@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: store-search
 description: type a keyword into a storefront's own search (盒马 or 天猫超市) and run it
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/store-search

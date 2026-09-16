@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: launch
 description: bring Taobao to its feed from wherever the phone is — every route's start
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/launch

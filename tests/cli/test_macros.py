@@ -21,6 +21,7 @@ runner = CliRunner()
 
 VALID = """
 kind: macro
+schema: 1
 name: {name}
 description: Demo macro
 enabled: {enabled}
@@ -35,6 +36,7 @@ steps:
 
 
 TAP_MACRO = """kind: macro
+schema: 1
 name: tap-demo
 description: One tap, for reading a bbox back out of the run log
 
@@ -44,6 +46,7 @@ steps:
 """
 
 NAV_MACRO = """kind: macro
+schema: 1
 name: nav-demo
 description: One argument-free navigation step
 
@@ -155,7 +158,7 @@ def test_check_all_valid_exits_zero() -> None:
 def test_check_invalid_macro_exits_one_with_reason() -> None:
     _write(
         "bad",
-        text="kind: macro\nname: other\ndescription: d\nsteps:\n  - peek:\n",
+        text="kind: macro\nschema: 1\nname: other\ndescription: d\nsteps:\n  - peek:\n",
     )
 
     result = runner.invoke(app, ["macros", "check"])
@@ -213,7 +216,10 @@ def test_check_reports_the_fleet_gate_instead_of_the_per_file_advice(mocker) -> 
 def test_check_still_exits_one_when_a_disabled_macro_sits_beside_a_broken_one() -> None:
     # The reminder must not swallow the failure it prints after.
     _write("staged", enabled=False)
-    _write("bad", text="kind: macro\nname: nope\ndescription: d\nsteps:\n  - peek:\n")
+    _write(
+        "bad",
+        text="kind: macro\nschema: 1\nname: nope\ndescription: d\nsteps:\n  - peek:\n",
+    )
 
     result = runner.invoke(app, ["macros", "check"])
 

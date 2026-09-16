@@ -18,6 +18,7 @@ from physiclaw.macros.steps import GotoStep, MarkStep
 
 HOP = """\
 kind: macro
+schema: 1
 name: hop
 description: reach results unless already there
 steps:

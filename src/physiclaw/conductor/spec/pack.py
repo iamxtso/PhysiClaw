@@ -382,6 +382,7 @@ def parse_playbook(text: str, name: str, pack: Pack) -> Playbook:
 
 
 _PLAY_KEYS = {
+    "schema",
     "kind",
     "name",
     "description",
@@ -411,9 +412,10 @@ def _parse_playbook_data(
     # what it is (the same rule `app` keeps with the pack folder).
     runs_under = paths.run_by(name)
     own, file = paths.own_name(name), paths.playbook_file(name)
-    # `kind:` FIRST: a file in the wrong folder is named for what it is,
-    # never refused for a key the other grammar happens not to know.
-    gap = paths.kind_gap(data.get("kind"), paths.kind_of(name))
+    # The header before any other key, so a file in the wrong folder or
+    # the wrong grammar is named for what it IS rather than refused for
+    # a key the other grammar happens not to know.
+    gap = paths.header_gap(data, paths.kind_of(name))
     if gap is not None:
         raise PlaybookError(f"{file}: {gap}")
     unknown = sorted(set(map(str, data.keys())) - _PLAY_KEYS)

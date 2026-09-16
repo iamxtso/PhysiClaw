@@ -3,6 +3,7 @@
 # `buy-together` as its last move.
 # Starts anywhere (cold launch). Ends on the paid page.
 kind: playbook
+schema: 1
 name: checkout
 description: pay for the items in the 淘宝 (Taobao) cart in ONE order
 enabled: false  # rehearse on YOUR device, then enable

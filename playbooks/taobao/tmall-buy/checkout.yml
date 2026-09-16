@@ -2,6 +2,7 @@
 # `tmall-buy` as its last move. Starts on the store's page, where the rounds end.
 # Ends on the paid page.
 kind: playbook
+schema: 1
 name: checkout
 description: pay for the lines in the 天猫超市 (Tmall Supermarket) store cart inside Taobao in ONE order
 enabled: false  # rehearse on YOUR device, then enable

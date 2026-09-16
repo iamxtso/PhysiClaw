@@ -4,6 +4,7 @@
 # (buy/PLAYBOOK.yml → taobao/buy), and the hands routes share are pack
 # macros (macros/launch.yml is the cold launch every route starts with).
 kind: manifest
+schema: 1
 app: taobao
 description: >-
   Buy on 淘宝 (Taobao) deterministically: the marketplace by courier, plus

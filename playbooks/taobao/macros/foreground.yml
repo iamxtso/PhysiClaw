@@ -1,4 +1,5 @@
 kind: macro
+schema: 1
 name: foreground
 description: bring Taobao back to the front where it was — an ask's resume hand, and launch's first move
 # Disabled until rehearsed on YOUR device: physiclaw macros run taobao/foreground

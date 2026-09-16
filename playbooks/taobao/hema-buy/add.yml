@@ -2,6 +2,7 @@
 # once per item, after it enters the storefront. Starts and ends
 # on the storefront's home, so the rounds chain without a relaunch.
 kind: playbook
+schema: 1
 name: add
 description: put one item in the 盒马 (Hema) cart inside Taobao, nothing paid
 enabled: false  # rehearse on YOUR device, then enable

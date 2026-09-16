@@ -283,7 +283,7 @@ def test_the_boot_route_is_authorable() -> None:
     # A user who wants no unlock and one open: the hands and limits
     # are theirs, and the walk runs exactly what the file says.
     o = _boot(
-        "kind: entry\nname: boot\n"
+        "kind: entry\nschema: 1\nname: boot\n"
         "description: mine\n"
         "route:\n"
         "  - page: app.pages.thread\n"
@@ -305,7 +305,7 @@ def test_a_disabled_boot_means_a_plain_session() -> None:
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"flow": FLOW})
     (paths.playbooks_dir() / "channel" / "wechat" / "boot" / "PLAYBOOK.yml").write_text(
-        "kind: entry\nname: boot\ndescription: off\nenabled: false\nroute:\n"
+        "kind: entry\nschema: 1\nname: boot\ndescription: off\nenabled: false\nroute:\n"
         "  - page: app.pages.thread\n  - select: parse\n",
         encoding="utf-8",
     )

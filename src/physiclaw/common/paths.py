@@ -56,6 +56,7 @@ uniformity's sake.
 import functools
 import json
 import os
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -108,6 +109,48 @@ KIND_HOMES = {
     KIND_MACRO: f"{PACK_MACROS_DIRNAME}/<name>{PLAYBOOK_SUFFIX}",
 }
 FILE_KINDS = tuple(KIND_HOMES)
+
+
+# The pack grammar this physiclaw reads. Every pack file says which
+# grammar it is written in, beside `kind:`, so a file and the engine
+# that reads it can never disagree in silence: the number is what lets a
+# refusal say "older", "newer" or "not numbered at all" instead of
+# naming a key the author never typed. It moves ONLY when a change makes
+# an existing file invalid or quietly changes its meaning — never for a
+# key that is merely added.
+PACK_SCHEMA = 1
+
+
+def schema_gap(declared: Any) -> str | None:
+    """What is wrong with a pack file's `schema:` — None when it is the
+    grammar this physiclaw reads. Read BEFORE anything else in the file,
+    since which grammar a file is written in decides what the rest of it
+    means."""
+    reads = f"and this physiclaw reads `schema: {PACK_SCHEMA}`"
+    if declared is None:
+        return f"no `schema:` — a pack file says which grammar it is in, {reads}"
+    # A grammar is a counting number: below one is no grammar that ever
+    # was, so it is a malformed value rather than an older file.
+    if not isinstance(declared, int) or isinstance(declared, bool) or declared < 1:
+        return f"`schema: {declared}` must be a whole number from 1, {reads}"
+    if declared > PACK_SCHEMA:
+        return f"`schema: {declared}` needs a newer physiclaw, {reads}"
+    if declared < PACK_SCHEMA:
+        return f"`schema: {declared}` is an older grammar, {reads}"
+    return None
+
+
+def header_gap(data: "Mapping[str, Any]", want: str) -> str | None:
+    """What is wrong with a pack file's header — its `kind:` and its
+    `schema:` — or None when both are right. Both are read before any
+    other key, and the GRAMMAR is read before the kind: which grammar a
+    file is written in decides what the rest of it means, the kind
+    included, so a file from another physiclaw is told so rather than
+    told its kind is wrong. A file writes them the other way round,
+    `kind:` first, because that is what a reader wants to see; a YAML
+    mapping has no order, so the two never disagree. Every parser of a
+    pack file calls this one function, so the rule has one home."""
+    return schema_gap(data.get("schema")) or kind_gap(data.get("kind"), want)
 
 
 def kind_gap(declared: Any, want: str) -> str | None:

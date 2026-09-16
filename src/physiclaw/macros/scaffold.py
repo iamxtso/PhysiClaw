@@ -11,6 +11,7 @@ same edit.
 
 from physiclaw.common import gesture_vocab
 from physiclaw.common.bbox import BANDS
+from physiclaw.common.paths import PACK_SCHEMA
 from physiclaw.macros.model import (
     ALLOWED_STEP_TOOLS,
     ARGLESS_TOOLS,
@@ -29,7 +30,9 @@ def render_init(name: str) -> str:
     """The scaffold body for ``macros/<name>.yml`` — parses clean
     (disabled) so `check` passes before any editing."""
     return INIT_TEMPLATE.format(
-        name=name, tools="verbs: " + "  ".join(sorted(ALLOWED_STEP_TOOLS))
+        name=name,
+        schema=PACK_SCHEMA,
+        tools="verbs: " + "  ".join(sorted(ALLOWED_STEP_TOOLS)),
     )
 
 
@@ -41,6 +44,7 @@ def render_init(name: str) -> str:
 # it deliberately stops before Send).
 INIT_TEMPLATE = """\
 kind: macro                    # what this file is; a hand lives in macros/
+schema: {schema}                      # the pack grammar this file is written in
 name: {name}                   # must equal the file name
 description: Open WeChat, paste a message into your user's chat, stop before Send
 
@@ -163,6 +167,10 @@ Scaffold one with `physiclaw macros init <name>`, edit it, then:
 
 - `kind` (required) — `macro`: what this file is, checked against where it
   sits. A file carrying another kind is told which folder it belongs in.
+- `schema` (required) — which pack grammar this file is written in; `1`
+  today. It moves only when a change makes an existing file invalid, so a
+  macro written for another physiclaw is named as older or newer, never
+  refused for a key its author never typed.
 - `name` (required) — must equal the file name; lowercase/digits/hyphens.
 - `description` (required) — tells the agent when to use it. It, and each
   input's `description` / `example`, must be ONE line of at most

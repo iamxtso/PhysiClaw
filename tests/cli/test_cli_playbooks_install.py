@@ -29,7 +29,7 @@ PAGES = (
     "thread:\n  description: the chat thread\n"
     '  anchors:\n    - {text: "<<CONTACT>>", within: top}\n'
 )
-MACRO = 'kind: macro\nname: open\ndescription: open the <<CONTACT>> thread\nenabled: false\nsteps:\n  - send_to_clipboard: "<<CONTACT>>"\n'
+MACRO = 'kind: macro\nschema: 1\nname: open\ndescription: open the <<CONTACT>> thread\nenabled: false\nsteps:\n  - send_to_clipboard: "<<CONTACT>>"\n'
 MANIFEST = (
     "app: wechat\ndescription: reach the user thread\n"
     "placeholders:\n  CONTACT:\n    description: the contact\n"

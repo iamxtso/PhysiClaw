@@ -59,7 +59,7 @@ yaml_loader = YAML(typ="safe", pure=True)
 # manifest (`load_playbook_docs`), so `playbooks:` is refused with the
 # reason.
 _PACK_TOP_KEYS = frozenset(
-    {"kind", "app", "description", "placeholders", "pages", "landmarks"}
+    {"schema", "kind", "app", "description", "placeholders", "pages", "landmarks"}
 )
 
 
@@ -113,7 +113,7 @@ def load_pack_doc(app: str, error_cls: type[Exception]) -> dict | None:
             "it (the file body is the playbook: name, description, enabled, "
             "inputs, route)"
         )
-    gap = paths.kind_gap(data.get("kind"), paths.KIND_MANIFEST)
+    gap = paths.header_gap(data, paths.KIND_MANIFEST)
     if gap is not None:
         raise error_cls(f"{app}/{PACK_FILENAME}: {gap}")
     # `thread:` (how the user's thread is read) is the channel's section.

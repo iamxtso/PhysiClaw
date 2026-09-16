@@ -85,7 +85,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.error import YAMLError
 
 from physiclaw.common import bbox, gesture_vocab
-from physiclaw.common.paths import KIND_MACRO, kind_gap
+from physiclaw.common.paths import KIND_MACRO, header_gap
 from physiclaw.common.placeholders import resolve_placeholders
 from physiclaw.macros.inputs import resolve_inputs
 from physiclaw.macros.model import (
@@ -135,7 +135,7 @@ from physiclaw.macros.steps import (
 from physiclaw.macros.template import TemplateError, placeholders
 
 # The key vocabulary of each mapping production, in grammar order.
-_TOP_KEYS = {"kind", "name", "description", "enabled", "inputs", "steps"}
+_TOP_KEYS = {"schema", "kind", "name", "description", "enabled", "inputs", "steps"}
 _INPUT_KEYS = {"description", "default", "example"}
 # A step is one verb key plus these qualifiers.
 _QUALIFIER_KEYS = {
@@ -250,9 +250,10 @@ def parse_macro(
 
     reject_aliases(data)
 
-    # `kind:` FIRST: a file in the wrong folder is named for what it is,
-    # never refused for a key the other grammar happens not to know.
-    gap = kind_gap(data.get("kind"), KIND_MACRO)
+    # The header before any other key, so a file in the wrong folder or
+    # the wrong grammar is named for what it IS rather than refused for
+    # a key the other grammar happens not to know.
+    gap = header_gap(data, KIND_MACRO)
     if gap is not None:
         raise MacroError(gap)
 
@@ -285,14 +286,15 @@ def parse_macro(
     )
 
 
-# What an embedded body must NOT carry: `kind` (it is not a file, so
-# nothing places it), `name` (the caller synthesizes it), `description`
+# What only a FILE carries, and an embedded body must not: `schema` and
+# `kind` (a body is no file, so nothing versions or places it), `name`
+# (the caller synthesizes it), `description`
 # (the node it sits on is the context), `enabled` (an inline macro goes
 # live with its playbook, never on its own). The inline vocabulary is
 # derived by subtraction so a key added to the macro-file grammar
 # reaches the inline form without a second edit.
-_IDENTITY_KEYS = frozenset({"kind", "name", "description", "enabled"})
-_INLINE_KEYS = frozenset(_TOP_KEYS) - _IDENTITY_KEYS
+_FILE_ONLY_KEYS = frozenset({"schema", "kind", "name", "description", "enabled"})
+_INLINE_KEYS = frozenset(_TOP_KEYS) - _FILE_ONLY_KEYS
 
 
 def parse_inline_macro(
@@ -317,7 +319,7 @@ def parse_inline_macro(
     if unknown:
         raise MacroError(
             f"unknown key(s): {', '.join(unknown)} — an inline macro takes "
-            f"only `steps` and `inputs`; {', '.join(sorted(_IDENTITY_KEYS))} "
+            f"only `steps` and `inputs`; {', '.join(sorted(_FILE_ONLY_KEYS))} "
             "belong to a macro FILE"
         )
     inputs = parse_inputs(data.get("inputs", {}))

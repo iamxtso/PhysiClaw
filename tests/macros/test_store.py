@@ -27,6 +27,7 @@ from physiclaw.macros.store import (
 
 VALID = """
 kind: macro
+schema: 1
 name: {name}
 description: Demo macro
 enabled: {enabled}
@@ -310,8 +311,10 @@ def test_scan_still_lets_keyboard_interrupt_through(mocker) -> None:
 
 # ---------- a folder's `run` steps ----------
 
-OPEN_TEXT = "kind: macro\nname: open\ndescription: reach\nsteps:\n  - home_screen\n"
-SEND_TEXT = "kind: macro\nname: send\ndescription: speak\nsteps:\n  - run: open\n  - send_to_clipboard: hi\n"
+OPEN_TEXT = (
+    "kind: macro\nschema: 1\nname: open\ndescription: reach\nsteps:\n  - home_screen\n"
+)
+SEND_TEXT = "kind: macro\nschema: 1\nname: send\ndescription: speak\nsteps:\n  - run: open\n  - send_to_clipboard: hi\n"
 
 
 def test_scan_resolves_a_run_step_in_its_own_folder_whatever_the_file_order() -> None:
@@ -331,7 +334,7 @@ def test_scan_resolves_a_run_step_in_its_own_folder_whatever_the_file_order() ->
 
 def test_a_missing_or_broken_callee_is_the_callers_load_error() -> None:
     _write("send", SEND_TEXT)
-    _write("open", "kind: macro\nname: open\ndescription: d\nsteps: []\n")
+    _write("open", "kind: macro\nschema: 1\nname: open\ndescription: d\nsteps: []\n")
 
     entries = {e.name: e for e in scan()}
 
@@ -340,8 +343,8 @@ def test_a_missing_or_broken_callee_is_the_callers_load_error() -> None:
 
 
 def test_macros_that_run_each_other_are_both_refused() -> None:
-    _write("a", "kind: macro\nname: a\ndescription: d\nsteps:\n  - run: b\n")
-    _write("b", "kind: macro\nname: b\ndescription: d\nsteps:\n  - run: a\n")
+    _write("a", "kind: macro\nschema: 1\nname: a\ndescription: d\nsteps:\n  - run: b\n")
+    _write("b", "kind: macro\nschema: 1\nname: b\ndescription: d\nsteps:\n  - run: a\n")
 
     entries = {e.name: e for e in scan()}
 
