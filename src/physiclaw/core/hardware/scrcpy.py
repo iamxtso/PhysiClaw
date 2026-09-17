@@ -542,8 +542,8 @@ class ScrcpyCamera:
                     continue
                 assert isinstance(value, int)
                 out.write(_read_exact(f, value))
-        except (EOFError, OSError):
-            pass  # generation over — FrameReader drought calls _reopen
+        except (EOFError, OSError, ValueError):
+            pass  # generation over, drought calls _reopen (ValueError: buffered read after close)
         finally:
             try:
                 out.close()

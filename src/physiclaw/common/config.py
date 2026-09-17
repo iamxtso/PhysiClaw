@@ -138,6 +138,16 @@ class VisionConfig:
 
 
 @dataclass
+class BackendConfig:
+    """Which link serves first. The other is the hot standby: eyes fail
+    over after 3 blind views, hands after one dead gesture, and both probe
+    back on schedule. Either link may be offline — selection filters by
+    availability, so a scrcpy-only or physical-only rig just works."""
+
+    preferred: str = "scrcpy"  # serving link: "scrcpy" or "physical"
+
+
+@dataclass
 class EngineConfig:
     max_turns: int = 300
     # Wall-clock backstop for one engine session (seconds; 0 disables). The
@@ -362,6 +372,7 @@ class Config:
     auto_pick: AutoPickConfig = field(default_factory=AutoPickConfig)
     camera: CameraConfig = field(default_factory=CameraConfig)
     vision: VisionConfig = field(default_factory=VisionConfig)
+    backend: BackendConfig = field(default_factory=BackendConfig)
     engine: EngineConfig = field(default_factory=EngineConfig)
     agent: AgentConfig = field(default_factory=AgentConfig)
     provider: ProviderConfig = field(default_factory=ProviderConfig)
@@ -418,6 +429,19 @@ def _validate_providers(providers: Any) -> None:
             _check_scalar_type(f"providers.{pid}", "base_url", str, entry["base_url"])
 
 
+def _validate_backend(backend: Any) -> None:
+    """Value-check the ``[backend]`` section: `preferred` names the
+    serving link, anything else is a typo that would silently run the
+    wrong link first."""
+    if not isinstance(backend, dict):
+        return  # the table-shape check in load() reports this
+    preferred = backend.get("preferred", "scrcpy")
+    if preferred not in ("physical", "scrcpy"):
+        raise ConfigError(
+            f'[backend] preferred: expected "physical" or "scrcpy", got {preferred!r}'
+        )
+
+
 _FILE_HEADER = """\
 # PhysiClaw config. Edit with `physiclaw config edit`. Changes apply on
 # next `physiclaw server` start. Delete a key to revert to the built-in
@@ -446,6 +470,10 @@ _SECTION_COMMENTS: dict[str, str] = {
         "calibrated on the reference rigs. Re-tune here when a different "
         "camera, distance, or lighting mis-flags views — the vision "
         "modules log their measured values."
+    ),
+    "backend": (
+        "Which link serves first (`preferred`: scrcpy or physical). "
+        "The other is the hot standby for eye/hand failover."
     ),
     "engine": (
         "Agent tool-call loop: runaway safeguards (turn cap, stuck guard, "
@@ -598,6 +626,8 @@ def load(path: Path | None = None) -> Config:
         )
     if "providers" in raw:
         _validate_providers(raw["providers"])
+    if "backend" in raw:
+        _validate_backend(raw["backend"])
 
     built: dict[str, Any] = {}
     for key, cls in _SECTION_TYPES.items():

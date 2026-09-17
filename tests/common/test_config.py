@@ -316,6 +316,11 @@ def test_to_toml_emits_header_and_section_comments_when_with_comments() -> None:
             "Timeouts for the camera auto-pick step in `physiclaw setup hardware`.",
         ),
         (
+            "backend",
+            "Which link serves first (`preferred`: scrcpy or physical). "
+            "The other is the hot standby for eye/hand failover.",
+        ),
+        (
             "engine",
             "Agent tool-call loop: runaway safeguards (turn cap, stuck guard, "
             "plan gate) + retry + pacing.",
@@ -1032,3 +1037,25 @@ def test_load_coerces_toml_int_for_float_field(tmp_path: Path) -> None:
     cfg = config.load(p)
     assert cfg.engine.retry_backoff_seconds == 5.0
     assert isinstance(cfg.engine.retry_backoff_seconds, float)
+
+
+def test_load_backend_preferred_physical(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('[backend]\npreferred = "physical"\n')
+
+    assert config.load(p).backend.preferred == "physical"
+
+
+def test_load_backend_default_is_scrcpy(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text("[server]\nport = 9999\n")
+
+    assert config.load(p).backend.preferred == "scrcpy"
+
+
+def test_load_rejects_unknown_backend_preferred(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('[backend]\npreferred = "bluetooth"\n')
+
+    with pytest.raises(config.ConfigError, match=r"\[backend\] preferred"):
+        config.load(p)

@@ -155,3 +155,132 @@ def test_status_reports_backend_table(arm_double, cam_double):
     assert out["backends"][PHYSICAL_BACKEND]["arm"] is True
     assert out["backends"][SCRCPY_BACKEND]["camera"] is True
     assert out["backends"][SCRCPY_BACKEND]["calibrated"] is True
+
+
+# ─── scrcpy-only clipboard/screenshot (no bridge) ──────────────
+
+
+def _scrcpy_only_rig(arm_double, cam_double):
+    """Active scrcpy pair, mappings installed, no bridge attached."""
+    from unittest.mock import MagicMock
+
+    from physiclaw.core.hardware.scrcpy import ScrcpyArm, ScrcpyCamera
+
+    rig = HardwareRig()
+    rig._arm = MagicMock(spec=ScrcpyArm)
+    rig._cam = MagicMock(spec=ScrcpyCamera)
+    rig._eye = SCRCPY_BACKEND
+    rig._hand = SCRCPY_BACKEND
+    rig.calibration = Calibration()
+    rig.calibration.pct_to_grbl = PIXEL.copy()
+    rig._origin_pinned = True
+    rig.calibration.pct_to_cam = np.eye(2, 3)
+    rig.calibration.cam_size = (1024, 576)
+    rig.calibration.cam_rotation = -1
+    return rig
+
+
+def test_sync_clipboard_direct_path(arm_double, cam_double):
+    rig = _scrcpy_only_rig(arm_double, cam_double)
+    rig.acquire()
+    try:
+        assert rig.sync_clipboard("hi", timeout=5) is True
+        rig._arm.set_clipboard.assert_called_once_with("hi")
+    finally:
+        rig.release()
+
+
+def test_sync_clipboard_grbl_without_bridge_raises(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    assert rig._bridge is None
+    rig.acquire()
+    try:
+        with pytest.raises(RuntimeError, match="bridge page or the scrcpy hand"):
+            rig.sync_clipboard("hi", timeout=5)
+    finally:
+        rig.release()
+
+
+def test_sync_clipboard_prefers_bridge(
+    arm_double, cam_double, bridge_double, at_double
+):
+    from unittest.mock import MagicMock
+
+    from physiclaw.core.hardware.scrcpy import ScrcpyArm
+
+    rig = _live_rig(arm_double, cam_double)
+    rig._arm = MagicMock(spec=ScrcpyArm)
+    rig._hand = SCRCPY_BACKEND
+    rig.attach_bridge(bridge_double())
+    rig._bridge.wait_clipboard.return_value = True
+    rig._assistive_touch = at_double()
+    rig.acquire()
+    try:
+        assert rig.sync_clipboard("hi", timeout=5) is True
+        rig._bridge.send_text.assert_called_once_with("hi")
+        rig._arm.set_clipboard.assert_not_called()
+    finally:
+        rig.release()
+
+
+def test_take_screenshot_direct_path(arm_double, cam_double):
+    rig = _scrcpy_only_rig(arm_double, cam_double)
+    rig._cam.snapshot.return_value = np.zeros((8, 8, 3), dtype=np.uint8)
+    rig.acquire()
+    try:
+        data = rig.take_screenshot()
+        assert data[:2] == b"\xff\xd8"  # JPEG magic
+    finally:
+        rig.release()
+
+
+def test_take_screenshot_none_frame_returns_none(arm_double, cam_double):
+    rig = _scrcpy_only_rig(arm_double, cam_double)
+    rig._cam.snapshot.return_value = None
+    rig.acquire()
+    try:
+        assert rig.take_screenshot() is None
+    finally:
+        rig.release()
+
+
+def test_take_screenshot_usb_without_bridge_raises(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    rig.acquire()
+    try:
+        with pytest.raises(RuntimeError, match="bridge page or the scrcpy eye"):
+            rig.take_screenshot()
+    finally:
+        rig.release()
+
+
+# ─── preference order ──────────────────────────────────────────
+
+
+def test_default_order_prefers_scrcpy():
+    rig = HardwareRig()
+    assert rig._eye_order == (SCRCPY_BACKEND, PHYSICAL_BACKEND)
+    assert rig._hand_order == (SCRCPY_BACKEND, PHYSICAL_BACKEND)
+
+
+def test_order_follows_config_preferred(mocker):
+    from types import SimpleNamespace
+
+    mocker.patch(
+        "physiclaw.core.orchestration.rig.CONFIG",
+        SimpleNamespace(backend=SimpleNamespace(preferred="physical")),
+    )
+    rig = HardwareRig()
+    assert rig._eye_order == (PHYSICAL_BACKEND, SCRCPY_BACKEND)
+    assert rig.preferred_eye == PHYSICAL_BACKEND
+
+
+def test_explicit_order_beats_config(mocker):
+    from types import SimpleNamespace
+
+    mocker.patch(
+        "physiclaw.core.orchestration.rig.CONFIG",
+        SimpleNamespace(backend=SimpleNamespace(preferred="physical")),
+    )
+    rig = HardwareRig(eye_order=(SCRCPY_BACKEND, PHYSICAL_BACKEND))
+    assert rig._eye_order == (SCRCPY_BACKEND, PHYSICAL_BACKEND)

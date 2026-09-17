@@ -20,6 +20,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from physiclaw.common import paths
+from physiclaw.common.config import CONFIG
 from physiclaw.common.text import read_text
 from physiclaw.core.bridge import BridgeState
 from physiclaw.core.calibration import PARK_PCT, Calibration, ScreenTransforms
@@ -27,9 +28,17 @@ from physiclaw.core.hardware.arm import StylusArm
 from physiclaw.core.hardware.camera import Camera
 from physiclaw.core.hardware.iphone import AssistiveTouch
 from physiclaw.core.hardware.scrcpy import ScrcpyArm, ScrcpyCamera, ScrcpySession
+from physiclaw.core.vision.util import encode_jpeg
 
 PHYSICAL_BACKEND = "physical"
 SCRCPY_BACKEND = "scrcpy"
+
+
+def _configured_order() -> tuple[str, str]:
+    """Fallback order from [backend] preferred: preferred first, other second."""
+    preferred = CONFIG.backend.preferred
+    other = PHYSICAL_BACKEND if preferred == SCRCPY_BACKEND else SCRCPY_BACKEND
+    return (preferred, other)
 
 
 @dataclass
@@ -86,12 +95,10 @@ class HardwareRig:
     by the /setup skill via HTTP endpoints.
     """
 
-    # Fallback preference: first usable backend wins. Digital first, the
-    # physical rig is the reliable floor — either link may be offline, so
-    # selection filters by availability instead of assuming a backend.
-    EYE_ORDER = (SCRCPY_BACKEND, PHYSICAL_BACKEND)
-    HAND_ORDER = (SCRCPY_BACKEND, PHYSICAL_BACKEND)
-
+    # Fallback preference: first usable backend wins. Either link may be
+    # offline, so selection filters by availability instead of assuming a
+    # backend. Order comes from [backend] preferred (CONFIG), explicit
+    # constructor args win for tests and embedding.
     def __init__(
         self,
         eye_order: tuple[str, ...] | None = None,
@@ -105,8 +112,8 @@ class HardwareRig:
         self._backends: dict[str, _BackendState] = {}
         self._eye = PHYSICAL_BACKEND
         self._hand = PHYSICAL_BACKEND
-        self._eye_order = tuple(eye_order) if eye_order else self.EYE_ORDER
-        self._hand_order = tuple(hand_order) if hand_order else self.HAND_ORDER
+        self._eye_order = tuple(eye_order) if eye_order else _configured_order()
+        self._hand_order = tuple(hand_order) if hand_order else _configured_order()
         self.calibration: Calibration = Calibration()
         self._lock = threading.Lock()
         self._lock_owner: int | None = None  # thread ident; see assert_locked
@@ -684,7 +691,7 @@ class HardwareRig:
         return active != preferred and self._backend_usable(kind, preferred)
 
     def next_hand(self) -> str | None:
-        """Next usable hand backend per HAND_ORDER, excluding the active
+        """Next usable hand backend per preference order, excluding the active
         one (None when nothing else can serve — the caller re-raises)."""
         for name in self._hand_order:
             if name != self._hand and self._backend_usable("hand", name):
@@ -692,7 +699,7 @@ class HardwareRig:
         return None
 
     def next_eye(self) -> str | None:
-        """Next usable eye backend per EYE_ORDER, excluding the active one."""
+        """Next usable eye backend per preference order, excluding the active one."""
         for name in self._eye_order:
             if name != self._eye and self._backend_usable("eye", name):
                 return name
@@ -864,8 +871,21 @@ class HardwareRig:
 
     def take_screenshot(self, timeout: float = 60.0) -> bytes | None:
         """Trigger the iOS screenshot + upload Shortcuts via AssistiveTouch;
-        return the uploaded image bytes, or None on upload timeout."""
+        return the uploaded image bytes, or None on upload timeout.
+
+        Without a bridge page (scrcpy-only rig) the video frame IS the
+        screenshot — same phone-screen pixels, no upload roundtrip. A USB
+        eye without bridge still raises: its frame includes the desk, so it
+        is not a phone screenshot."""
         self.assert_locked()
+        if self._bridge is None:
+            cam = self.require_cam()
+            if not isinstance(cam, ScrcpyCamera):
+                raise RuntimeError("Screenshot needs the bridge page or the scrcpy eye")
+            frame = cam.snapshot()
+            if frame is None:
+                return None
+            return encode_jpeg(frame)
         at = self.require_assistive_touch()
         return at.take_screenshot(
             self.require_arm(),
@@ -891,8 +911,21 @@ class HardwareRig:
         while we returned False, so callers' "the phone clipboard still
         holds the previous content" stays true, not racy. Caller must
         hold the lock; the retry/miss policy lives in the orchestrator's
-        ClipboardSyncState."""
+        hold the lock; the retry/miss policy lives in the orchestrator's
+        ClipboardSyncState.
+
+        Without a bridge page (scrcpy-only rig) the text goes straight
+        through the control socket: the server acks after ClipboardManager
+        commits, so the ack IS the confirmation — no fetch race, no residue
+        window, and `timeout` only bounds the socket exchange. Arm failures
+        propagate like the bridge path's, feeding hand failover."""
         self.assert_locked()
+        if self._bridge is None:
+            arm = self.require_arm()
+            if not isinstance(arm, ScrcpyArm):
+                raise RuntimeError("Clipboard needs the bridge page or the scrcpy hand")
+            arm.set_clipboard(text)
+            return True
         bridge = self.require_bridge()
         bridge.send_text(text)
         try:
