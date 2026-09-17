@@ -419,17 +419,131 @@ def _mark_ready_and_wait(timeout: float = 45.0) -> None:
     print("  (camera settle still running — ready will flip shortly)")
 
 
-def _step_finish(t0: float) -> None:
-    print("\n── 10. Finish ──")
-    api("POST", "/api/phone/home")
-    time.sleep(3)
+def _prompt(msg: str) -> str:
+    raw = input(f"  {msg}").strip()
+    if raw.lower() == "q":
+        print("Setup aborted.")
+        sys.exit(1)
+    return raw
+
+
+def _step_choose_link(auto: bool) -> str:
+    print("\n── 0. Choose link ──")
+    print("  physical: GRBL arm + USB camera, then full calibration.")
+    print("  scrcpy: Android screen over adb — the mapping installs on")
+    print("          connect, so no calibration steps follow.")
+    if auto:
+        print("  Auto mode: physical link.")
+        return "physical"
+    raw = _prompt("Which link? [physical/scrcpy, default=physical]: ").lower()
+    if raw.startswith("scrcpy") or raw == "s":
+        _done("scrcpy link")
+        return "scrcpy"
+    _done("physical link")
+    return "physical"
+
+
+def _step_connect_scrcpy(auto: bool) -> None:
+    print("\n── 1. Connect scrcpy ──")
+    print("  Phone on USB with adb enabled — PhysiClaw lists its displays,")
+    print("  mirrors the chosen one, and installs the screen mapping on")
+    print("  connect (no calibration steps follow).")
+    serial: str | None = None
+    if not auto:
+        serial = _prompt("Device serial (blank = auto-detect) [Enter] ") or None
+    query = f"?serial={serial}" if serial else ""
+    r = api("GET", f"/api/list-displays{query}")
+    if not ok(r):
+        _fail("Couldn't list displays — " + _msg(r))
+        sys.exit(1)
+    displays = r.get("displays") or []
+    if not displays:
+        _fail("No displays reported — wake the device and accept the adb prompt")
+        sys.exit(1)
+    ids = [d.get("display_id", 0) for d in displays]
+    if len(displays) == 1 and ids[0] == 0:
+        display_id = 0
+    elif auto:
+        display_id = ids[0]
+    else:
+        for d in displays:
+            print(f"    [{d.get('display_id', 0)}] {d.get('width')}x{d.get('height')}")
+        try:
+            display_id = int(_prompt("Which display? [default=0]: ") or "0")
+        except ValueError:
+            display_id = 0
+        if display_id not in ids:
+            _warn(f"Display {display_id} not listed — trying anyway")
+    body: dict = {"display_id": display_id, "max_size": 1024}
+    if serial is not None:
+        body["serial"] = serial
+    r = api("POST", "/api/connect-scrcpy", body, timeout=120)
+    if not ok(r):
+        _fail(f"Couldn't connect scrcpy — {_msg(r)}")
+        sys.exit(1)
+    _done(f"scrcpy connected (display {display_id})")
+
+
+def _pick_backend(kind: str, current: str, connected: list) -> str:
+    raw = _prompt(
+        f"Active {kind} [{current}] (options: {', '.join(connected)}) [Enter] "
+    ).lower()
+    return raw if raw in connected else current
+
+
+def _step_choose_backends(auto: bool) -> None:
+    print("\n── 2. Choose active eye/hand ──")
+    status = api("GET", STATUS_PATH) or {}
+    print(
+        f"  Active eye: {status.get('active_eye')}, hand: {status.get('active_hand')}."
+    )
+    if auto:
+        return
+    backends = status.get("backends") or {}
+    connected = [
+        n
+        for n, b in backends.items()
+        if (b or {}).get("arm") or (b or {}).get("camera")
+    ]
+    if len(connected) < 2:
+        _done("single link — nothing to switch")
+        return
+    eye = _pick_backend("eye", str(status.get("active_eye") or ""), connected)
+    hand = _pick_backend("hand", str(status.get("active_hand") or ""), connected)
+    payload = {}
+    if eye != status.get("active_eye"):
+        payload["eye"] = eye
+    if hand != status.get("active_hand"):
+        payload["hand"] = hand
+    if not payload:
+        _done("kept current eye/hand")
+        return
+    r = api("POST", "/api/use-backend", payload)
+    if not ok(r):
+        _fail(f"Couldn't switch backends — {_msg(r)}")
+        sys.exit(1)
+    _done(f"eye={eye}, hand={hand}")
+
+
+def _step_finish(t0: float, phone_home: bool = True, label: str = "10") -> None:
+    print(f"\n── {label}. Finish ──")
+    if phone_home:
+        api("POST", "/api/phone/home")
+        time.sleep(3)
     _mark_ready_and_wait()
 
     elapsed = time.time() - t0
     mins, secs = int(elapsed // 60), int(elapsed % 60)
     print(f"\n{'=' * 40}")
     _done(f"PhysiClaw is ready — set up in {mins}m {secs}s.")
-    print("  The arm, camera, and screen are calibrated and working together.")
+    status = api("GET", STATUS_PATH) or {}
+    print(
+        f"  Active eye: {status.get('active_eye')}, hand: {status.get('active_hand')}."
+    )
+    if phone_home:
+        print("  The arm, camera, and screen are calibrated and working together.")
+    else:
+        print("  The scrcpy eye and hand agree — mapping installed on connect.")
     print("  All MCP tools are now available.")
     print(f"{'=' * 40}")
 
@@ -453,6 +567,12 @@ def run(auto: bool = False, trace: bool = False) -> None:
         _done("PhysiClaw is ready")
         return
 
+    link = _step_choose_link(auto)
+    if link == "scrcpy":
+        _step_connect_scrcpy(auto)
+        _step_choose_backends(auto)
+        _step_finish(t0, phone_home=False, label="3")
+        return
     _step_connect_phone(status, auto)
     _step_position_rig(auto)
     _step_connect_arm(auto)

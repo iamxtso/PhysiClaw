@@ -320,16 +320,62 @@ const STR = {
   },
   stepOf: { en: (n) => `Step ${n} of ${STEPS.length}`, zh: (n) => `第 ${n} / ${STEPS.length} 步` },
   finalStep: { en: "Final step", zh: "最后一步" },
+  nav_link: { en: "Choose link", zh: "选择链路" },
   nav_phone: { en: "Connect phone", zh: "连接手机" },
   nav_position: { en: "Position rig", zh: "摆放设备" },
   nav_arm: { en: "Connect arm", zh: "连接机械臂" },
   nav_camera: { en: "Connect camera", zh: "连接相机" },
+  nav_scrcpy: { en: "Connect scrcpy", zh: "连接 scrcpy" },
   nav_viewport: { en: "Locate screen", zh: "定位屏幕" },
   nav_armcal: { en: "Calibrate arm", zh: "校准机械臂" },
   nav_camcal: { en: "Calibrate camera", zh: "校准相机" },
   nav_validate: { en: "Validate", zh: "验证" },
   nav_at: { en: "AssistiveTouch", zh: "辅助触控" },
   nav_finish: { en: "Finish", zh: "完成" },
+  s_link_title: { en: "Choose your link", zh: "选择链路" },
+  s_link_lede: {
+    en: "PhysiClaw drives the phone over one of two links. The physical link (GRBL arm + USB camera) needs the full calibration below; the digital link (Android screen over adb) installs its mapping on connect, so no calibration steps follow.",
+    zh: "PhysiClaw 通过两种链路之一操控手机。物理链路（GRBL 机械臂 + USB 相机）需要走完下面的完整校准；数字链路（经 adb 的安卓屏幕镜像）在连接时自动装好映射，后面没有校准步骤。",
+  },
+  s_link_physical: { en: "Physical link", zh: "物理链路" },
+  s_link_physical_sub: { en: "GRBL arm + USB camera · full calibration", zh: "GRBL 机械臂 + USB 相机 · 完整校准" },
+  s_link_scrcpy: { en: "Digital link (scrcpy)", zh: "数字链路（scrcpy）" },
+  s_link_scrcpy_sub: { en: "Android over adb · no calibration", zh: "经 adb 的安卓镜像 · 无需校准" },
+  s_scrcpy_title: { en: "Connect scrcpy", zh: "连接 scrcpy" },
+  s_scrcpy_lede: { en: "Phone on USB with adb enabled. List its displays, mirror the chosen one — the screen mapping installs on connect.", zh: "手机连上 USB 并打开 adb。列出它的屏幕，选一个镜像——屏幕映射在连接时自动装好。" },
+  s_scrcpy_serial: { en: "Device serial (blank = auto-detect)", zh: "设备序列号（留空 = 自动检测）" },
+  s_scrcpy_list: { en: "List displays", zh: "列出屏幕" },
+  s_scrcpy_list_busy: { en: "Listing…", zh: "读取中…" },
+  s_scrcpy_list_err: {
+    en: (r) => `Couldn't list displays: ${msg(r)}. Is adb installed, the device on USB, and its prompt accepted?`,
+    zh: (r) => `列不出屏幕：${msg(r)}。adb 装了吗？手机连上 USB、点过授权弹窗了吗？`,
+  },
+  s_scrcpy_connect: { en: "Connect", zh: "连接" },
+  s_scrcpy_busy: { en: "Connecting…", zh: "连接中…" },
+  s_scrcpy_ok: {
+    en: (id) => `scrcpy connected (display ${id}). Mapping installed — no calibration needed.`,
+    zh: (id) => `scrcpy 已连接（屏幕 ${id}）。映射已装好，无需校准。`,
+  },
+  s_scrcpy_err: {
+    en: (r) => `Couldn't connect scrcpy: ${msg(r)}.`,
+    zh: (r) => `scrcpy 连接失败：${msg(r)}。`,
+  },
+  s_scrcpy_backends: { en: "Both links connected? Pick the active eye and hand.", zh: "两条链路都连上了？选一下用哪边做眼、用哪边做手。" },
+  s_scrcpy_eye: { en: "Eye", zh: "眼" },
+  s_scrcpy_hand: { en: "Hand", zh: "手" },
+  s_scrcpy_apply: { en: "Apply", zh: "应用" },
+  s_scrcpy_applied: {
+    en: (e, h) => `Active eye: ${e}, hand: ${h}.`,
+    zh: (e, h) => `当前眼：${e}，手：${h}。`,
+  },
+  s_scrcpy_apply_err: {
+    en: (r) => `Couldn't switch: ${msg(r)}.`,
+    zh: (r) => `切换失败：${msg(r)}。`,
+  },
+  s_finish_links: {
+    en: (e, h) => `Active eye: ${e} · hand: ${h}.`,
+    zh: (e, h) => `当前眼：${e} · 手：${h}。`,
+  },
   s_phone_title: { en: "Connect your phone", zh: "连接你的手机" },
   s_phone_lede: {
     en: "Let's set up your PhysiClaw hardware. Calibration lines up the arm's movement, the phone's screen, and the camera's view, so PhysiClaw's eye and hand work as one.",
@@ -585,7 +631,10 @@ const isOk = (res) => res.ok && res.body && res.body.status === "ok";
    (advance) / ctx.back() / ctx.go(i) (jump).
    NOTE: keep this sequence in sync with the CLI (cli/setup/hardware.py
    run()) — the two surfaces are intentionally mirrored. */
-const STEPS = [
+const LINK_KEY = "physiclaw-link";
+let LINK = getLS(LINK_KEY);  // "physical" | "scrcpy" | null (chosen in step 1)
+const PHYSICAL_STEPS = [
+  { key: "link", done: (s) => LINK != null, render: chooseLink },
   { key: "phone", done: (s) => s.bridge, render: connectPhone },
   { key: "position", done: (s) => s.arm, render: positionRig },
   { key: "arm", done: (s) => s.arm, render: connectArm },
@@ -597,6 +646,21 @@ const STEPS = [
   { key: "at", done: (s) => "assistive_touch" in (s.steps || {}), render: assistiveTouch },
   { key: "finish", done: (s) => s.ready, render: finish },
 ];
+const scrcpyDone = (s) => !!(s.backends && s.backends.scrcpy && s.backends.scrcpy.camera);
+const DIGITAL_STEPS = [
+  { key: "link", done: (s) => LINK != null, render: chooseLink },
+  { key: "scrcpy", done: scrcpyDone, render: connectScrcpy },
+  { key: "finish", done: (s) => s.ready, render: finish },
+];
+// The digital link (scrcpy) installs its mapping on connect, so it skips the
+// physical-only steps (phone bridge, rig, arm/camera, calibration, AT).
+function stepsFor(link) { return link === "scrcpy" ? DIGITAL_STEPS : PHYSICAL_STEPS; }
+let STEPS = stepsFor(LINK);
+function setLink(link) {
+  LINK = link;
+  setLS(LINK_KEY, link);
+  STEPS = stepsFor(link);
+}
 
 let CURRENT = 0;
 let STATUS = { steps: {} };
@@ -751,7 +815,98 @@ function runAction(ctx, go, st, { busy: label, call, ok = isOk, onOk, err, hold,
   };
 }
 
-/* ── 1. Connect phone ──────────────────────────────── */
+/* ── 1. Choose link ────────────────────────────────── */
+function chooseLink(ctx) {
+  const c = card(`<div style="display:flex;flex-direction:column;gap:10px">
+    <button class="btn primary" id="linkPhysical" style="text-align:left">
+      <div>${t("s_link_physical")}</div><small style="opacity:.75;font-weight:400">${t("s_link_physical_sub")}</small>
+    </button>
+    <button class="btn" id="linkScrcpy" style="text-align:left">
+      <div>${t("s_link_scrcpy")}</div><small style="opacity:.75;font-weight:400">${t("s_link_scrcpy_sub")}</small>
+    </button></div>`);
+  const wrap = shell({ n: 1, title: t("s_link_title"), lede: t("s_link_lede"), cards: [c] });
+  const pick = async (link) => { setLink(link); await refreshStatus(); go(1); };
+  c.querySelector("#linkPhysical").onclick = () => pick("physical");
+  c.querySelector("#linkScrcpy").onclick = () => pick("scrcpy");
+  return wrap;
+}
+
+/* ── Digital link: connect scrcpy (mapping installs on connect) ── */
+function connectScrcpy(ctx) {
+  const inputStyle = "padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--txt);font-size:14px";
+  const c = card(`<div id="st"></div>
+    <label style="display:block;font-size:13px;color:var(--muted);margin:4px 0 6px">${t("s_scrcpy_serial")}</label>
+    <div style="display:flex;gap:8px">
+      <input id="serial" autocomplete="off" spellcheck="false" style="flex:1;${inputStyle}">
+      <button class="btn" id="listBtn">${t("s_scrcpy_list")}</button>
+    </div>
+    <div id="displays" style="margin-top:12px;display:flex;gap:8px;align-items:center"></div>`);
+  const back = card(`<p style="color:var(--muted);font-size:14.5px">${t("s_scrcpy_backends")}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:13px;color:var(--muted)">${t("s_scrcpy_eye")}
+        <select id="eye" style="${inputStyle}"></select></label>
+      <label style="font-size:13px;color:var(--muted)">${t("s_scrcpy_hand")}
+        <select id="hand" style="${inputStyle}"></select></label>
+      <button class="btn" id="applyBtn">${t("s_scrcpy_apply")}</button>
+    </div>
+    <div id="bst"></div>`);
+  const wrap = shell({ n: 2, title: t("s_scrcpy_title"), lede: t("s_scrcpy_lede"), cards: [c, back] });
+  wrap.appendChild(footer(ctx, { back: true, primary: { label: t("cont"), onClick: () => ctx.next() } }));
+  const serialEl = c.querySelector("#serial");
+  const dispEl = c.querySelector("#displays");
+  const st = c.querySelector("#st");
+  const listBtn = c.querySelector("#listBtn");
+  listBtn.onclick = async () => {
+    busy(listBtn, true, t("s_scrcpy_list_busy")); st.innerHTML = ""; dispEl.innerHTML = "";
+    const serial = serialEl.value.trim();
+    const r = await api("GET", "/api/list-displays" + (serial ? `?serial=${encodeURIComponent(serial)}` : ""));
+    busy(listBtn, false);
+    const displays = (r.ok && r.body && r.body.displays) || [];
+    if (!isOk(r) || !displays.length) { st.appendChild(note("err", t("s_scrcpy_list_err", r))); return; }
+    const sel = $(`<select id="display" style="flex:1;${inputStyle}"></select>`);
+    displays.forEach(d => sel.appendChild($(`<option value="${d.display_id}">Display ${d.display_id} — ${d.width}x${d.height}</option>`)));
+    dispEl.appendChild(sel);
+    const conn = $(`<button class="btn primary" data-enter id="connBtn">${t("s_scrcpy_connect")}</button>`);
+    dispEl.appendChild(conn);
+    conn.onclick = async () => {
+      busy(conn, true, t("s_scrcpy_busy")); st.innerHTML = "";
+      const display_id = parseInt(sel.value, 10);
+      const body = { display_id, max_size: 1024 };
+      if (serial) body.serial = serial;
+      const cr = await api("POST", "/api/connect-scrcpy", body, 120000);
+      busy(conn, false);
+      if (!isOk(cr)) { st.appendChild(note("err", t("s_scrcpy_err", cr))); return; }
+      st.appendChild(note("ok", t("s_scrcpy_ok", display_id)));
+      await refreshStatus(); fillBackends();
+    };
+  };
+  function fillBackends() {
+    const backends = STATUS.backends || {};
+    const names = Object.keys(backends).filter(n => backends[n] && (backends[n].arm || backends[n].camera));
+    const eye = back.querySelector("#eye"), hand = back.querySelector("#hand");
+    eye.innerHTML = ""; hand.innerHTML = "";
+    names.forEach(n => {
+      eye.appendChild($(`<option value="${n}"${n === STATUS.active_eye ? " selected" : ""}>${n}</option>`));
+      hand.appendChild($(`<option value="${n}"${n === STATUS.active_hand ? " selected" : ""}>${n}</option>`));
+    });
+  }
+  fillBackends();
+  const applyBtn = back.querySelector("#applyBtn");
+  applyBtn.onclick = async () => {
+    const bst = back.querySelector("#bst");
+    busy(applyBtn, true, t("working")); bst.innerHTML = "";
+    const r = await api("POST", "/api/use-backend", {
+      eye: back.querySelector("#eye").value, hand: back.querySelector("#hand").value,
+    });
+    busy(applyBtn, false);
+    if (!isOk(r)) { bst.appendChild(note("err", t("s_scrcpy_apply_err", r))); return; }
+    bst.appendChild(note("ok", t("s_scrcpy_applied", r.body.active_eye, r.body.active_hand)));
+    await refreshStatus();
+  };
+  return wrap;
+}
+
+/* ── 2. Connect phone ──────────────────────────────── */
 function connectPhone(ctx) {
   const altUrl = (PHONE_URL_FALLBACK && PHONE_URL_FALLBACK !== PHONE_URL)
     ? `<div class="url alt" title="Fallback if mDNS is blocked">${PHONE_URL_FALLBACK}</div>` : "";
@@ -765,7 +920,7 @@ function connectPhone(ctx) {
         <div id="connState" style="margin-top:14px"></div>
       </div>
     </div>`);
-  const wrap = shell({ n: 1, title: t("s_phone_title"), lede: t("s_phone_lede"), cards: [body] });
+  const wrap = shell({ n: 2, title: t("s_phone_title"), lede: t("s_phone_lede"), cards: [body] });
   // Continue advances one step. If "Auto mode" is on, that same press then
   // drives the rest of the wizard hands-off (mirrors the CLI `--auto`).
   const actions = footer(ctx, { primary: { id: "nextBtn", label: t("cont"), disabled: true, onClick: () => { ctx.next(); if (AUTO_ARMED) autoRun(); } } });
@@ -811,7 +966,7 @@ function connectPhone(ctx) {
   return wrap;
 }
 
-/* ── 2. Position rig ───────────────────────────────── */
+/* ── 3. Position rig ───────────────────────────────── */
 function positionRig(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_position_li1")}</div></li>
@@ -819,15 +974,15 @@ function positionRig(ctx) {
     <li><span class="n">3</span><div>${t("s_position_li3")}</div></li>
     <li><span class="n">4</span><div>${t("s_position_li4")}</div></li>
   </ul>`);
-  const wrap = shell({ n: 2, title: t("s_position_title"), lede: t("s_position_lede"), cards: [list] });
+  const wrap = shell({ n: 3, title: t("s_position_title"), lede: t("s_position_lede"), cards: [list] });
   wrap.appendChild(footer(ctx, { back: true, primary: { label: t("s_position_btn"), onClick: () => ctx.next() } }));
   return wrap;
 }
 
-/* ── 3. Connect arm ────────────────────────────────── */
+/* ── 4. Connect arm ────────────────────────────────── */
 function connectArm(ctx) {
   const c = card(`<p style="color:var(--muted);font-size:14.5px">${t("s_arm_card")}</p><div id="st"></div>`);
-  const wrap = shell({ n: 3, title: t("s_arm_title"), lede: t("s_arm_lede"), cards: [c] });
+  const wrap = shell({ n: 4, title: t("s_arm_title"), lede: t("s_arm_lede"), cards: [c] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_arm_btn") } });
   wrap.appendChild(actions);
   const st = c.querySelector("#st");
@@ -841,11 +996,11 @@ function connectArm(ctx) {
   return wrap;
 }
 
-/* ── 4. Connect camera ─────────────────────────────── */
+/* ── 5. Connect camera ─────────────────────────────── */
 function connectCamera(ctx) {
   const c = card(`<p style="color:var(--muted);font-size:14.5px">${t("s_camera_card")}</p>
     <div id="st"></div>`);
-  const wrap = shell({ n: 4, title: t("s_camera_title"), lede: t("s_camera_lede"), cards: [c] });
+  const wrap = shell({ n: 5, title: t("s_camera_title"), lede: t("s_camera_lede"), cards: [c] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_camera_btn") } });
   wrap.appendChild(actions);
   const st = c.querySelector("#st");
@@ -858,7 +1013,7 @@ function connectCamera(ctx) {
   return wrap;
 }
 
-/* ── 5. Locate the screen (viewport shift) ─────────── */
+/* ── 6. Locate the screen (viewport shift) ─────────── */
 function viewportShift(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_viewport_li1")}</div></li>
@@ -866,7 +1021,7 @@ function viewportShift(ctx) {
     <li><span class="n">3</span><div>${t("s_viewport_li3")}</div></li>
   </ul>`);
   const st = $(`<div id="st"></div>`);
-  const wrap = shell({ n: 5, title: t("s_viewport_title"), lede: t("s_viewport_lede"), cards: [list, st] });
+  const wrap = shell({ n: 6, title: t("s_viewport_title"), lede: t("s_viewport_lede"), cards: [list, st] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_viewport_btn") } });
   wrap.appendChild(actions);
   // Show the orange square right away so the user can see it before measuring.
@@ -883,14 +1038,14 @@ function viewportShift(ctx) {
   return wrap;
 }
 
-/* ── 6. Calibrate arm (position stylus + tap routine) ── */
+/* ── 7. Calibrate arm (position stylus + tap routine) ── */
 function calibrateArm(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_armcal_li1")}</div></li>
     <li><span class="n">2</span><div>${t("s_armcal_li2")}</div></li>
   </ul>`);
   const st = $(`<div id="st"></div>`);
-  const wrap = shell({ n: 6, title: t("s_armcal_title"), lede: t("s_armcal_lede"), cards: [list, st] });
+  const wrap = shell({ n: 7, title: t("s_armcal_title"), lede: t("s_armcal_lede"), cards: [list, st] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_armcal_btn") } });
   wrap.appendChild(actions);
   // Show the center circle right away so the user can hand-position the stylus first.
@@ -913,14 +1068,14 @@ function calibrateArm(ctx) {
   return wrap;
 }
 
-/* ── 7. Calibrate camera (rotation/coverage + mapping) ─ */
+/* ── 8. Calibrate camera (rotation/coverage + mapping) ─ */
 function calibrateCamera(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_camcal_li1")}</div></li>
     <li><span class="n">2</span><div>${t("s_camcal_li2")}</div></li>
   </ul>`);
   const st = $(`<div id="st"></div>`);
-  const wrap = shell({ n: 7, title: t("s_camcal_title"), lede: t("s_camcal_lede"), cards: [list, st] });
+  const wrap = shell({ n: 8, title: t("s_camcal_title"), lede: t("s_camcal_lede"), cards: [list, st] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_camcal_btn") } });
   wrap.appendChild(actions);
   const go = actions.querySelector("#go");
@@ -943,14 +1098,14 @@ function calibrateCamera(ctx) {
   return wrap;
 }
 
-/* ── 8. Validate ───────────────────────────────────── */
+/* ── 9. Validate ───────────────────────────────────── */
 function validate(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_validate_li1")}</div></li>
     <li><span class="n">2</span><div>${t("s_validate_li2")}</div></li>
   </ul>`);
   const st = $(`<div id="st"></div>`);
-  const wrap = shell({ n: 8, title: t("s_validate_title"), lede: t("s_validate_lede"), cards: [list, st] });
+  const wrap = shell({ n: 9, title: t("s_validate_title"), lede: t("s_validate_lede"), cards: [list, st] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_validate_btn") } });
   wrap.appendChild(actions);
   runAction(ctx, actions.querySelector("#go"), st, {
@@ -963,14 +1118,14 @@ function validate(ctx) {
   return wrap;
 }
 
-/* ── 9. AssistiveTouch ─────────────────────────────── */
+/* ── 10. AssistiveTouch ─────────────────────────────── */
 function assistiveTouch(ctx) {
   const list = card(`<ul class="steps-do">
     <li><span class="n">1</span><div>${t("s_at_li1")}</div></li>
     <li><span class="n">2</span><div>${t("s_at_li2")}</div></li>
   </ul>`);
   const st = $(`<div id="st"></div>`);
-  const wrap = shell({ n: 9, title: t("s_at_title"), lede: t("s_at_lede"), cards: [list, st] });
+  const wrap = shell({ n: 10, title: t("s_at_title"), lede: t("s_at_lede"), cards: [list, st] });
   const actions = footer(ctx, { back: true, primary: { id: "go", label: t("s_at_btn") } });
   wrap.appendChild(actions);
   // Show the orange target circle right away so the user can place the button.
@@ -988,7 +1143,7 @@ function assistiveTouch(ctx) {
   return wrap;
 }
 
-/* ── 10. Finish ────────────────────────────────────── */
+/* ── 11. Finish ────────────────────────────────────── */
 function finish(ctx) {
   // Already done (e.g. a page refresh after setup) → show the ready state
   // straight away. Only a genuine first finish runs home + mark-ready, so a
@@ -1004,7 +1159,8 @@ function finish(ctx) {
   function showReady(when) {
     hero.innerHTML = `<div class="big">✓</div>
       <h1 style="margin:0">${t("s_finish_readyTitle")}</h1>
-      <p class="lede" style="margin:10px auto 0;max-width:42ch">${t("s_finish_readyLede", when)}</p>`;
+      <p class="lede" style="margin:10px auto 0;max-width:42ch">${t("s_finish_readyLede", when)}</p>
+      <p style="text-align:center;color:var(--muted);font-size:13.5px;margin:10px 0 0">${t("s_finish_links", STATUS.active_eye || "?", STATUS.active_hand || "?")}</p>`;
     // The first-run learning note only applies before the layout is learned;
     // on a recalibration (already learned) it's stale, so skip it.
     if (!STATUS.layout_learned)
@@ -1016,8 +1172,8 @@ function finish(ctx) {
   if (alreadyReady) { showReady(""); return wrap; }
 
   (async () => {
-    await api("POST", "/api/phone/home");
-    await sleep(3000);
+    // No phone bridge on the digital link (scrcpy) — nothing to home.
+    if (STATUS.bridge) { await api("POST", "/api/phone/home"); await sleep(3000); }
     await api("POST", "/api/ready");
     await refreshStatus();
     const secs = Math.round((Date.now() - START) / 1000);

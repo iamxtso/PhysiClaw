@@ -758,3 +758,168 @@ def test_await_bridge_and_calibrate_routes_wizard_output_through_logger(mocker) 
     hw_mod.await_bridge_and_calibrate("127.0.0.1", 8048)
 
     assert "  ✓ Phone connected" in lines
+
+
+# ---------- scrcpy link branch ----------
+
+
+def test_choose_link_auto_returns_physical(mocker) -> None:
+    mocker.patch("builtins.input", side_effect=AssertionError("no prompt in auto"))
+
+    assert hw_mod._step_choose_link(auto=True) == "physical"
+
+
+def test_choose_link_interactive_scrcpy(mocker) -> None:
+    mocker.patch("builtins.input", return_value="scrcpy")
+
+    assert hw_mod._step_choose_link(auto=False) == "scrcpy"
+
+
+def test_choose_link_interactive_default_is_physical(mocker) -> None:
+    mocker.patch("builtins.input", return_value="")
+
+    assert hw_mod._step_choose_link(auto=False) == "physical"
+
+
+def test_choose_link_quit_aborts(mocker) -> None:
+    mocker.patch("builtins.input", return_value="q")
+
+    with pytest.raises(SystemExit):
+        hw_mod._step_choose_link(auto=False)
+
+
+def _scrcpy_status(**extra):
+    base = {
+        "ready": False,
+        "calibrated": False,
+        "active_eye": "scrcpy",
+        "active_hand": "physical",
+        "backends": {
+            "physical": {"arm": True, "camera": True, "calibrated": True},
+            "scrcpy": {"arm": True, "camera": True, "calibrated": True},
+        },
+    }
+    base.update(extra)
+    return base
+
+
+def test_connect_scrcpy_single_display_skips_pick(mocker) -> None:
+    mocker.patch("builtins.input", return_value="")
+    calls: list = []
+
+    def fake_api(method, path, body=None, timeout=60):
+        calls.append((method, path, body))
+        if path == "/api/list-displays":
+            return {
+                "status": "ok",
+                "displays": [{"display_id": 0, "width": 1080, "height": 2400}],
+            }
+        return {"status": "ok"}
+
+    mocker.patch.object(hw_mod, "api", side_effect=fake_api)
+
+    hw_mod._step_connect_scrcpy(auto=False)
+
+    assert ("POST", "/api/connect-scrcpy", {"display_id": 0, "max_size": 1024}) in calls
+
+
+def test_connect_scrcpy_multi_display_prompts_and_passes_serial(mocker) -> None:
+    mocker.patch("builtins.input", side_effect=["emulator-5554", "1"])
+    calls: list = []
+
+    def fake_api(method, path, body=None, timeout=60):
+        calls.append((method, path, body))
+        if path == "/api/list-displays?serial=emulator-5554":
+            return {
+                "status": "ok",
+                "displays": [
+                    {"display_id": 0, "width": 1080, "height": 2400},
+                    {"display_id": 1, "width": 1080, "height": 2400},
+                ],
+            }
+        return {"status": "ok"}
+
+    mocker.patch.object(hw_mod, "api", side_effect=fake_api)
+
+    hw_mod._step_connect_scrcpy(auto=False)
+
+    assert (
+        "POST",
+        "/api/connect-scrcpy",
+        {"display_id": 1, "max_size": 1024, "serial": "emulator-5554"},
+    ) in calls
+
+
+def test_connect_scrcpy_list_failure_exits(mocker) -> None:
+    mocker.patch("builtins.input", return_value="")
+    mocker.patch.object(
+        hw_mod, "api", return_value={"status": "error", "message": "adb: no devices"}
+    )
+
+    with pytest.raises(SystemExit):
+        hw_mod._step_connect_scrcpy(auto=False)
+
+
+def test_choose_backends_single_link_keeps(mocker) -> None:
+    mocker.patch("builtins.input", side_effect=AssertionError("no prompt for one link"))
+    posts: list = []
+
+    def fake_api(method, path, body=None, timeout=60):
+        if method == "POST":
+            posts.append(path)
+        return _scrcpy_status(backends={"scrcpy": {"arm": True, "camera": True}})
+
+    mocker.patch.object(hw_mod, "api", side_effect=fake_api)
+
+    hw_mod._step_choose_backends(auto=False)
+
+    assert "/api/use-backend" not in posts
+
+
+def test_choose_backends_switch_posts(mocker) -> None:
+    mocker.patch("builtins.input", side_effect=["scrcpy", "scrcpy"])
+    calls: list = []
+
+    def fake_api(method, path, body=None, timeout=60):
+        calls.append((method, path, body))
+        if path == "/api/status":
+            return _scrcpy_status()
+        return {"status": "ok", "active_eye": "scrcpy", "active_hand": "scrcpy"}
+
+    mocker.patch.object(hw_mod, "api", side_effect=fake_api)
+
+    hw_mod._step_choose_backends(auto=False)
+
+    # eye already scrcpy in the fixture — only the changed side is sent.
+    assert ("POST", "/api/use-backend", {"hand": "scrcpy"}) in calls
+
+
+def test_run_scrcpy_short_flow_skips_calibration(mocker) -> None:
+    mocker.patch("builtins.input", side_effect=["scrcpy", "", "", ""])
+    mocker.patch.object(hw_mod.time, "sleep")
+    mocker.patch.object(hw_mod, "_mark_ready_and_wait")
+    calls: list = []
+
+    def fake_api(method, path, body=None, timeout=60):
+        calls.append((method, path, body))
+        if path == "/api/status":
+            return _scrcpy_status(
+                backends={"scrcpy": {"arm": True, "camera": True, "calibrated": True}}
+            )
+        if path == "/api/list-displays":
+            return {
+                "status": "ok",
+                "displays": [{"display_id": 0, "width": 1080, "height": 2400}],
+            }
+        return {"status": "ok"}
+
+    mocker.patch.object(hw_mod, "api", side_effect=fake_api)
+    calibrate_spy = mocker.patch.object(hw_mod, "calibrate")
+
+    hw_mod.run(auto=False, trace=False)
+
+    paths = [p for _, p, _ in calls]
+    assert "/api/connect-scrcpy" in paths
+    assert "/api/use-backend" not in paths  # single link — nothing to switch
+    assert not any(p.startswith("/api/calibrate/") for p in paths)
+    calibrate_spy.assert_not_called()
