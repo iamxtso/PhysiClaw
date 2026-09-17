@@ -1,0 +1,157 @@
+"""Tests for the rig's dual-link backend registry (physical + scrcpy).
+
+Eye and hand switch independently; mapping halves travel with the device
+so the crop always matches the frame's source and the affine always
+matches the arm. Fakes are spec'd doubles; the calibration container is
+real (mapping assertions need real affines).
+"""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from physiclaw.core.calibration import Calibration
+from physiclaw.core.orchestration.rig import (
+    PHYSICAL_BACKEND,
+    SCRCPY_BACKEND,
+    HardwareRig,
+    _BackendState,
+)
+
+DIAG = np.array([[10.0, 0.0, 0.0], [0.0, 20.0, 0.0]])
+PIXEL = np.array([[1024.0, 0.0, 0.0], [0.0, 576.0, 0.0]])
+
+
+def _live_rig(arm_double, cam_double):
+    """A rig with a calibrated physical pair (grbl affine + pin)."""
+    rig = HardwareRig()
+    rig._arm = arm_double()
+    rig._cam = cam_double()
+    rig.calibration = Calibration()
+    rig.calibration.pct_to_grbl = DIAG.copy()
+    rig.calibration.pct_to_cam = np.eye(2, 3)
+    rig.calibration.cam_size = (1920, 1080)
+    rig.calibration.cam_rotation = 0
+    rig._origin_pinned = True
+    return rig
+
+
+def _park_scrcpy(rig, arm_double, cam_double):
+    """Park a calibrated scrcpy pair into the rig's records."""
+    rig._backends[SCRCPY_BACKEND] = _BackendState(
+        arm=arm_double(),
+        cam=cam_double(),
+        pct_to_grbl=PIXEL.copy(),
+        pinned=True,
+        pct_to_cam=np.eye(2, 3),
+        cam_size=(1024, 576),
+        cam_rotation=-1,
+    )
+
+
+# ─── hand switching ────────────────────────────────────────────
+
+
+def test_hand_switch_roundtrip_preserves_mappings(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    phys_arm = rig._arm
+    _park_scrcpy(rig, arm_double, cam_double)
+    rig.acquire()
+    try:
+        rig.use_hand(SCRCPY_BACKEND)
+        assert rig._hand == SCRCPY_BACKEND
+        assert rig._arm is not phys_arm  # alias moved to the parked arm
+        np.testing.assert_array_equal(rig.calibration.pct_to_grbl, PIXEL)
+        # Outgoing physical pair parked away with its mapping.
+        saved = rig._backends[PHYSICAL_BACKEND]
+        assert saved.arm is phys_arm
+        np.testing.assert_array_equal(saved.pct_to_grbl, DIAG)
+
+        rig.use_hand(PHYSICAL_BACKEND)
+        assert rig._arm is phys_arm
+        np.testing.assert_array_equal(rig.calibration.pct_to_grbl, DIAG)
+        assert rig._origin_pinned is True
+    finally:
+        rig.release()
+
+
+def test_hand_switch_parks_outgoing_arm(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    _park_scrcpy(rig, arm_double, cam_double)
+    rig.acquire()
+    try:
+        rig.use_hand(SCRCPY_BACKEND)
+    finally:
+        rig.release()
+    # PARK_PCT (-0.1, -0.05) through the diag affine.
+    rig._backends[PHYSICAL_BACKEND].arm.rapid_to.assert_called_once_with(-1.0, -1.0)
+
+
+def test_switch_unconnected_backend_raises(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    rig.acquire()
+    try:
+        with pytest.raises(RuntimeError, match="not connected"):
+            rig.use_hand(SCRCPY_BACKEND)
+        with pytest.raises(RuntimeError, match="not connected"):
+            rig.use_eye(SCRCPY_BACKEND)
+        with pytest.raises(ValueError, match="unknown backend"):
+            rig.use_hand("nope")
+    finally:
+        rig.release()
+
+
+# ─── eye switching ─────────────────────────────────────────────
+
+
+def test_eye_switch_moves_cam_mapping(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    phys_cam = rig._cam
+    _park_scrcpy(rig, arm_double, cam_double)
+    rig.acquire()
+    try:
+        rig.use_eye(SCRCPY_BACKEND)
+        assert rig._eye == SCRCPY_BACKEND
+        assert rig._cam is not phys_cam
+        assert rig.calibration.cam_size == (1024, 576)
+        assert rig.calibration.cam_rotation == -1
+        saved = rig._backends[PHYSICAL_BACKEND]
+        assert saved.cam is phys_cam
+        assert saved.cam_size == (1920, 1080)
+    finally:
+        rig.release()
+
+
+# ─── fallback selection ────────────────────────────────────────
+
+
+def test_next_hand_skips_uncalibrated_link(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    assert rig.next_hand() is None  # scrcpy absent entirely
+    rig._backends[SCRCPY_BACKEND] = _BackendState(arm=arm_double())  # no mapping
+    assert rig.next_hand() is None  # present but useless
+    rig._backends[SCRCPY_BACKEND].pct_to_grbl = PIXEL.copy()
+    assert rig.next_hand() == SCRCPY_BACKEND
+
+
+def test_next_eye_respects_order(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    _park_scrcpy(rig, arm_double, cam_double)
+    assert rig.next_eye() == SCRCPY_BACKEND  # digital first by default
+    flipped = HardwareRig(eye_order=(PHYSICAL_BACKEND, SCRCPY_BACKEND))
+    assert flipped.next_eye() is None  # nothing parked; physical is active
+
+
+# ─── status ────────────────────────────────────────────────────
+
+
+def test_status_reports_backend_table(arm_double, cam_double):
+    rig = _live_rig(arm_double, cam_double)
+    _park_scrcpy(rig, arm_double, cam_double)
+    out = rig.status()
+    assert out["active_eye"] == PHYSICAL_BACKEND
+    assert out["active_hand"] == PHYSICAL_BACKEND
+    assert out["backends"][PHYSICAL_BACKEND]["arm"] is True
+    assert out["backends"][SCRCPY_BACKEND]["camera"] is True
+    assert out["backends"][SCRCPY_BACKEND]["calibrated"] is True

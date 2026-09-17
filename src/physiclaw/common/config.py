@@ -130,6 +130,9 @@ class VisionConfig:
     wake_std_increase: float = 4.0
     wake_mean_increase: float = 4.0
     badge_min_area: int = 30  # warm pixels for a badge wake
+    # blackout.py — is this a secure-surface black frame (scrcpy blind)?
+    blackout_mean_luma: float = 8.0  # mean luma ceiling for blackout
+    blackout_std_luma: float = 5.0  # ...with std below this (a dark-mode UI has spread)
     # change.py — did a gesture change the screen?
     change_ratio_threshold: float = 0.003
 
@@ -439,7 +442,7 @@ _SECTION_COMMENTS: dict[str, str] = {
         "resolutions — the YUY2 default snaps to 640×480 over USB."
     ),
     "vision": (
-        "Detection thresholds (blur / washed-out / wake / screen-change), "
+        "Detection thresholds (blur / washed-out / wake / screen-change / blackout), "
         "calibrated on the reference rigs. Re-tune here when a different "
         "camera, distance, or lighting mis-flags views — the vision "
         "modules log their measured values."

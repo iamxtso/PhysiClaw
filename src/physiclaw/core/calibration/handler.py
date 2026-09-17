@@ -34,9 +34,38 @@ from physiclaw.core.calibration.calibrate import (
 )
 from physiclaw.core.calibration.state import Calibration
 from physiclaw.core.calibration.transforms import ViewportShift
+from physiclaw.core.hardware.arm import StylusArm
+from physiclaw.core.hardware.camera import Camera
 
 if TYPE_CHECKING:
     from physiclaw.core.orchestration import HardwareRig
+
+
+def _physical_arm(rig: "HardwareRig") -> StylusArm:
+    """The active arm narrowed to GRBL — these steps emit G-code, so a
+    parked-or-active scrcpy arm must fail loudly instead of probing a
+    pixel-space arm with machine-origin moves."""
+    arm = rig.arm
+    if arm is None:
+        raise PreconditionError("Arm not connected")
+    if not isinstance(arm, StylusArm):
+        raise PreconditionError(
+            "Physical arm required — switch the hand to physical first"
+        )
+    return arm
+
+
+def _physical_cam(rig: "HardwareRig") -> Camera:
+    """The active camera narrowed to USB — same contract as _physical_arm."""
+    cam = rig.cam
+    if cam is None:
+        raise PreconditionError("Camera not connected")
+    if not isinstance(cam, Camera):
+        raise PreconditionError(
+            "Physical camera required — switch the eye to physical first"
+        )
+    return cam
+
 
 log = logging.getLogger(__name__)
 
@@ -183,9 +212,7 @@ def _center_parked_stylus(rig: "HardwareRig") -> None:
     carries an affine (`_borrow_saved_affine` ran). Caller holds the
     lock."""
     cal = rig.calibration
-    arm = rig.arm
-    if arm is None:  # caller prechecks the arm; re-narrow here
-        raise PreconditionError("Arm not connected")
+    arm = _physical_arm(rig)
     rig.restore_park_origin()  # re-pin the frame: current pos = PARK_PCT
     center = cal.pct_to_grbl_mm(0.5, 0.5)
     if center is None:  # unreachable: _borrow_saved_affine ensured it
@@ -230,7 +257,7 @@ async def handle_calibrate_arm(
 
     def _do() -> dict:
         nonlocal borrowed
-        arm = rig.arm
+        arm = _physical_arm(rig)
         if arm is None:  # prechecked; re-narrow under the lock
             raise PreconditionError("Arm not connected")
         if from_park:
@@ -296,7 +323,7 @@ async def handle_calibrate_camera_frame(
             raise PreconditionError("Camera not connected")
 
     def _do() -> dict:
-        cam = rig.cam
+        cam = _physical_cam(rig)
         if cam is None:  # prechecked; re-narrow under the lock
             raise PreconditionError("Camera not connected")
         rig.park()
@@ -321,7 +348,7 @@ async def handle_compute_camera_mapping(
             raise PreconditionError("Camera not connected")
 
     def _do() -> dict:
-        cam = rig.cam
+        cam = _physical_cam(rig)
         if cam is None:  # prechecked; re-narrow under the lock
             raise PreconditionError("Camera not connected")
         rotation = rig.calibration.effective_rotation()
@@ -363,7 +390,7 @@ async def handle_validate_calibration(
         cal_state = rig.calibration
         # Prechecked; the re-reads narrow arm/camera/affines and
         # re-verify the state under the lock.
-        arm, cam = rig.arm, rig.cam
+        arm, cam = _physical_arm(rig), _physical_cam(rig)
         if arm is None:
             raise PreconditionError("Arm not connected")
         if cam is None:
@@ -419,9 +446,7 @@ async def handle_trace_edge(
     def _do() -> dict:
         # rig.transforms is rebuilt per access — re-fetch and re-check the
         # prechecked value so the locals are narrowed under the lock.
-        arm, transforms = rig.arm, rig.transforms
-        if arm is None:
-            raise PreconditionError("Arm not connected")
+        arm, transforms = _physical_arm(rig), rig.transforms
         if transforms is None:
             raise PreconditionError("Not calibrated — run /setup first")
         trace_screen_edge(arm, transforms)
@@ -484,7 +509,7 @@ async def handle_verify_assistive_touch(
 
     def _do() -> dict:
         # Prechecked; the re-reads narrow and re-verify under the lock.
-        arm = rig.arm
+        arm = _physical_arm(rig)
         if arm is None:
             raise PreconditionError("Arm not connected")
         pct_to_grbl = rig.calibration.pct_to_grbl

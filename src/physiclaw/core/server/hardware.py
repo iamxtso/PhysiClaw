@@ -12,9 +12,12 @@ from physiclaw.core.server.hardware_setup import (
     handle_camera_preview,
     handle_connect_arm,
     handle_connect_camera,
+    handle_connect_scrcpy,
     handle_disconnect_camera,
+    handle_list_displays,
     handle_setup_page,
     handle_status,
+    handle_use_backend,
 )
 
 if TYPE_CHECKING:
@@ -53,3 +56,15 @@ def register(mcp: "MCPServer", rig: "HardwareRig", phone: PageState) -> None:
     @mcp.custom_route("/api/camera-preview/{index}", methods=["GET"])
     async def _camera_preview(request: Request) -> JSONResponse:
         return await handle_camera_preview(request)
+
+    @mcp.custom_route("/api/connect-scrcpy", methods=["POST"])
+    async def _connect_scrcpy(request: Request) -> JSONResponse:
+        return await handle_connect_scrcpy(request, rig)
+
+    @mcp.custom_route("/api/use-backend", methods=["POST"])
+    async def _use_backend(request: Request) -> JSONResponse:
+        return await handle_use_backend(request, rig)
+
+    @mcp.custom_route("/api/list-displays", methods=["GET"])
+    async def _list_displays(request: Request) -> JSONResponse:
+        return await handle_list_displays(request)

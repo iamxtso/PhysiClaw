@@ -153,6 +153,17 @@ class FrameReader:
             )
             return self._frame
 
+    def frame_age(self):
+        """Seconds since the last published frame (None if never any).
+
+        Lets callers tell a live-but-stale stream (server stalled, reader
+        mid-reopen) from a live one — `fresh_frame` hides the difference
+        by design, falling back to the last frame."""
+        with self._cond:
+            if self._frame is None:
+                return None
+            return time.monotonic() - self._frame_time
+
     # ─── The loop ───────────────────────────────────────────────
 
     def _loop(self) -> None:

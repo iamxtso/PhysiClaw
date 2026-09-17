@@ -274,6 +274,10 @@ class Camera:
         (see the Device protocol in ``device.py``)."""
         return self._reader.healthy()
 
+    def frame_age(self):
+        """Seconds since the last published frame (None if never any)."""
+        return self._reader.frame_age()
+
     # ─── cv2 lifecycle ──────────────────────────────────────────
 
     def _open(self) -> None:

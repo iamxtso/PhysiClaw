@@ -17,13 +17,16 @@ surface. Image processing lives in physiclaw.core.vision — the
 orchestrator never touches pixels.
 """
 
+import logging
 import threading
+import time
 from typing import TYPE_CHECKING, assert_never, cast
 
 if TYPE_CHECKING:
     import numpy as np
 
 from physiclaw.common.gesture_vocab import STEP_ARG, STEP_TOOL
+from physiclaw.core.hardware.device import DeviceTimeout
 from physiclaw.core.orchestration import gestures, unlock
 from physiclaw.core.orchestration.clipboard import (
     ClipboardSyncError,
@@ -38,13 +41,25 @@ from physiclaw.core.vision.util import (
     validate_bbox,
 )
 
+log = logging.getLogger(__name__)
+
 
 class PhysiClaw:
     """Facade over the rig + perception: the tool operations MCP exposes."""
 
+    # Hand recovery probe: every Nth gesture (and at most every M seconds)
+    # while degraded, probe the preferred standby hand and move back on a
+    # live answer. Counter + wall-clock gates keep a dead link from taxing
+    # every gesture; the probe itself is side-effect-free (clipboard GET /
+    # status query), never a test tap.
+    HAND_REPROBE_EVERY = 20
+    HAND_REPROBE_MIN_INTERVAL = 60.0
+
     def __init__(self):
         self.rig = HardwareRig()
         self.perception = Perception(self.rig)
+        self._gestures_since_probe = 0
+        self._last_hand_probe = 0.0
         # Accessor lambdas, not the objects: both are replaced after
         # construction (calibration, tests), and the validator must see
         # the current ones.
@@ -198,29 +213,92 @@ class PhysiClaw:
         with self.rig.engaged(wait_seconds=TOOL_LOCK_WAIT_SECONDS):
             return self._observer.with_view(act)
 
-    def _execute(self, step: gestures.Gesture) -> str:
+    def _maybe_recover_hand(self) -> None:
+        """While degraded, probe the preferred standby hand on schedule and
+        move back on a live answer. Never raises; a silent preferred hand
+        just reschedules. Runs inside `_execute` (lock held), gated by
+        gesture count AND wall clock so a dead link costs one bounded probe
+        per interval, not per gesture."""
+        if self.rig.active_hand == self.rig.preferred_hand:
+            return
+        self._gestures_since_probe += 1
+        if self._gestures_since_probe < self.HAND_REPROBE_EVERY:
+            return
+        now = time.monotonic()
+        if now - self._last_hand_probe < self.HAND_REPROBE_MIN_INTERVAL:
+            return
+        self._gestures_since_probe = 0
+        self._last_hand_probe = now
+        target = self.rig.preferred_hand
+        try:
+            alive = self.rig.probe_hand(target)
+        except Exception:
+            return
+        if not alive:
+            return
+        old = self.rig.active_hand
+        try:
+            self.rig.use_hand(target)
+        except Exception:
+            return
+        log.warning("hand recovered %s -> %s (probe)", old, target)
+
+    def _execute(self, step: gestures.Gesture, _retried: bool = False) -> str:
         """Run one typed, already-validated gesture and compose its
         action text — the single dispatch point shared by the public
         gesture methods, `sequence` steps, and the macro recipes.
-        Caller must hold the lock."""
+        Caller must hold the lock.
+
+        A dead hand (DeviceTimeout) fails over once: release the old arm
+        best-effort, switch to the next usable hand backend (sticky with
+        scheduled recovery probes), and replay this one gesture.
+        At-least-once: if the timeout struck after contact, the replay can
+        double-actuate — the attached view shows it, same as any retried tap."""
         self.rig.assert_locked()
-        match step:
-            case gestures.Tap(bbox):
-                self._press(bbox, "tap")
-                return f"Tapped at bbox {bbox}"
-            case gestures.DoubleTap(bbox):
-                self._press(bbox, "double_tap")
-                return f"Double tapped at bbox {bbox}"
-            case gestures.LongPress(bbox):
-                self._press(bbox, "long_press")
-                return f"Long pressed at bbox {bbox}"
-            case gestures.Swipe(bbox, direction, size, speed, start_dwell, end_dwell):
-                self._swipe(bbox, direction, size, speed, start_dwell, end_dwell)
-                return f"Swiped {direction} {size} at bbox {bbox}"
-            case gestures.SendToClipboard(text):
-                return self._send_to_clipboard(text)
-            case _:
-                assert_never(step)
+        self._maybe_recover_hand()
+        try:
+            match step:
+                case gestures.Tap(bbox):
+                    self._press(bbox, "tap")
+                    return f"Tapped at bbox {bbox}"
+                case gestures.DoubleTap(bbox):
+                    self._press(bbox, "double_tap")
+                    return f"Double tapped at bbox {bbox}"
+                case gestures.LongPress(bbox):
+                    self._press(bbox, "long_press")
+                    return f"Long pressed at bbox {bbox}"
+                case gestures.Swipe(
+                    bbox, direction, size, speed, start_dwell, end_dwell
+                ):
+                    self._swipe(
+                        bbox,
+                        direction,
+                        size,
+                        speed,
+                        start_dwell=start_dwell,
+                        end_dwell=end_dwell,
+                    )
+                    return f"Swiped {direction} {size} at bbox {bbox}"
+                case gestures.SendToClipboard(text):
+                    return self._send_to_clipboard(text)
+                case _:
+                    assert_never(step)
+        except DeviceTimeout:
+            if _retried:
+                raise
+            old_arm = self.rig.arm
+            old = self.rig.active_hand
+            nxt = self.rig.next_hand()
+            if nxt is None:
+                raise
+            if old_arm is not None:
+                try:
+                    old_arm.lift_stylus()
+                except Exception:
+                    pass
+            self.rig.use_hand(nxt)
+            log.warning("hand failover %s -> %s (DeviceTimeout)", old, nxt)
+            return self._execute(step, _retried=True)
 
     def _run_gesture(self, step: gestures.Gesture) -> "GestureResult":
         """Run one typed gesture under the observation bracket."""

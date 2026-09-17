@@ -21,8 +21,10 @@ import time
 from physiclaw.common.config import CONFIG
 from physiclaw.common.listing import format_elements
 from physiclaw.core.hardware import exposure
+from physiclaw.core.hardware.frame_reader import FrameReader
 from physiclaw.core.orchestration.rig import HardwareRig
 from physiclaw.core.vision import quality
+from physiclaw.core.vision.blackout import is_blackout
 from physiclaw.core.vision.icon_detect import IconDetector
 from physiclaw.core.vision.ocr import OCRReader, results_to_elements
 from physiclaw.core.vision.preprocess import (
@@ -69,6 +71,15 @@ class Perception:
     # stops reading (few text elems, always a miss), raise this.
     NUMPAD_OCR_MAX_EDGE = 900
 
+    # Eye-failover streak: consecutive blind views (dropped frame or secure
+    # blackout) before switching to the next usable eye. Blindness is sticky
+    # per frame, so 1 would flap on a decoder glitch; 3 rides those out.
+    EYE_FAILOVER_STREAK = 3
+    # While degraded (active eye isn't the preferred one), every Nth good
+    # view probes the preferred eye with one frame and moves back on a good
+    # one — self-healing without ping-pong (probes need evidence both ways).
+    EYE_REPROBE_EVERY = 10
+
     def __init__(self, rig: HardwareRig):
         self._rig = rig
         # Serialize first-use model construction (the watch route and a
@@ -87,6 +98,10 @@ class Perception:
         # Single-flight guard for the background re-tune.
         self._pending_lock = threading.Lock()
         self._retune_pending = False
+        # Eye-failover state (see camera_view): consecutive blind views, and
+        # good views since the last recovery probe while degraded.
+        self._eye_misses = 0
+        self._eye_good = 0
 
     # ─── Lazy detectors ───────────────────────────────────────
 
@@ -109,16 +124,106 @@ class Perception:
 
     # ─── Frame acquisition ────────────────────────────────────
 
+    def _frame_is_stale(self, cam) -> bool:
+        """Whether the camera's latest frame is too old to trust.
+
+        `fresh_frame` hides staleness by design (stale fallback beats
+        nothing for a single view); failover must see through it, or a
+        stalled stream looks like a frozen screen forever. Mock-safe:
+        doubles without a real age API (spec'd MagicMocks return mocks
+        from it) opt out instead of exploding the comparison.
+        """
+        age_fn = getattr(cam, "frame_age", None)
+        if not callable(age_fn):
+            return False
+        try:
+            age = age_fn()
+            return age is not None and age > FrameReader.FRESH_MAX_AGE_SECONDS
+        except Exception:
+            return False
+
+    def _holding_lock(self) -> bool:
+        """Whether this thread holds the rig lock — failover mutates the
+        active eye (aliases + mapping halves) and is only safe serialized.
+        Background paths (watchdog peek, retune meter) read whatever eye is
+        active and never switch."""
+        try:
+            self._rig.assert_locked()
+        except RuntimeError:
+            return False
+        return True
+
+    def _note_eye_miss(self) -> bool:
+        """Count one blind view; fail over at the streak threshold.
+
+        Returns True when the eye actually switched (caller re-grabs once).
+        No usable alternate: reset and report False, behaving exactly like
+        the pre-failover code (raise on None, ship the frame on blackout).
+        """
+        self._eye_misses += 1
+        if self._eye_misses < self.EYE_FAILOVER_STREAK:
+            return False
+        target = self._rig.next_eye()
+        self._eye_misses = 0
+        if target is None:
+            return False
+        old = self._rig.active_eye
+        self._rig.use_eye(target)
+        self._eye_good = 0
+        log.warning("eye failover %s -> %s (blind streak)", old, target)
+        return True
+
+    def _maybe_reprobe_eye(self) -> None:
+        """While degraded, probe the next eye every Nth good view and move
+        back on a good frame. The probe rides use_eye (public, logged), so
+        a still-blind preferred eye just flips straight back — one wasted
+        frame per interval, no stranding either way."""
+        if self._rig.active_eye == self._rig.preferred_eye:
+            return  # not degraded — nothing to recover
+        degraded_from = self._rig.active_eye
+        target = self._rig.next_eye()
+        if target is None or target != self._rig.preferred_eye:
+            return
+        self._eye_good += 1
+        if self._eye_good < self.EYE_REPROBE_EVERY:
+            return
+        self._eye_good = 0
+        try:
+            self._rig.use_eye(target)
+            probe = self._rig.require_cam().snapshot()
+        except Exception:
+            return  # preferred eye still down — stay degraded silently
+        if probe is None or is_blackout(probe):
+            try:
+                self._rig.use_eye(degraded_from)
+            except Exception:
+                pass
+            return
+        log.warning("eye recovered -> %s", target)
+
     def camera_view(self):
         """Capture a frame from the overhead camera. Returns BGR numpy array.
 
         Takes the frame as-is — the stylus may be visible.
         Call rig.park() first if an unobstructed view is needed.
         Frame is already rotated to portrait by the camera.
+        Blind views (dropped frame, secure blackout) count toward eye
+        failover; unlocked callers get frames without failover.
         """
-        frame = self._rig.require_cam().snapshot()
-        if frame is None:
-            raise RuntimeError("Camera capture failed")
+        cam = self._rig.require_cam()
+        frame = cam.snapshot()
+        if not self._holding_lock():
+            if frame is None:
+                raise RuntimeError("Camera capture failed")
+            return frame
+        if frame is None or self._frame_is_stale(cam) or is_blackout(frame):
+            if self._note_eye_miss():
+                frame = self._rig.require_cam().snapshot()
+            if frame is None:
+                raise RuntimeError("Camera capture failed")
+            return frame
+        self._eye_misses = 0
+        self._maybe_reprobe_eye()
         return frame
 
     def cropped_view(self):

@@ -12,6 +12,12 @@ from physiclaw.core.hardware.arm import StylusArm
 from physiclaw.core.hardware.camera import Camera
 from physiclaw.core.hardware.grbl import detect_grbl
 from physiclaw.core.hardware.iphone import AssistiveTouch
+from physiclaw.core.hardware.scrcpy import (
+    ScrcpyArm,
+    ScrcpyCamera,
+    ScrcpySession,
+    list_displays,
+)
 from physiclaw.core.hardware.solenoid import Solenoid
 
 __all__ = [
@@ -19,5 +25,9 @@ __all__ = [
     "Solenoid",
     "Camera",
     "AssistiveTouch",
+    "ScrcpyArm",
+    "ScrcpyCamera",
+    "ScrcpySession",
     "detect_grbl",
+    "list_displays",
 ]

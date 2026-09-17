@@ -18,7 +18,9 @@ from starlette.responses import HTMLResponse, JSONResponse
 
 from physiclaw.core.bridge import PageState
 from physiclaw.core.bridge.handler import json_or_none, render_phone_page_html
-from physiclaw.core.hardware.device import DeviceNotFound
+from physiclaw.core.hardware.camera import Camera
+from physiclaw.core.hardware.device import DeviceNotFound, DeviceTimeout
+from physiclaw.core.hardware.scrcpy import list_displays
 from physiclaw.core.orchestration.camera_pick import camera_preview, resolve_auto_index
 
 if TYPE_CHECKING:
@@ -109,6 +111,8 @@ async def handle_connect_camera(
         cam = rig.cam
         if cam is None:  # _do just connected it, so the handle is set
             raise RuntimeError("camera missing after connect")
+        # This route only connects USB cameras (scrcpy has display_id).
+        assert isinstance(cam, Camera), f"expected USB camera, got {type(cam).__name__}"
         return JSONResponse(
             {
                 "status": "ok",
@@ -159,3 +163,97 @@ async def handle_camera_preview(request: Request) -> JSONResponse:
         )
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=404)
+
+
+# ─── scrcpy backend ─────────────────────────────────────────
+
+
+async def handle_connect_scrcpy(request: Request, rig: "HardwareRig") -> JSONResponse:
+    """POST /api/connect-scrcpy — connect the scrcpy backend.
+
+    Body: ``{"serial": str | None, "display_id": int = 0,
+    "max_size": int = 1024}``. The analytic pixel mapping installs with the
+    connect, so no calibration steps follow — read full state from
+    ``GET /api/status``.
+    """
+    body = (await json_or_none(request)) or {}
+
+    def _do() -> None:
+        with rig.locked():
+            rig.connect_scrcpy(
+                body.get("serial"),
+                display_id=int(body.get("display_id", 0)),
+                max_size=int(body.get("max_size", 1024)),
+            )
+
+    try:
+        await asyncio.to_thread(_do)
+        return JSONResponse({"status": "ok", "message": "scrcpy connected"})
+    except (DeviceNotFound, DeviceTimeout) as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=409)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+async def handle_use_backend(request: Request, rig: "HardwareRig") -> JSONResponse:
+    """POST /api/use-backend — switch the active eye and/or hand.
+
+    Body: ``{"eye": name | None, "hand": name | None}`` (at least one).
+    Manual recovery path for a sticky-degraded link, and the hybrid
+    selector (scrcpy eye + GRBL hand). Unknown names are a 400; absent
+    backends a 409, same family as the connect handlers.
+    """
+    body = (await json_or_none(request)) or {}
+    eye, hand = body.get("eye"), body.get("hand")
+    if eye is None and hand is None:
+        return JSONResponse(
+            {"status": "error", "message": "need eye and/or hand"},
+            status_code=400,
+        )
+
+    def _do() -> None:
+        with rig.locked():
+            if eye is not None:
+                rig.use_eye(eye)
+            if hand is not None:
+                rig.use_hand(hand)
+
+    try:
+        await asyncio.to_thread(_do)
+        return JSONResponse(
+            {
+                "status": "ok",
+                "active_eye": rig.active_eye,
+                "active_hand": rig.active_hand,
+            }
+        )
+    except ValueError as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=400)
+    except (DeviceNotFound, DeviceTimeout, RuntimeError) as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=409)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+
+async def handle_list_displays(request: Request) -> JSONResponse:
+    """GET /api/list-displays[?serial=] — device displays for connect-scrcpy.
+
+    Runs ``scrcpy --list-displays`` (no rig needed — this is discovery
+    before connect). Needs no lock: it touches neither backend.
+    """
+    serial = request.query_params.get("serial")
+
+    try:
+        displays = await asyncio.to_thread(list_displays, serial)
+        return JSONResponse(
+            {
+                "status": "ok",
+                "displays": [
+                    {"display_id": i, "width": w, "height": h} for i, w, h in displays
+                ],
+            }
+        )
+    except DeviceNotFound as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=409)
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)

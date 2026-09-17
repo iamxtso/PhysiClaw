@@ -26,6 +26,9 @@ def test_hardware_register_wires_all_routes(fake_mcp) -> None:
         ("/api/connect-camera", "POST"),
         ("/api/disconnect-camera", "POST"),
         ("/api/camera-preview/{index}", "GET"),
+        ("/api/connect-scrcpy", "POST"),
+        ("/api/list-displays", "GET"),
+        ("/api/use-backend", "POST"),
     }
 
 
@@ -41,6 +44,9 @@ async def test_hardware_routes_forward_to_handlers(
         "handle_connect_arm": mocker.patch.object(hw_reg, "handle_connect_arm"),
         "handle_connect_camera": mocker.patch.object(hw_reg, "handle_connect_camera"),
         "handle_camera_preview": mocker.patch.object(hw_reg, "handle_camera_preview"),
+        "handle_connect_scrcpy": mocker.patch.object(hw_reg, "handle_connect_scrcpy"),
+        "handle_use_backend": mocker.patch.object(hw_reg, "handle_use_backend"),
+        "handle_list_displays": mocker.patch.object(hw_reg, "handle_list_displays"),
     }
 
     async def _ok(*a, **kw):
@@ -67,3 +73,12 @@ async def test_hardware_routes_forward_to_handlers(
 
     await fake_mcp.get("/api/camera-preview/{index}")(req)
     spies["handle_camera_preview"].assert_called_once_with(req)
+
+    await fake_mcp.get("/api/connect-scrcpy", "POST")(req)
+    spies["handle_connect_scrcpy"].assert_called_once_with(req, pl)
+
+    await fake_mcp.get("/api/use-backend", "POST")(req)
+    spies["handle_use_backend"].assert_called_once_with(req, pl)
+
+    await fake_mcp.get("/api/list-displays")(req)
+    spies["handle_list_displays"].assert_called_once_with(req)

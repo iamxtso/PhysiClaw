@@ -15,6 +15,9 @@ import json
 import logging
 import threading
 from contextlib import contextmanager
+from dataclasses import dataclass
+
+import numpy as np
 
 from physiclaw.common import paths
 from physiclaw.common.text import read_text
@@ -23,6 +26,31 @@ from physiclaw.core.calibration import PARK_PCT, Calibration, ScreenTransforms
 from physiclaw.core.hardware.arm import StylusArm
 from physiclaw.core.hardware.camera import Camera
 from physiclaw.core.hardware.iphone import AssistiveTouch
+from physiclaw.core.hardware.scrcpy import ScrcpyArm, ScrcpyCamera, ScrcpySession
+
+PHYSICAL_BACKEND = "physical"
+SCRCPY_BACKEND = "scrcpy"
+
+
+@dataclass
+class _BackendState:
+    """One backend's parked devices plus its saved mapping halves.
+
+    Active devices live in ``HardwareRig._arm``/``_cam`` (and the active
+    mapping in ``calibration``); records hold whatever is parked. Eye and
+    hand switch independently, so each record tracks its arm half
+    (affine + pin) and camera half (mapping + size + rotation) separately.
+    """
+
+    arm: StylusArm | ScrcpyArm | None = None
+    cam: Camera | ScrcpyCamera | None = None
+    session: ScrcpySession | None = None
+    pct_to_grbl: np.ndarray | None = None
+    pinned: bool = False
+    pct_to_cam: np.ndarray | None = None
+    cam_size: tuple[int, int] | None = None
+    cam_rotation: int | None = None
+
 
 log = logging.getLogger(__name__)
 
@@ -58,9 +86,27 @@ class HardwareRig:
     by the /setup skill via HTTP endpoints.
     """
 
-    def __init__(self):
-        self._arm: StylusArm | None = None
-        self._cam: Camera | None = None
+    # Fallback preference: first usable backend wins. Digital first, the
+    # physical rig is the reliable floor — either link may be offline, so
+    # selection filters by availability instead of assuming a backend.
+    EYE_ORDER = (SCRCPY_BACKEND, PHYSICAL_BACKEND)
+    HAND_ORDER = (SCRCPY_BACKEND, PHYSICAL_BACKEND)
+
+    def __init__(
+        self,
+        eye_order: tuple[str, ...] | None = None,
+        hand_order: tuple[str, ...] | None = None,
+    ):
+        # Active pair aliases — every consumer (gestures, perception,
+        # calibration steps, tests) keeps working unchanged. Parked devices
+        # and their saved mappings live in _backends, keyed by backend name.
+        self._arm: StylusArm | ScrcpyArm | None = None
+        self._cam: Camera | ScrcpyCamera | None = None
+        self._backends: dict[str, _BackendState] = {}
+        self._eye = PHYSICAL_BACKEND
+        self._hand = PHYSICAL_BACKEND
+        self._eye_order = tuple(eye_order) if eye_order else self.EYE_ORDER
+        self._hand_order = tuple(hand_order) if hand_order else self.HAND_ORDER
         self.calibration: Calibration = Calibration()
         self._lock = threading.Lock()
         self._lock_owner: int | None = None  # thread ident; see assert_locked
@@ -68,6 +114,8 @@ class HardwareRig:
         self._bridge: BridgeState | None = None
         self._ready = False  # set True only after /setup finishes its last step
         # Does the GRBL work frame match `calibration`'s affine? See park().
+        # (A scrcpy arm has no frame — its pixel space IS the affine space,
+        # so connect_scrcpy pins this vacuously.)
         self._origin_pinned = False
 
     # ─── Wiring ──────────────────────────────────────────────
@@ -107,7 +155,11 @@ class HardwareRig:
 
     @property
     def hardware_ready(self) -> bool:
-        """True when arm, camera, and grid calibration are all set."""
+        """True when the active eye and hand are set with a full mapping.
+
+        Same three checks as always — but `_arm`/`_cam` are the active pair
+        aliases and the mapping is the composed eye+hand halves, so this
+        covers every backend mix (either link may be offline)."""
         return (
             self._arm is not None
             and self._cam is not None
@@ -132,6 +184,18 @@ class HardwareRig:
             "ready": self.ready,
             "origin_pinned": self._origin_pinned,
             "layout_learned": _layout_learned(),
+            "active_eye": self._eye,
+            "active_hand": self._hand,
+            "eye_degraded": self._degraded("eye"),
+            "hand_degraded": self._degraded("hand"),
+            "backends": {
+                name: {
+                    "arm": self._backend_arm(name) is not None,
+                    "camera": self._backend_cam(name) is not None,
+                    "calibrated": self._backend_calibrated(name),
+                }
+                for name in (PHYSICAL_BACKEND, SCRCPY_BACKEND)
+            },
         }
 
     def require_hardware(self):
@@ -259,16 +323,14 @@ class HardwareRig:
     def connect_arm(self):
         """Connect to the GRBL stylus arm (auto-detect USB port).
 
-        Closes any previously connected arm first. ``_apply_bundle_to_arm``
-        propagates the cached direction mapping into the freshly-
-        constructed arm IF a bundle has been loaded into
+        Retires the previous physical arm; a parked scrcpy arm stays parked.
+        ``_apply_bundle_to_arm`` propagates the cached direction mapping into
+        the freshly-constructed arm IF a bundle has been loaded into
         ``self.calibration`` — only true on ``--warm-start``. Plain
         ``physiclaw server`` boots with empty calibration, so the
         propagation is a no-op and step 7 of setup measures fresh.
         """
-        if self._arm is not None:
-            self._arm.close()
-            self._arm = None
+        outgoing = self._hand
         arm = StylusArm()
         try:
             arm.setup()
@@ -284,15 +346,19 @@ class HardwareRig:
             except Exception:
                 log.exception("connect_arm: close after failed setup also failed")
             raise
-        self._arm = arm
+        self._switch_hand(PHYSICAL_BACKEND, new_arm=arm, park_outgoing=False)
         self._origin_pinned = False  # arm.setup() re-zeroed the work frame
-        self._apply_bundle_to_arm()
+        # Propagate only when the container still holds physical's mapping
+        # (warm-start bundle): coming from scrcpy, the analytic affine must
+        # not leak onto the GRBL arm — setup steps install fresh below.
+        if outgoing == PHYSICAL_BACKEND:
+            self._apply_bundle_to_arm()
         log.info("Arm connected")
 
     def connect_camera(self, index: int):
         """Open a camera by index.
 
-        Closes any previously connected camera first. The user picks the
+        Retires the previous USB camera; a parked scrcpy camera stays parked. The user picks the
         index after previewing each one via /api/camera-preview/{index}
         during /setup, so we don't try to auto-detect. Propagates the
         cached rotation from ``self.calibration`` IF a bundle has been
@@ -305,16 +371,73 @@ class HardwareRig:
         from the very first open; empty calibration (fresh setup) leaves
         AF live until the mapping step pins it.
         """
-        if self._cam is not None:
-            self._cam.close()
-            self._cam = None
-        self._cam = Camera(index, focus_value=self.calibration.cam_focus)
+        # Construct before switching: a failed open keeps the old eye.
+        self._switch_eye(
+            PHYSICAL_BACKEND,
+            new_cam=Camera(index, focus_value=self.calibration.cam_focus),
+        )
         if self.calibration.cam_rotation is not None:
+            assert self._cam is not None  # _switch_eye just installed it
             self._cam.rotation = self.calibration.cam_rotation
         # A fresh Camera starts with default exposure — force the next
         # become_ready to re-settle it (see unmark_ready).
         self.unmark_ready()
         log.info(f"Camera {index} connected")
+
+    def connect_scrcpy(
+        self, serial: str | None = None, display_id: int = 0, max_size: int = 1024
+    ) -> None:
+        """Connect the scrcpy backend: server session, touch arm, video camera.
+
+        Parks nothing and disturbs no parked physical devices — the GRBL arm
+        and USB camera stay connected in their records. The scrcpy video IS
+        the phone screen, so calibration is analytic, not measured: the
+        affine maps screen 0-1 straight to video pixels and is installed
+        through the existing ``install_arm_calibration`` path (which pins
+        the frame and propagates the pixel axes). ``cam_rotation`` stays
+        none — the server orients the video itself. Input on secondary
+        displays needs Android 10+ (older servers silently drop it).
+        """
+        session = ScrcpySession(serial, display_id=display_id, max_size=max_size)
+        cam = None
+        try:
+            session.connect()
+            # Camera first: its pump is what delivers the session-meta size
+            # the arm's pixel constants are derived from.
+            cam = ScrcpyCamera(session)
+            arm = ScrcpyArm(session)
+            arm.setup()
+        except BaseException:
+            if cam is not None:
+                try:
+                    cam.close()
+                except Exception:
+                    pass
+            session.close()
+            raise
+        old = self._backends.get(SCRCPY_BACKEND)
+        if old is not None and old.session is not None:
+            try:
+                old.session.close()
+            except Exception:
+                pass
+            old.session = None
+        self._switch_hand(SCRCPY_BACKEND, new_arm=arm, park_outgoing=False)
+        self._switch_eye(SCRCPY_BACKEND, new_cam=cam)
+        self._record(SCRCPY_BACKEND).session = session
+        w, h = session.wait_video_size()
+        self.install_arm_calibration(np.array([[w, 0.0, 0.0], [0.0, h, 0.0]]))
+        self.calibration.pct_to_cam = np.eye(2, 3)
+        self.calibration.cam_size = (w, h)
+        self.calibration.cam_rotation = -1
+        self.unmark_ready()
+        log.info(
+            "scrcpy connected: %s display=%d video=%dx%d",
+            session.device_name,
+            display_id,
+            w,
+            h,
+        )
 
     def disconnect_camera(self) -> bool:
         """Release the camera device handle so another app can use it.
@@ -403,16 +526,265 @@ class HardwareRig:
             down_vec = (float(p[0, 1]), float(p[1, 1]))
             self._arm.set_direction_mapping(right_vec, down_vec)
 
+    # ─── Backend registry (dual-link coexistence) ──────────────
+    #
+    # Two links (physical GRBL+USB, digital scrcpy) may both be connected.
+    # Eye and hand switch independently: use_eye/use_hand park the outgoing
+    # side, snapshot its mapping halves into its record, and restore the
+    # target's. The analytic scrcpy mapping is reinstalled by connect, so a
+    # fresh scrcpy record restores to a cleared channel that fails loudly
+    # until connect runs — never a stale affine driving the wrong arm.
+    # Caller must hold the hardware lock (same contract as park/moves).
+
+    def _record(self, name: str) -> _BackendState:
+        if name not in (PHYSICAL_BACKEND, SCRCPY_BACKEND):
+            raise ValueError(f"unknown backend {name!r}")
+        return self._backends.setdefault(name, _BackendState())
+
+    def _snapshot_hand(self, name: str) -> None:
+        rec = self._record(name)
+        rec.arm = self._arm
+        rec.pct_to_grbl = self.calibration.pct_to_grbl
+        rec.pinned = self._origin_pinned
+
+    def _restore_hand(self, name: str) -> None:
+        rec = self._record(name)
+        self.calibration.pct_to_grbl = rec.pct_to_grbl
+        self._origin_pinned = rec.pinned
+        self._arm = rec.arm
+        rec.arm = None
+
+    def _snapshot_eye(self, name: str) -> None:
+        rec = self._record(name)
+        rec.cam = self._cam
+        rec.pct_to_cam = self.calibration.pct_to_cam
+        rec.cam_size = self.calibration.cam_size
+        rec.cam_rotation = self.calibration.cam_rotation
+
+    def _restore_eye(self, name: str) -> None:
+        rec = self._record(name)
+        self.calibration.pct_to_cam = rec.pct_to_cam
+        self.calibration.cam_size = rec.cam_size
+        self.calibration.cam_rotation = rec.cam_rotation
+        self._cam = rec.cam
+        rec.cam = None
+
+    def _switch_hand(
+        self, target: str, new_arm=None, park_outgoing: bool = True
+    ) -> None:
+        """Move a (new or parked) arm into the active hand slot."""
+        if target == self._hand and new_arm is None:
+            return
+        if park_outgoing and self._arm is not None:
+            self.park()
+        self._snapshot_hand(self._hand)
+        if new_arm is not None:
+            if target == self._hand:
+                # Replacing the active arm in place: retire it. The snapshot
+                # above already saved its mapping into the record.
+                if self._arm is not None:
+                    try:
+                        self._arm.close()
+                    except Exception:
+                        pass
+                    self._arm = None
+            else:
+                rec = self._record(target)
+                if rec.arm is not None:
+                    try:
+                        rec.arm.close()
+                    except Exception:
+                        pass
+                    rec.arm = None
+        else:
+            rec = self._record(target)
+            if rec.arm is None:
+                raise RuntimeError(f"{target} arm not connected")
+        self._restore_hand(target)
+        if new_arm is not None:
+            self._arm = new_arm
+        self._hand = target
+
+    def _switch_eye(self, target: str, new_cam=None) -> None:
+        """Move a (new or parked) camera into the active eye slot."""
+        if target == self._eye and new_cam is None:
+            return
+        self._snapshot_eye(self._eye)
+        if new_cam is not None:
+            if target == self._eye:
+                if self._cam is not None:
+                    try:
+                        self._cam.close()
+                    except Exception:
+                        pass
+                    self._cam = None
+            else:
+                rec = self._record(target)
+                if rec.cam is not None:
+                    try:
+                        rec.cam.close()
+                    except Exception:
+                        pass
+                    rec.cam = None
+        else:
+            rec = self._record(target)
+            if rec.cam is None:
+                raise RuntimeError(f"{target} camera not connected")
+        self._restore_eye(target)
+        if new_cam is not None:
+            self._cam = new_cam
+        self._eye = target
+
+    def use_hand(self, target: str) -> None:
+        """Switch the active hand; parks the outgoing arm first. Sticky —
+        it stays until the next explicit switch (no auto-recover), so a
+        flapping link can't ping-pong gestures. Caller must hold the lock."""
+        self._switch_hand(target)
+        log.info("active hand -> %s", target)
+
+    def use_eye(self, target: str) -> None:
+        """Switch the active eye (mapping halves travel with it, so the
+        crop always matches the frame's source). Sticky like use_hand.
+        Caller must hold the lock."""
+        self._switch_eye(target)
+        log.info("active eye -> %s", target)
+
+    def _backend_usable(self, kind: str, name: str) -> bool:
+        """A backend can serve when its device is present (active or
+        parked) and it has a mapping — a connected-but-uncalibrated link
+        must not win fallback and then fail inside the gesture."""
+        rec = self._backends.get(name)
+        if kind == "hand":
+            arm = self._arm if self._hand == name else (rec.arm if rec else None)
+            if arm is None:
+                return False
+            affine = (
+                self.calibration.pct_to_grbl
+                if self._hand == name
+                else (rec.pct_to_grbl if rec else None)
+            )
+            return affine is not None
+        cam = self._cam if self._eye == name else (rec.cam if rec else None)
+        if cam is None:
+            return False
+        mapping = (
+            self.calibration.pct_to_cam
+            if self._eye == name
+            else (rec.pct_to_cam if rec else None)
+        )
+        return mapping is not None
+
+    def _degraded(self, kind: str) -> bool:
+        """True when off the preferred backend while it could serve — a
+        pure-physical rig with no scrcpy in sight is not degraded, there
+        is simply nothing better available."""
+        order = self._eye_order if kind == "eye" else self._hand_order
+        active = self._eye if kind == "eye" else self._hand
+        preferred = order[0]
+        return active != preferred and self._backend_usable(kind, preferred)
+
+    def next_hand(self) -> str | None:
+        """Next usable hand backend per HAND_ORDER, excluding the active
+        one (None when nothing else can serve — the caller re-raises)."""
+        for name in self._hand_order:
+            if name != self._hand and self._backend_usable("hand", name):
+                return name
+        return None
+
+    def next_eye(self) -> str | None:
+        """Next usable eye backend per EYE_ORDER, excluding the active one."""
+        for name in self._eye_order:
+            if name != self._eye and self._backend_usable("eye", name):
+                return name
+        return None
+
+    def _backend_arm(self, name: str):
+        """The backend's arm whether active or parked (status display)."""
+        if self._hand == name:
+            return self._arm
+        rec = self._backends.get(name)
+        return rec.arm if rec else None
+
+    def _backend_cam(self, name: str):
+        """The backend's camera whether active or parked (status display)."""
+        if self._eye == name:
+            return self._cam
+        rec = self._backends.get(name)
+        return rec.cam if rec else None
+
+    def _backend_calibrated(self, name: str) -> bool:
+        """Whether the backend could serve both channels (status display)."""
+        rec = self._backends.get(name)
+        arm_affine = (
+            self.calibration.pct_to_grbl
+            if self._hand == name
+            else (rec.pct_to_grbl if rec else None)
+        )
+        cam_mapping = (
+            self.calibration.pct_to_cam
+            if self._eye == name
+            else (rec.pct_to_cam if rec else None)
+        )
+        return arm_affine is not None and cam_mapping is not None
+
+    def probe_hand(self, name: str) -> bool:
+        """Side-effect-free liveness probe for a hand backend.
+
+        scrcpy: control socket locally open AND its video fresh (same
+        server process — a streaming server answers control; a dead one
+        answers neither). GRBL: a status query. Nothing injects or moves.
+        Deliberately NOT a clipboard GET: the server stays silent on an
+        empty clipboard, so GET can't tell "working but empty" from dead.
+        Safe outside the rig lock; False when absent or silent, never raises.
+        """
+        arm = self._backend_arm(name)
+        if arm is None:
+            return False
+        try:
+            if isinstance(arm, ScrcpyArm):
+                rec = self._backends.get(name)
+                sess = rec.session if rec is not None else None
+                if sess is None:
+                    return False
+                sess.check_control_open()
+                cam = self._backend_cam(name)
+                if cam is not None and not cam.health():
+                    return False
+                return True
+            return bool(arm.health())
+        except Exception:
+            return False
+
     # ─── Hardware accessors ───────────────────────────────────
 
     @property
-    def arm(self) -> StylusArm | None:
+    def active_eye(self) -> str:
+        """Backend name serving frames (fallback policy reads this)."""
+        return self._eye
+
+    @property
+    def active_hand(self) -> str:
+        """Backend name serving gestures (fallback policy reads this)."""
+        return self._hand
+
+    @property
+    def preferred_eye(self) -> str:
+        """First eye backend in preference order (recovery probes aim here)."""
+        return self._eye_order[0]
+
+    @property
+    def preferred_hand(self) -> str:
+        """First hand backend in preference order."""
+        return self._hand_order[0]
+
+    @property
+    def arm(self) -> StylusArm | ScrcpyArm | None:
         """The connected arm, or None — honest about pre-setup state.
         Callers that must actuate use ``require_arm()``."""
         return self._arm
 
     @property
-    def cam(self) -> Camera | None:
+    def cam(self) -> Camera | ScrcpyCamera | None:
         """The connected camera, or None. See ``require_cam()``."""
         return self._cam
 
@@ -428,17 +800,38 @@ class HardwareRig:
             raise RuntimeError("Bridge not attached — server assembly incomplete")
         return self._bridge
 
-    def require_arm(self) -> StylusArm:
+    def require_arm(self) -> StylusArm | ScrcpyArm:
         """The connected arm, or raise — for callers that must actuate."""
         if self._arm is None:
             raise RuntimeError("Arm not connected. Run /setup to connect it.")
         return self._arm
 
-    def require_cam(self) -> Camera:
+    def require_cam(self) -> Camera | ScrcpyCamera:
         """The connected camera, or raise — for callers that must see."""
         if self._cam is None:
             raise RuntimeError("Camera not connected. Run /setup to connect it.")
         return self._cam
+
+    def require_physical_arm(self) -> StylusArm:
+        """The active arm as a GRBL arm — for calibration/setup steps that
+        emit G-code. Raises guiding to use_hand("physical") when the
+        scrcpy hand is active."""
+        arm = self.require_arm()
+        if not isinstance(arm, StylusArm):
+            raise RuntimeError(
+                'Physical calibration needs the GRBL arm — use_hand("physical") first'
+            )
+        return arm
+
+    def require_physical_cam(self) -> Camera:
+        """The active camera as a USB camera — for calibration/setup steps
+        that meter the physical rig. Raises guiding to use_eye("physical")."""
+        cam = self.require_cam()
+        if not isinstance(cam, Camera):
+            raise RuntimeError(
+                'Physical calibration needs the USB camera — use_eye("physical") first'
+            )
+        return cam
 
     @property
     def transforms(self) -> ScreenTransforms | None:
@@ -658,3 +1051,13 @@ class HardwareRig:
                 _safe(self._arm.close, "arm close")
             if self._cam:
                 _safe(self._cam.close, "camera close")
+            for name, rec in self._backends.items():
+                if rec.arm is not None:
+                    _safe(rec.arm.close, f"{name} parked arm close")
+                    rec.arm = None
+                if rec.cam is not None:
+                    _safe(rec.cam.close, f"{name} parked camera close")
+                    rec.cam = None
+                if rec.session is not None:
+                    _safe(rec.session.close, f"{name} session close")
+                    rec.session = None

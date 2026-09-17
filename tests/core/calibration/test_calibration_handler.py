@@ -27,6 +27,8 @@ from physiclaw.core.calibration.handler import (
     handle_verify_assistive_touch,
 )
 from physiclaw.core.calibration.transforms import ViewportShift
+from physiclaw.core.hardware.arm import StylusArm
+from physiclaw.core.hardware.camera import Camera
 from tests.core.conftest import wire_locked
 
 
@@ -48,8 +50,12 @@ def _rig_mock() -> MagicMock:
     """A MagicMock rig whose ``locked()`` delegates to ``acquire()`` /
     ``release()`` (see ``wire_locked``), so the handler tests assert the real
     lock bracket (acquire → park-on-failure → release) rather than an inert
-    context-manager mock."""
-    return wire_locked(MagicMock(name="rig"))
+    context-manager mock. Arm/cam doubles are spec'd: the handlers narrow to
+    the physical drivers, so bare mocks would (correctly) fail."""
+    rig = wire_locked(MagicMock(name="rig"))
+    rig.arm = MagicMock(spec=StylusArm)
+    rig.cam = MagicMock(spec=Camera)
+    return rig
 
 
 def _fake_request(json_obj: Any = None, raise_on_json: bool = False):
@@ -205,7 +211,7 @@ def _identity_pct_to_grbl() -> np.ndarray:
 @pytest.mark.asyncio
 async def test_handle_calibrate_arm_happy_path(mocker) -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=None)
     calib = MagicMock()
     phone = MagicMock()
@@ -240,7 +246,7 @@ async def test_handle_calibrate_arm_from_park_centers_stylus(mocker) -> None:
     """Auto mode (from_park): with a prior mapping, drive the parked stylus to
     center before calibrating."""
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(
         pct_to_grbl=_identity_pct_to_grbl(),
         pct_to_grbl_mm=lambda x, y: (5.0, 6.0),
@@ -273,7 +279,7 @@ async def test_handle_calibrate_arm_from_park_centers_stylus(mocker) -> None:
 async def test_handle_calibrate_arm_from_park_without_bundle_errors(mocker) -> None:
     """from_park with no in-memory mapping and no saved bundle → clear error."""
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=None)
     mocker.patch.object(handler.Calibration, "load", return_value=None)
     cal_arm = mocker.patch.object(handler, "calibrate_arm")
@@ -309,7 +315,7 @@ async def test_handle_calibrate_arm_failed_probe_borrow_lifecycle(
     still pinned to it. An affine already live in the session is kept:
     its `mapping_a: OK` is truthful."""
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(
         pct_to_grbl=live_affine, pct_to_grbl_mm=lambda x, y: (5.0, 6.0)
     )
@@ -345,7 +351,7 @@ async def test_handle_calibrate_arm_borrow_undone_when_centering_fails(
     the borrow too — the flag is set at the borrow, not on the motion
     helper's return."""
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.arm.rapid_to.side_effect = RuntimeError("serial gone mid-move")
     rig.calibration = SimpleNamespace(
         pct_to_grbl=None, pct_to_grbl_mm=lambda x, y: (5.0, 6.0)
@@ -375,7 +381,7 @@ async def test_handle_calibrate_arm_confirmed_affine_survives_park_failure(
     step errors (redo the park situation), but the calibration is real
     and must not be wiped."""
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.park.side_effect = RuntimeError("serial gone at park")
     rig.calibration = SimpleNamespace(
         pct_to_grbl=None, pct_to_grbl_mm=lambda x, y: (5.0, 6.0)
@@ -420,7 +426,7 @@ async def test_handle_calibrate_arm_arm_not_connected() -> None:
 @pytest.mark.asyncio
 async def test_handle_calibrate_arm_releases_on_failure(mocker) -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=None)
     mocker.patch.object(
         handler,
@@ -445,7 +451,7 @@ async def test_handle_calibrate_arm_releases_on_failure(mocker) -> None:
 @pytest.mark.asyncio
 async def test_handle_calibrate_camera_frame_happy_path(mocker) -> None:
     rig = _rig_mock()
-    rig.cam = MagicMock()
+    rig.cam = MagicMock(spec=Camera)
     rig.calibration = SimpleNamespace()
     mocker.patch.object(
         handler,
@@ -486,7 +492,7 @@ async def test_handle_calibrate_camera_frame_camera_not_connected() -> None:
 @pytest.mark.asyncio
 async def test_handle_calibrate_camera_frame_releases_on_failure(mocker) -> None:
     rig = _rig_mock()
-    rig.cam = MagicMock()
+    rig.cam = MagicMock(spec=Camera)
     mocker.patch.object(
         handler,
         "calibrate_camera_frame",
@@ -509,7 +515,7 @@ async def test_handle_calibrate_camera_frame_releases_on_failure(mocker) -> None
 @pytest.mark.asyncio
 async def test_handle_compute_camera_mapping_happy_path(mocker) -> None:
     rig = _rig_mock()
-    rig.cam = MagicMock()
+    rig.cam = MagicMock(spec=Camera)
     rig.calibration = SimpleNamespace(effective_rotation=lambda: 90)
     pct_to_cam = np.eye(3)
     mocker.patch.object(
@@ -553,7 +559,7 @@ async def test_handle_compute_camera_mapping_camera_not_connected() -> None:
 @pytest.mark.asyncio
 async def test_handle_compute_camera_mapping_releases_on_failure(mocker) -> None:
     rig = _rig_mock()
-    rig.cam = MagicMock()
+    rig.cam = MagicMock(spec=Camera)
     rig.calibration = SimpleNamespace(effective_rotation=lambda: 0)
     mocker.patch.object(
         handler,
@@ -577,7 +583,7 @@ async def test_handle_compute_camera_mapping_releases_on_failure(mocker) -> None
 @pytest.mark.asyncio
 async def test_handle_validate_calibration_happy_path_and_persists(mocker) -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     cal = MagicMock()
     cal.transforms_ready = True
     cal.pct_to_grbl = _identity_pct_to_grbl()
@@ -613,7 +619,7 @@ async def test_handle_validate_calibration_does_not_save_when_not_calibrated(
     mocker,
 ) -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     cal = MagicMock()
     cal.transforms_ready = True
     cal.pct_to_grbl = _identity_pct_to_grbl()
@@ -661,7 +667,7 @@ async def test_handle_validate_calibration_arm_not_connected() -> None:
 @pytest.mark.asyncio
 async def test_handle_validate_calibration_requires_transforms_ready() -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     cal = MagicMock()
     cal.transforms_ready = False
     rig.calibration = cal
@@ -781,7 +787,7 @@ async def test_handle_show_assistive_touch_requires_viewport_shift() -> None:
 @pytest.mark.asyncio
 async def test_handle_verify_assistive_touch_happy_path(mocker) -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=_identity_pct_to_grbl())
     rig.assistive_touch.at_screen = (0.1, 0.2)
     spy = mocker.patch.object(
@@ -824,7 +830,7 @@ async def test_handle_verify_assistive_touch_arm_not_connected() -> None:
 @pytest.mark.asyncio
 async def test_handle_verify_assistive_touch_requires_pct_to_grbl() -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=None)
 
     resp = await handle_verify_assistive_touch(
@@ -843,7 +849,7 @@ async def test_handle_verify_assistive_touch_requires_pct_to_grbl() -> None:
 @pytest.mark.asyncio
 async def test_handle_verify_assistive_touch_requires_at_show() -> None:
     rig = _rig_mock()
-    rig.arm = MagicMock()
+    rig.arm = MagicMock(spec=StylusArm)
     rig.calibration = SimpleNamespace(pct_to_grbl=_identity_pct_to_grbl())
     rig.assistive_touch.at_screen = None  # show step not run
 

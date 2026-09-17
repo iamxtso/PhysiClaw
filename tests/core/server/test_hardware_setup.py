@@ -13,14 +13,18 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from physiclaw.core.hardware.camera import Camera
 from physiclaw.core.server import hardware_setup
 from physiclaw.core.server.hardware_setup import (
     handle_camera_preview,
     handle_connect_arm,
     handle_connect_camera,
+    handle_connect_scrcpy,
     handle_disconnect_camera,
+    handle_list_displays,
     handle_setup_page,
     handle_status,
+    handle_use_backend,
 )
 from tests.core.conftest import wire_locked
 
@@ -171,8 +175,10 @@ def _rig_mock() -> MagicMock:
 
 
 def _fake_rig_cam_index(idx: int = 5) -> SimpleNamespace:
-    """Build a fake rig with .cam.index and required methods."""
+    """Build a fake rig with a spec'd USB cam (.index seeded — instance
+    attrs live outside the class spec, same as conftest's rotation)."""
     rig = _rig_mock()
+    rig.cam = MagicMock(spec=Camera)
     rig.cam.index = idx
     return rig
 
@@ -380,3 +386,143 @@ async def test_handle_camera_preview_returns_404_on_capture_failure(mocker) -> N
     body = _read_json(resp)
     assert body["status"] == "error"
     assert "no frame" in body["message"]
+
+
+# ---------- handle_connect_scrcpy ----------
+
+
+@pytest.mark.asyncio
+async def test_handle_connect_scrcpy_happy_path() -> None:
+    rig = _rig_mock()
+
+    resp = await handle_connect_scrcpy(
+        _fake_request({"serial": "abc", "display_id": 1}), rig
+    )
+
+    body = _read_json(resp)
+    assert body["status"] == "ok"
+    rig.connect_scrcpy.assert_called_once_with("abc", display_id=1, max_size=1024)
+    rig.acquire.assert_called_once()
+    rig.release.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_handle_connect_scrcpy_missing_device_is_409() -> None:
+    from physiclaw.core.hardware.device import DeviceNotFound
+
+    rig = _rig_mock()
+    rig.connect_scrcpy.side_effect = DeviceNotFound("adb: no devices")
+
+    resp = await handle_connect_scrcpy(_fake_request({}), rig)
+
+    assert resp.status_code == 409
+    assert "adb" in _read_json(resp)["message"]
+
+
+# ---------- handle_use_backend ----------
+
+
+@pytest.mark.asyncio
+async def test_handle_use_backend_eye_and_hand() -> None:
+    rig = _rig_mock()
+    rig.active_eye = "physical"
+    rig.active_hand = "physical"
+
+    resp = await handle_use_backend(
+        _fake_request({"eye": "scrcpy", "hand": "scrcpy"}), rig
+    )
+
+    body = _read_json(resp)
+    assert body["status"] == "ok"
+    rig.use_eye.assert_called_once_with("scrcpy")
+    rig.use_hand.assert_called_once_with("scrcpy")
+    assert body["active_eye"] == "physical"
+
+
+@pytest.mark.asyncio
+async def test_handle_use_backend_needs_a_target() -> None:
+    rig = _rig_mock()
+
+    resp = await handle_use_backend(_fake_request({}), rig)
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_handle_use_backend_unknown_name_is_400() -> None:
+    rig = _rig_mock()
+    rig.use_eye.side_effect = ValueError("unknown backend 'nope'")
+
+    resp = await handle_use_backend(_fake_request({"eye": "nope"}), rig)
+
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_handle_use_backend_absent_backend_is_409() -> None:
+    rig = _rig_mock()
+    rig.use_hand.side_effect = RuntimeError("scrcpy arm not connected")
+
+    resp = await handle_use_backend(_fake_request({"hand": "scrcpy"}), rig)
+
+    assert resp.status_code == 409
+
+
+# ---------- handle_list_displays ----------
+
+
+@pytest.mark.asyncio
+async def test_handle_list_displays(mocker) -> None:
+    mocker.patch(
+        "physiclaw.core.server.hardware_setup.list_displays",
+        return_value=[(0, 1920, 1080), (1, 800, 600)],
+    )
+    req = _fake_request()
+    req.query_params = {}
+
+    resp = await handle_list_displays(req)
+
+    assert _read_json(resp) == {
+        "status": "ok",
+        "displays": [
+            {"display_id": 0, "width": 1920, "height": 1080},
+            {"display_id": 1, "width": 800, "height": 600},
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_handle_list_displays_missing_binary_is_409(mocker) -> None:
+    from physiclaw.core.hardware.device import DeviceNotFound
+
+    mocker.patch(
+        "physiclaw.core.server.hardware_setup.list_displays",
+        side_effect=DeviceNotFound("scrcpy client not on PATH"),
+    )
+    req = _fake_request()
+    req.query_params = {}
+
+    resp = await handle_list_displays(req)
+
+    assert resp.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_setup_page_drives_scrcpy_endpoints(mocker) -> None:
+    # The wizard's digital-link branch must reuse the same three endpoints
+    # the CLI drives — no new routes for setup.
+    import physiclaw.core.bridge.handler as bridge_handler
+
+    mocker.patch.object(
+        bridge_handler,
+        "bridge_base_urls",
+        return_value=("http://device.local:8048", "http://10.0.0.5:8048"),
+    )
+    req = _fake_request()
+    req.url = SimpleNamespace(port=8048)
+
+    body = bytes((await handle_setup_page(req)).body)
+
+    assert b"/api/list-displays" in body
+    assert b"/api/connect-scrcpy" in body
+    assert b"/api/use-backend" in body

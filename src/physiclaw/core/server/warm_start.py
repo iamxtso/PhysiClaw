@@ -77,8 +77,8 @@ def _sanity(
     phone.set_mode("calibrate")
     try:
         results = validate_calibration(
-            rig.require_arm(),
-            rig.require_cam(),
+            rig.require_physical_arm(),
+            rig.require_physical_cam(),
             calib,
             cal.effective_rotation(),
             pct_to_grbl,

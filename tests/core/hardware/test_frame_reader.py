@@ -211,3 +211,15 @@ def test_loop_backs_off_on_fail_path() -> None:
     r._loop()
 
     assert time.monotonic() - start >= 0.05
+
+
+def test_frame_age_none_before_first_publish():
+    r = _reader()
+    assert r.frame_age() is None
+
+
+def test_frame_age_zero_after_publish():
+    r = _reader()
+    r.publish(_frame())
+    assert r.frame_age() is not None
+    assert r.frame_age() < 1.0
