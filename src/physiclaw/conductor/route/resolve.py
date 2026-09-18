@@ -22,13 +22,12 @@ from physiclaw.common.paths import (
 from physiclaw.conductor.route.scope import Scope, SlotResolve
 from physiclaw.conductor.spec.match import page_resolver
 from physiclaw.conductor.spec.model import (
-    Pack,
     Playbook,
     PlaybookError,
-    Scanned,
     check_name,
     require_str,
 )
+from physiclaw.conductor.spec.pack import Pack, Scanned
 from physiclaw.macros.model import (
     LANDMARKS_KIND,
     MACROS_KIND,

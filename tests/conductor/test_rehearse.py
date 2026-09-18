@@ -72,7 +72,7 @@ def _registry():
     macros under `app/name` keys, exactly like the engine's hidden set."""
     write_pack(playbooks={"flow": FLOW}, macros=("open-app", "add-cart"))
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     return qualified_pack("demo", load_pack("demo"))
 
@@ -238,7 +238,7 @@ async def test_walk_pauses_when_the_stepping_cursor_moves(mocker) -> None:
     program = build_program(dry=True, keyword="milk")
     program.step_one = True
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     registry = qualified_pack("demo", load_pack("demo"))
 
@@ -274,7 +274,7 @@ async def test_a_completed_walk_reports_completion_and_keeps_a_real_suspension(
     from conductor_fakes import build_program
 
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     write_pack(playbooks={"flow": ONE_MOVE}, macros=("open-app",))
     mocker.patch(
@@ -310,7 +310,7 @@ async def test_a_stopped_walk_reports_a_stop_and_drops_nothing(mocker) -> None:
     from conductor_fakes import build_program
 
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     write_pack(
         playbooks={
@@ -371,7 +371,7 @@ async def test_a_suspended_walk_reports_the_suspension_and_drops_its_file(
     from conductor_fakes import build_program, write_channel
 
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     mocker.patch(
         "physiclaw.conductor.drive.rehearsal.asyncio.sleep", new=mocker.AsyncMock()
@@ -559,7 +559,7 @@ async def test_walk_captures_each_model_round_trip(monkeypatch, mocker) -> None:
     )
     _fake_micro(monkeypatch)
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     program = build_program(dry=True, keyword="milk")
     registry = qualified_pack("demo", load_pack("demo"))
@@ -608,7 +608,7 @@ async def test_walk_without_raw_still_hands_exchanges_to_the_hook(
     )
     _fake_micro(monkeypatch)
     from physiclaw.conductor.load.pack import load_pack
-    from physiclaw.conductor.spec.model import qualified_pack
+    from physiclaw.conductor.spec.pack import qualified_pack
 
     lines: list[str] = []
     seen: list[dict] = []

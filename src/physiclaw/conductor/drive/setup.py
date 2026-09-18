@@ -36,7 +36,9 @@ from physiclaw.conductor.load import scaffold
 from physiclaw.conductor.load.channel import load_channel
 from physiclaw.conductor.load.pack import discover, load_spec
 from physiclaw.conductor.route import lints
-from physiclaw.conductor.spec.model import Channel, require_live, resolve_inputs
+from physiclaw.conductor.spec.channel import Channel
+from physiclaw.conductor.spec.live import require_live
+from physiclaw.conductor.spec.model import resolve_inputs
 from physiclaw.conductor.walk import suspension
 from physiclaw.conductor.walk.program import Program
 from physiclaw.contract.plugin import EventSink

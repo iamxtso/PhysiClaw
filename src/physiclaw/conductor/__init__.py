@@ -65,7 +65,10 @@ spec/ — the grammar and the page model, as data:
     conventions.py      the fixed names: channel, ios, thread, boot, lock
     limits.py           every bound a walk runs under, in one place
     specfile.py         shared YAML substrate
-    model.py            the playbook grammar as dataclasses, the Pack
+    model.py            the playbook grammar as dataclasses
+    pack.py             the Pack a playbook validates against; `app/<name>` addressing
+    live.py             the live rule: what a wake needs of a playbook
+    channel.py          the user channel, loaded, as data: thread, send, open, boot
     refs.py             the `{inputs.x}` / `{move.field}` / `{name}` grammar
     calls.py            the episode vocabulary the parser and walk share
     memory.py           the `context.memory:` vocabulary
@@ -89,7 +92,7 @@ load/ — reading packs off the disk into the grammar, and writing new ones:
     files.py            a pack's YAML files, read: manifest and playbooks
     pack.py             the pack door: load, scan, discover, load_spec
     prints.py           declared pages off the disk, and the learned store
-    channel.py          the user-channel pack: thread, send, open, boot
+    channel.py          the user-channel pack door: load it, hold its boot live
     scaffold.py         pack init and the format README, on disk
     stubs.py            the texts the scaffold writes
 

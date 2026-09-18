@@ -11,12 +11,8 @@ from typing import Any, Protocol
 from physiclaw.common.paths import (
     entry_of,
 )
-from physiclaw.conductor.spec.model import (
-    Node,
-    Pack,
-    Playbook,
-    Scanned,
-)
+from physiclaw.conductor.spec.model import Node, Playbook
+from physiclaw.conductor.spec.pack import Pack, Scanned
 from physiclaw.macros.model import (
     Macro,
 )

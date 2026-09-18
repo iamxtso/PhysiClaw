@@ -10,11 +10,9 @@ from conductor_fakes import CHANNEL_OPEN, write_pack, write_playbook
 from physiclaw.common import paths
 from physiclaw.conductor.load import pack as pb
 from physiclaw.conductor.route import playbook
-from physiclaw.conductor.spec.model import (
-    PlaybookError,
-    disabled_macros,
-    qualified_inline,
-)
+from physiclaw.conductor.spec.live import disabled_macros
+from physiclaw.conductor.spec.model import PlaybookError
+from physiclaw.conductor.spec.pack import qualified_inline
 
 VALID = """\
 kind: entry

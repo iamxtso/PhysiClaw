@@ -58,7 +58,8 @@ from physiclaw.conductor.spec.calls import (
 )
 from physiclaw.conductor.spec.conventions import LOCKED_ID, page_id
 from physiclaw.conductor.spec.limits import REASON_CLIP
-from physiclaw.conductor.spec.model import AgentNode, qualified_macro
+from physiclaw.conductor.spec.model import AgentNode
+from physiclaw.conductor.spec.pack import qualified_macro
 from physiclaw.conductor.spec.refs import fill_names, fill_refs
 from physiclaw.conductor.steps import memory
 from physiclaw.conductor.walk import money

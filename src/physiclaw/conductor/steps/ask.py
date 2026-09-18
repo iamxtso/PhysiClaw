@@ -27,7 +27,8 @@ from physiclaw.conductor.micro.decision import (
 )
 from physiclaw.conductor.spec import reply
 from physiclaw.conductor.spec.conventions import page_id
-from physiclaw.conductor.spec.model import AskNode, qualified_macro
+from physiclaw.conductor.spec.model import AskNode
+from physiclaw.conductor.spec.pack import qualified_macro
 from physiclaw.conductor.spec.refs import fill_refs
 from physiclaw.conductor.walk import money, speak
 from physiclaw.conductor.walk.surface import Step, Turn, Walk

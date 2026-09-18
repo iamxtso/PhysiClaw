@@ -50,9 +50,9 @@ from physiclaw.conductor.spec.model import (
     RunNode,
     SelectNode,
     TellNode,
-    qualified_macro,
     resolve_inputs,
 )
+from physiclaw.conductor.spec.pack import macro_app, qualified_macro
 from physiclaw.conductor.spec.specfile import SpecError
 from physiclaw.conductor.walk.course import Course
 from physiclaw.conductor.walk.gate import Gate
@@ -562,7 +562,6 @@ def find_macro(name: str) -> Macro:
     """The macro a name addresses: a user macro's directory name, or a
     pack macro's qualified `app/name` (an inline body is
     `app/<playbook>.<move>`). Raises MacroError, naming the reason."""
-    from physiclaw.conductor.spec.model import macro_app
     from physiclaw.macros import store as macro_store
 
     app = macro_app(name)

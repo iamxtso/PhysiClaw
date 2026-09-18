@@ -28,7 +28,7 @@ mathematically pass.
 """
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import lru_cache
@@ -477,7 +477,7 @@ class Verdict:
         return f"screen reads as {self.describe()}"
 
 
-def match_screen(screen: Screen, candidates: list[PagePrint]) -> Verdict:
+def match_screen(screen: Screen, candidates: Sequence[PagePrint]) -> Verdict:
     """The open-set decision over one app-scoped candidate set.
 
     The lock screen is read FIRST and by shape (`reads_as_locked`),

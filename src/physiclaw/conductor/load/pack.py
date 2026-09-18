@@ -8,10 +8,8 @@ playbook beside it (the folder is the name, referenced as
 for the recorded hands routes share, and inside a playbook folder its
 own `macros/` and `prompts/`. The manifest never carries a route.
 
-This module loads and scans packs, spells the qualified `app/name`
-dispatch key every macro site shares, and holds the live rule a wake
-requires of a playbook. The model is `model.py`; the compiler is
-`route/`.
+This module loads and scans packs. The model is `spec/model.py`, the
+pack it builds `spec/pack.py`; the compiler is `route/`.
 """
 
 import logging
@@ -34,15 +32,13 @@ from physiclaw.conductor.route.playbook import playbook_by_id
 from physiclaw.conductor.route.recover import manifest_recovers
 from physiclaw.conductor.route.resolve import claim_inline, macro_resolver
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, RESERVED_APPS
+from physiclaw.conductor.spec.live import live_gap
 from physiclaw.conductor.spec.match import page_resolver
-from physiclaw.conductor.spec.model import (
+from physiclaw.conductor.spec.model import Playbook, PlaybookError, check_name
+from physiclaw.conductor.spec.pack import (
     Files,
     Pack,
-    Playbook,
-    PlaybookError,
     Scanned,
-    check_name,
-    live_gap,
     qualified_inline,
     qualified_pack,
 )
@@ -303,7 +299,7 @@ class Discovery:
 
 def playbook_gap(entry: PlaybookEntry, pack: Pack) -> str | None:
     """Why the boot cannot offer this playbook — None when it can: the
-    file did not parse, or `spec.model.live_gap` names the readiness gap."""
+    file did not parse, or `spec.live.live_gap` names the readiness gap."""
     if entry.spec is None:
         return f"invalid: {entry.error or 'unreadable'}"
     return live_gap(entry.spec, pack)
@@ -346,7 +342,7 @@ def discover() -> Discovery:
 
 def load_spec(app: str, name: str) -> tuple[Playbook, Pack]:
     """The parsed playbook and its pack, by ref. Whether it is LIVE is the
-    caller's question (`spec.model.require_live`): a resuming suspension
+    caller's question (`spec.live.require_live`): a resuming suspension
     must ask it, a rehearsal deliberately does not (you rehearse BEFORE
     you enable)."""
     loaded = load_pack(app)

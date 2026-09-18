@@ -14,7 +14,8 @@ it (a `skip_when` in the macro, a `recover:` on the page).
 
 from physiclaw.common import gesture_vocab
 from physiclaw.conductor.spec.conventions import page_id
-from physiclaw.conductor.spec.model import DoNode, qualified_macro
+from physiclaw.conductor.spec.model import DoNode
+from physiclaw.conductor.spec.pack import qualified_macro
 from physiclaw.conductor.spec.refs import fill_args
 from physiclaw.conductor.walk import money, recover
 from physiclaw.conductor.walk.surface import Step, Turn

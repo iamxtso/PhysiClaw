@@ -46,13 +46,13 @@ from physiclaw.conductor.spec.limits import (
 from physiclaw.conductor.spec.model import (
     INPUTS_ROOT,
     Node,
-    Pack,
     Playbook,
     PlaybookError,
     Recovery,
     check_name,
     require_str,
 )
+from physiclaw.conductor.spec.pack import Pack
 from physiclaw.conductor.spec.pages import (
     PAGE_DECL_FIELDS,
     PAGE_RECOVERY_FIELDS,

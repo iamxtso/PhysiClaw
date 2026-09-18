@@ -7,13 +7,9 @@ OS prints, any restored projection) and never patched up afterwards.
 """
 
 from physiclaw.conductor.load import prints
-from physiclaw.conductor.spec.model import (
-    Channel,
-    Pack,
-    Playbook,
-    qualified_inline,
-    qualified_pack,
-)
+from physiclaw.conductor.spec.channel import Channel
+from physiclaw.conductor.spec.model import Playbook
+from physiclaw.conductor.spec.pack import Pack, qualified_inline, qualified_pack
 from physiclaw.conductor.steps.table import STEPS
 from physiclaw.conductor.walk.program import Program
 from physiclaw.conductor.walk.surface import Activator

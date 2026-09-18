@@ -24,13 +24,13 @@ from physiclaw.conductor.spec.model import (
     AskNode,
     DoNode,
     Node,
-    Pack,
     Playbook,
     PlaybookError,
     RunNode,
     SelectNode,
     TellNode,
 )
+from physiclaw.conductor.spec.pack import Pack
 from physiclaw.conductor.spec.pages import PageDecl, PagePrint
 
 # ---------- the route's whole-shape checks ----------

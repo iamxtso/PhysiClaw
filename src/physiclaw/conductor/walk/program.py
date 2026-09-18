@@ -33,6 +33,7 @@ from functools import partial
 from physiclaw.common import gesture_vocab
 from physiclaw.common.listing import Screen
 from physiclaw.conductor.micro.decision import MicroOutcome
+from physiclaw.conductor.spec.channel import Channel
 from physiclaw.conductor.spec.conventions import LOCKED_ID, owned_by, page_id, page_name
 from physiclaw.conductor.spec.match import Verdict, match_screen
 from physiclaw.conductor.spec.model import (
@@ -40,16 +41,15 @@ from physiclaw.conductor.spec.model import (
     ON_FAIL_STOP,
     AgentNode,
     AskNode,
-    Channel,
     Checked,
     DoNode,
     Playbook,
     PlaybookError,
     RunNode,
     SelectNode,
-    qualified_macro,
     resolve_inputs,
 )
+from physiclaw.conductor.spec.pack import qualified_macro
 from physiclaw.conductor.spec.pages import Landmark, PagePrint
 from physiclaw.conductor.spec.refs import fill_args, fill_refs, own_fields
 from physiclaw.conductor.walk import brief, money, recover, speak, views

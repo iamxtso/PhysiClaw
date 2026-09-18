@@ -34,8 +34,9 @@ from physiclaw.contract.dto import AssistantMessage, ImageBlock, Thinking
 
 if TYPE_CHECKING:
     from physiclaw.common.listing import Screen
+    from physiclaw.conductor.spec.channel import Channel
     from physiclaw.conductor.spec.match import Verdict
-    from physiclaw.conductor.spec.model import Channel, Checked, Playbook
+    from physiclaw.conductor.spec.model import Checked, Playbook
     from physiclaw.conductor.spec.pages import Landmark
     from physiclaw.conductor.walk.course import Course
     from physiclaw.conductor.walk.gate import Gate

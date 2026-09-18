@@ -11,7 +11,8 @@ from conductor_fakes import PACK_MACRO, write_local_macro, write_pack
 from physiclaw.conductor.load import channel, scaffold
 from physiclaw.conductor.load import pack as pb
 from physiclaw.conductor.route import playbook
-from physiclaw.conductor.spec.model import PlaybookError, disabled_macros
+from physiclaw.conductor.spec.live import disabled_macros
+from physiclaw.conductor.spec.model import PlaybookError
 
 SEND = """\
 kind: macro

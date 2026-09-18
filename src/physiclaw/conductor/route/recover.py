@@ -24,12 +24,12 @@ from physiclaw.conductor.spec.model import (
     READING_ELSEWHERE,
     READING_LOCKED,
     RECOVER_READINGS,
-    Pack,
     PlaybookError,
     RecoverHand,
     Recovery,
     require_str,
 )
+from physiclaw.conductor.spec.pack import Pack
 from physiclaw.macros.model import (
     Macro,
     MacroError,

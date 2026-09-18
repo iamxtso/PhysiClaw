@@ -52,13 +52,8 @@ from physiclaw.conductor.spec.calls import (
     TOOL_TAP,
 )
 from physiclaw.conductor.spec.fence import refusal
-from physiclaw.conductor.spec.model import (
-    AgentNode,
-    DoNode,
-    NeverTap,
-    PlaybookError,
-    disabled_macros,
-)
+from physiclaw.conductor.spec.live import disabled_macros
+from physiclaw.conductor.spec.model import AgentNode, DoNode, NeverTap, PlaybookError
 from physiclaw.contract.dto import AssistantMessage, ImageBlock, TextBlock
 
 BACK_LANDMARK = """\

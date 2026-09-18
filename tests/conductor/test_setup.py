@@ -79,7 +79,7 @@ def test_roster_carries_an_unusable_pack_as_a_line(wake_log) -> None:
 
 
 def test_playbook_gap_reads_the_one_live_rule() -> None:
-    # `spec.model.live_gap` is the rule `require_live` raises off — the roster
+    # `spec.live.live_gap` is the rule `require_live` raises off — the roster
     # and the boot's own gate can never disagree about "live".
     write_pack(
         playbooks={

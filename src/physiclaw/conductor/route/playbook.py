@@ -13,7 +13,6 @@ from physiclaw.conductor.route.compile import compile_route
 from physiclaw.conductor.spec import specfile
 from physiclaw.conductor.spec.conventions import ROUND_MARKS
 from physiclaw.conductor.spec.model import (
-    Pack,
     Playbook,
     PlaybookError,
     PlaybookInput,
@@ -21,6 +20,7 @@ from physiclaw.conductor.spec.model import (
     prose,
     require_str,
 )
+from physiclaw.conductor.spec.pack import Pack
 from physiclaw.conductor.spec.refs import check_refs, field_name, refs_in
 from physiclaw.macros import parse as macro_parse
 from physiclaw.macros.model import MacroError

@@ -25,13 +25,9 @@ from physiclaw.conductor.micro.decision import (
     DecisionRequest,
     MicroOutcome,
 )
-from physiclaw.conductor.spec.model import (
-    Channel,
-    Pack,
-    Playbook,
-    PlaybookError,
-    resolve_inputs,
-)
+from physiclaw.conductor.spec.channel import Channel
+from physiclaw.conductor.spec.model import Playbook, PlaybookError, resolve_inputs
+from physiclaw.conductor.spec.pack import Pack
 from physiclaw.conductor.walk.program import Program
 from physiclaw.conductor.walk.surface import Walk
 from physiclaw.conductor.walk.thread import Thread

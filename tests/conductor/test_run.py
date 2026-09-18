@@ -25,14 +25,9 @@ from physiclaw.conductor.load.pack import discover, load_spec
 from physiclaw.conductor.micro.decision import READ_REPLY, DecisionRequest, MicroOutcome
 from physiclaw.conductor.route import lints, playbook
 from physiclaw.conductor.spec.limits import MAX_MESSAGE_LINES
-from physiclaw.conductor.spec.model import (
-    PlaybookError,
-    RunNode,
-    TellNode,
-    disabled_macros,
-    live_gap,
-    qualified_inline,
-)
+from physiclaw.conductor.spec.live import disabled_macros, live_gap
+from physiclaw.conductor.spec.model import PlaybookError, RunNode, TellNode
+from physiclaw.conductor.spec.pack import qualified_inline
 from physiclaw.conductor.walk.surface import Paused
 
 LEG = """\

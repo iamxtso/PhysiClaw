@@ -44,7 +44,8 @@ from physiclaw.conductor.spec.model import PlaybookError
 if TYPE_CHECKING:
     from physiclaw.conductor.bench import decisions
     from physiclaw.conductor.load.pack import PlaybookEntry
-    from physiclaw.conductor.spec.model import Pack, Playbook
+    from physiclaw.conductor.spec.model import Playbook
+    from physiclaw.conductor.spec.pack import Pack
 
 playbooks_app = typer.Typer(no_args_is_help=True)
 
@@ -895,9 +896,9 @@ def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":
 def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> None:
     """Valid is not live: a green check invites the wrong assumption. Say
     which playbooks the boot will not offer, and why — the reason from
-    `spec.model.live_gap`, the one rule the wake roster and `require_live`
+    `spec.live.live_gap`, the one rule the wake roster and `require_live`
     also read. Rehearse them (`playbooks run`), then enable."""
-    from physiclaw.conductor.spec.model import live_gap
+    from physiclaw.conductor.spec.live import live_gap
 
     for e in entries:
         if e.spec is None or not e.spec.offered:
@@ -908,7 +909,7 @@ def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> 
 
 def _split_ref(ref: str) -> tuple[str, str]:
     """`<app>/<playbook>` — the pack's own parse, exiting on a bad one."""
-    from physiclaw.conductor.spec.model import split_ref
+    from physiclaw.conductor.spec.pack import split_ref
     from physiclaw.conductor.spec.specfile import SpecError
 
     try:
