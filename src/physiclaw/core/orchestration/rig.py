@@ -404,6 +404,10 @@ class HardwareRig:
         the frame and propagates the pixel axes). ``cam_rotation`` stays
         none — the server orients the video itself. Input on secondary
         displays needs Android 10+ (older servers silently drop it).
+        Opening two displays back-to-back can starve the first server while
+        the second boots (weak SoC + WiFi adb) — leave a few seconds between
+        connects; a drought restart heals it, but spaced starts avoid the
+        flap entirely.
         """
         session = ScrcpySession(serial, display_id=display_id, max_size=max_size)
         cam = None
@@ -761,6 +765,22 @@ class HardwareRig:
             return bool(arm.health())
         except Exception:
             return False
+
+    def revive_hand(self, name: str) -> bool:
+        """One recovery attempt for a failed-over hand backend: bounce its
+        server, then probe. scrcpy only (GRBL has no bounce primitive —
+        records without a session answer False with zero I/O). Never raises;
+        runs inside the recovery schedule, so a bounce costs one attempt
+        per interval, not per gesture."""
+        rec = self._backends.get(name)
+        sess = rec.session if rec is not None else None
+        if sess is None:
+            return False
+        try:
+            sess.restart()
+        except Exception:
+            return False
+        return self.probe_hand(name)
 
     # ─── Hardware accessors ───────────────────────────────────
 

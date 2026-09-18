@@ -232,6 +232,10 @@ class PhysiClaw:
         target = self.rig.preferred_hand
         try:
             alive = self.rig.probe_hand(target)
+            if not alive:
+                # Preferred hand silent — one bounce before giving up the
+                # interval (scrcpy-only; other backends answer False fast).
+                alive = self.rig.revive_hand(target)
         except Exception:
             return
         if not alive:

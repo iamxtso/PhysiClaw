@@ -218,6 +218,7 @@ class ScrcpySession:
         self._video_file: BufferedReader | None = None
         self._control_sock: socket.socket | None = None
         self._control_lock = threading.Lock()
+        self._lifecycle_lock = threading.Lock()
         self._proc: subprocess.Popen | None = None
         self._video_port = _free_port()
         self._control_port = _free_port()
@@ -237,21 +238,9 @@ class ScrcpySession:
 
     # ─── lifecycle ────────────────────────────────────────────────
 
-    def connect(self) -> None:
-        """Push the jar, start the server, forward, and open both sockets.
-
-        The server accepts video first, then control — connect in that
-        order or the streams swap. Raises ``DeviceNotFound`` (no adb /
-        no device / server died on start) or ``DeviceTimeout``.
-        """
-        if shutil.which("adb") is None:
-            raise DeviceNotFound("adb not on PATH")
-        if self._closed:
-            raise DeviceNotFound("session closed")
-        r = self._adb("push", self.server_path, "/data/local/tmp/" + SERVER_JAR_NAME)
-        if r.returncode != 0:
-            raise DeviceNotFound(f"adb push failed: {r.stderr.strip()}")
-        server_args = " ".join(
+    def _server_args(self) -> str:
+        """Command line for the device server (extracted for unit tests)."""
+        return " ".join(
             [
                 self.server_version,
                 "scid=%s" % ("-1" if self.display_id == 0 else "%x" % self.display_id),
@@ -260,7 +249,8 @@ class ScrcpySession:
                 "video=true",
                 "audio=false",
                 "control=true",
-                "cleanup=false",
+                # Server exits with our sockets — no orphan races the next accepts.
+                "cleanup=true",
                 "tunnel_forward=true",
                 "send_device_meta=true",
                 "send_frame_meta=true",
@@ -280,6 +270,22 @@ class ScrcpySession:
                 "show_touches=false",
             ]
         )
+
+    def connect(self) -> None:
+        """Push the jar, start the server, forward, and open both sockets.
+
+        The server accepts video first, then control — connect in that
+        order or the streams swap. Raises ``DeviceNotFound`` (no adb /
+        no device / server died on start) or ``DeviceTimeout``.
+        """
+        if shutil.which("adb") is None:
+            raise DeviceNotFound("adb not on PATH")
+        if self._closed:
+            raise DeviceNotFound("session closed")
+        r = self._adb("push", self.server_path, "/data/local/tmp/" + SERVER_JAR_NAME)
+        if r.returncode != 0:
+            raise DeviceNotFound(f"adb push failed: {r.stderr.strip()}")
+        server_args = self._server_args()
         self._proc = subprocess.Popen(
             self._adb_base()
             + [
@@ -347,17 +353,21 @@ class ScrcpySession:
 
     def restart(self) -> None:
         """Bounce the server and reconnect both sockets (camera _reopen path)."""
-        self._close_sockets()
-        self._kill_server()
-        self.connect()
+        # Serialized against close(): two concurrent bounces (video-drought
+        # pump vs hand recovery) would orphan servers and cross accepts.
+        with self._lifecycle_lock:
+            self._close_sockets()
+            self._kill_server()
+            self.connect()
 
     def close(self) -> None:
         """Release sockets, server, and forwards. Idempotent (Device protocol)."""
         if self._closed:
             return
         self._closed = True
-        self._close_sockets()
-        self._kill_server()
+        with self._lifecycle_lock:
+            self._close_sockets()
+            self._kill_server()
         try:
             self._adb("forward", "--remove", f"tcp:{self._video_port}")
             self._adb("forward", "--remove", f"tcp:{self._control_port}")
@@ -968,7 +978,9 @@ class ScrcpyArm:
     # ─── keys + clipboard ─────────────────────────────────────────
 
     def back(self) -> None:
-        """BACK key (coordinate-free)."""
+        """BACK key (coordinate-free). Touch routes per display, but key
+        delivery is build-dependent: verified on single-display rigs, NOT
+        delivered on one Android-12 multi-display build (touch unaffected)."""
         with self._session.control() as (send, _):
             for action in (ACTION_DOWN, ACTION_UP):
                 send(struct.pack(">BB", TYPE_BACK_OR_SCREEN_ON, action))

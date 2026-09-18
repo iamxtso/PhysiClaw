@@ -232,3 +232,19 @@ def test_server_version_falls_back_without_client(mocker):
 
     mocker.patch.object(m.shutil, "which", return_value=None)
     assert m._server_version() == m.SERVER_VERSION
+
+
+def test_server_args_pin_display_scid_and_cleanup(mocker):
+    import physiclaw.core.hardware.scrcpy as m
+
+    mocker.patch.object(m, "find_server_jar", return_value="/tmp/x.jar")
+    mocker.patch.object(m, "_server_version", return_value="4.1")
+    d0 = m.ScrcpySession(display_id=0)._server_args()
+    assert "scid=-1" in d0
+    assert "display_id=0" in d0
+    assert "cleanup=true" in d0
+    assert "cleanup=false" not in d0
+    d1 = m.ScrcpySession(display_id=1)._server_args()
+    assert "scid=1 " in d1  # trailing space: not scid=10/11/...
+    assert "display_id=1" in d1
+    assert "scid=-1" not in d1

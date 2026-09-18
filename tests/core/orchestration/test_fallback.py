@@ -298,3 +298,43 @@ def test_eye_fails_over_on_stale_stream(arm_double, cam_double):
         np.testing.assert_array_equal(frame, GOOD)
     finally:
         rig.release()
+
+
+def test_hand_recovery_bounces_dead_preferred_hand(arm_double):
+    """probe silent + revive heals → moves back with exactly one bounce."""
+    from unittest.mock import MagicMock
+
+    class _FlappingSession:
+        def __init__(self):
+            self.bounces = 0
+
+        def check_control_open(self):
+            if self.bounces == 0:
+                raise DeviceTimeout("control dead")
+
+        def restart(self):
+            self.bounces += 1
+
+    rig = HardwareRig()
+    rig._arm = arm_double()
+    rig.calibration = Calibration()
+    rig.calibration.pct_to_grbl = DIAG.copy()
+    rig._origin_pinned = True
+    rig._backends[SCRCPY_BACKEND] = _BackendState(
+        arm=MagicMock(spec=ScrcpyArm),
+        pct_to_grbl=PIXEL.copy(),
+        pinned=True,
+    )
+    rig._backends[SCRCPY_BACKEND].session = _FlappingSession()
+    rig._hand = PHYSICAL_BACKEND
+    p = PhysiClaw()
+    p.rig = rig
+    p._gestures_since_probe = PhysiClaw.HAND_REPROBE_EVERY - 1
+    p._last_hand_probe = 0.0
+    rig.acquire()
+    try:
+        p._maybe_recover_hand()
+        assert rig.active_hand == SCRCPY_BACKEND
+        assert rig._backends[SCRCPY_BACKEND].session.bounces == 1
+    finally:
+        rig.release()

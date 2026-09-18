@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from physiclaw.core.calibration import Calibration
+from physiclaw.core.hardware.device import DeviceTimeout
 from physiclaw.core.orchestration.rig import (
     PHYSICAL_BACKEND,
     SCRCPY_BACKEND,
@@ -284,3 +285,66 @@ def test_explicit_order_beats_config(mocker):
     )
     rig = HardwareRig(eye_order=(SCRCPY_BACKEND, PHYSICAL_BACKEND))
     assert rig._eye_order == (SCRCPY_BACKEND, PHYSICAL_BACKEND)
+
+
+# ─── hand revival ──────────────────────────────────────────────
+
+
+class _DeadSession:
+    """control stays shut; restart raises (server never comes back)."""
+
+    def __init__(self):
+        self.bounces = 0
+
+    def check_control_open(self):
+        raise DeviceTimeout("control dead")
+
+    def restart(self):
+        self.bounces += 1
+        raise DeviceTimeout("server never came back")
+
+
+def test_revive_hand_without_session_is_false(arm_double):
+    from physiclaw.core.hardware.arm import StylusArm
+
+    rig = HardwareRig()
+    rig._backends[PHYSICAL_BACKEND] = _BackendState(arm=arm_double())
+    assert isinstance(rig._backends[PHYSICAL_BACKEND].arm, StylusArm)
+    assert rig.revive_hand(PHYSICAL_BACKEND) is False
+
+
+def test_revive_hand_failed_restart_is_false():
+    from unittest.mock import MagicMock
+
+    from physiclaw.core.hardware.scrcpy import ScrcpyArm
+
+    rig = HardwareRig()
+    rig._backends[SCRCPY_BACKEND] = _BackendState(arm=MagicMock(spec=ScrcpyArm))
+    rig._backends[SCRCPY_BACKEND].session = _DeadSession()
+    assert rig.revive_hand(SCRCPY_BACKEND) is False
+    assert rig._backends[SCRCPY_BACKEND].session.bounces == 1
+
+
+def test_revive_hand_bounce_then_probe_true():
+    from unittest.mock import MagicMock
+
+    from physiclaw.core.hardware.scrcpy import ScrcpyArm
+
+    class _HealingSession:
+        def __init__(self):
+            self.bounces = 0
+
+        def check_control_open(self):
+            if self.bounces == 0:
+                from physiclaw.core.hardware.device import DeviceTimeout
+
+                raise DeviceTimeout("control dead")
+
+        def restart(self):
+            self.bounces += 1
+
+    rig = HardwareRig()
+    rig._backends[SCRCPY_BACKEND] = _BackendState(arm=MagicMock(spec=ScrcpyArm))
+    rig._backends[SCRCPY_BACKEND].session = _HealingSession()
+    assert rig.probe_hand(SCRCPY_BACKEND) is False
+    assert rig.revive_hand(SCRCPY_BACKEND) is True
