@@ -34,7 +34,11 @@ from physiclaw.core.orchestration.clipboard import (
 )
 from physiclaw.core.orchestration.observation import GestureObserver, GestureResult
 from physiclaw.core.orchestration.perception import Perception
-from physiclaw.core.orchestration.rig import TOOL_LOCK_WAIT_SECONDS, HardwareRig
+from physiclaw.core.orchestration.rig import (
+    PHYSICAL_BACKEND,
+    TOOL_LOCK_WAIT_SECONDS,
+    HardwareRig,
+)
 from physiclaw.core.vision.util import (
     decode_image,
     encode_view_jpeg,
@@ -355,7 +359,8 @@ class PhysiClaw:
         return self._run_gesture(gestures.Swipe(bbox, direction, size, speed))
 
     def _send_to_clipboard(self, text: str) -> str:
-        """Copy text via AssistiveTouch long-press. Caller must hold the lock.
+        """Copy text to the phone clipboard (routed by active hand: scrcpy
+        direct, physical via AssistiveTouch long-press). Caller must hold the lock.
 
         Raises ``ClipboardSyncError`` when the phone never fetches the
         text — the phone's clipboard still holds the PREVIOUS content,
@@ -370,7 +375,9 @@ class PhysiClaw:
         the screen) could carry marker-like text (`physiclaw.common.verdict`)."""
         # Require BEFORE queueing: text queued and then raised on a missing
         # AT setup would sit on the bridge for a late Shortcut run to fetch.
-        self.rig.require_assistive_touch()
+        # Physical hand only — the scrcpy hand goes direct with no AT setup.
+        if self.rig.active_hand == PHYSICAL_BACKEND:
+            self.rig.require_assistive_touch()
         timeout = self._clipboard.begin()
         # The queue/long-press/wait/un-queue choreography is the rig's
         # (`sync_clipboard`); the facade owns only the retry/miss policy.

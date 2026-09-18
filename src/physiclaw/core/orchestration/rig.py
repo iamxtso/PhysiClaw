@@ -909,7 +909,7 @@ class HardwareRig:
             raise RuntimeError("Screenshot needs the bridge page or the scrcpy eye")
         at = self.require_assistive_touch()
         return at.take_screenshot(
-            self.require_arm(),
+            self.require_physical_arm(),
             self.require_bridge(),
             self.require_transforms().pct_to_grbl,
             timeout=timeout,
@@ -919,7 +919,9 @@ class HardwareRig:
         """Long-press the AssistiveTouch button (fires the clipboard Shortcut)."""
         self.assert_locked()
         at = self.require_assistive_touch()
-        at.long_press(self.require_arm(), self.require_transforms().pct_to_grbl)
+        at.long_press(
+            self.require_physical_arm(), self.require_transforms().pct_to_grbl
+        )
 
     def sync_clipboard(self, text: str, timeout: float) -> bool:
         """Phone clipboard, routed by ACTIVE hand — the bridge+AT path below

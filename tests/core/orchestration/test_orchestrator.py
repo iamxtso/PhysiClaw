@@ -795,3 +795,23 @@ def test_quality_check_failure_never_costs_the_view(
     out = pc.tap([0.1, 0.1, 0.2, 0.2])
 
     assert out.listing == "LISTING"  # fail-open: view intact, no line
+
+
+def test_send_to_clipboard_scrcpy_hand_skips_at_guard(pc: PhysiClaw, wire_rig) -> None:
+    """Scrcpy hand + uncalibrated AT + no bridge: goes direct instead of
+    raising on the old unconditional AT guard."""
+    from unittest.mock import MagicMock
+
+    from physiclaw.core.hardware.scrcpy import ScrcpyArm
+    from physiclaw.core.orchestration.rig import SCRCPY_BACKEND, HardwareRig
+
+    pc.rig = HardwareRig()
+    wire_rig(pc.rig)
+    pc.rig._arm = MagicMock(spec=ScrcpyArm)
+    pc.rig._hand = SCRCPY_BACKEND
+    assert not pc.rig.assistive_touch.ready
+
+    out = pc.send_to_clipboard("hi")
+
+    assert "Copied 2 chars" in out
+    pc.rig._arm.set_clipboard.assert_called_once_with("hi")
