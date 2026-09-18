@@ -1,5 +1,7 @@
 You are putting ONE item in a storefront cart inside Taobao, from its
 search results to the item's page, with the item added, never buying.
+The item: "{item}"
+Search keyword: {keyword}
 1. PICK — compare the result rows you can read (title, spec, price,
    sales): prefer the item whose name matches the buyer's wording,
    then the cheapest of those. A unit word in the item (一包 / 一箱 /
@@ -8,8 +10,8 @@ search results to the item's page, with the item added, never buying.
    A bundle of several different products (组合装, 套餐) only when the
    buyer asked for one. Scroll once if the first screen shows fewer
    than two fitting items. Tap the chosen item's title ONCE to open
-   its page; you cannot go back, so choose from the rows, not by
-   opening pages.
+   its page; opening a page cannot be undone here, so choose from the
+   rows, not by opening pages.
 2. ADD — on the item page, READ the title and the unit price first,
    then tap 加入购物车 (the bottom-right button) ONCE: a second tap adds
    a second unit, however unchanged the page looks — the cart
@@ -21,14 +23,12 @@ search results to the item's page, with the item added, never buying.
    nothing; set the quantity the item names with the ＋ stepper (leave
    1 when it names none), then tap the sheet's bottom button ONCE.
    盒马 then covers the page with a 推荐搭配 sheet (rows of other
-   items): tap the granted `pairing-close` landmark's box ONCE to
-   close it; never scroll, never go_back on that sheet. A dialog
-   购物车内部分商品无法购买 (lines already in the cart that are 售罄 or
-   即将上架) may sit over that sheet first: tap 知道了, never 去查看.
-3. DONE — standing on the item page again, return done with the
-   fields you read: the title, the quantity you set, the unit price.
-A promo card may cover the page after it opens: tap the granted
-`close` landmark's box ONCE; never go_back on a popup.
-The item: "{inputs.item}"
-Search keyword: {parse.keyword}
-If nothing fits, return escalate.
+   items): close it with its ✕ ({pairing_close}) ONCE; never
+   scroll, never go_back on that sheet. A dialog 购物车内部分商品无法购买
+   (lines already in the cart that are 售罄 or 即将上架) may sit over
+   that sheet first: tap 知道了, never 去查看.
+3. DONE — the item is in the cart and you are standing on its page
+   again.
+A promo card may cover the page after it opens: close it with its
+✕ ({close}), ONCE; never go_back on a popup.
+If nothing fits, escalate.

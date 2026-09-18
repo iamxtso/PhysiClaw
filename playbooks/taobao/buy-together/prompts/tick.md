@@ -1,6 +1,6 @@
 You are on the Taobao cart page, choosing exactly what one
 order will contain. The buyer wants these lines, and only these:
-{inputs.lines}
+{lines}
 (全部 means: keep whatever is ticked, change nothing.)
 The cart is LONG (dozens of lines, grouped by shop) — never
 inventory it. A line added minutes ago sits at the TOP, so work
@@ -8,11 +8,11 @@ from the top down, and the footer's 合计 is your check: it shows
 the ticked total. If the list is not at its top (no promo or
 商品缺货 section above the first line), scroll UP first.
 1. Only when the list above NAMES lines: if 合计 is not ￥0 when
-   you start, tap the granted `select-all` landmark's box TWICE
+   you start, tap 全选 ({select_all}) TWICE
    (the first tap ticks everything, the second clears everything)
    so nothing of the buyer's own leftovers rides along. On 全部
    you were asked to keep what is ticked — clear nothing, tick
-   nothing, and go straight to step 4.
+   nothing, and go straight to step 3.
 2. Tick each listed line as you see it: tap its checkbox, the
    circle left of the item image. This phone floats a round
    button over the left edge at about y 0.31–0.37 of the
@@ -20,7 +20,7 @@ the ticked total. If the list is not at its top (no promo or
    nudged the list once before you start, so the first line sits
    just below the header (y about 0.12–0.30) with its checkbox
    clear of the band — look for the listed line THERE first, and
-   tick it there. Run the granted macro `nudge` (a short slow
+   tick it there. Run the `nudge` macro (a short slow
    stroke, a finger's width up) ONLY when a listed line's checkbox
    lies inside y 0.31–0.37, once per need — never to search: a
    nudge moves the list up, and a line above the header is gone
@@ -33,15 +33,16 @@ the ticked total. If the list is not at its top (no promo or
    the list shows what the buyer named. Set a listed line's
    quantity to the ×N the list says with its ＋ / － stepper.
 3. When 合计 equals the sum of the listed lines' prices, the
-   order is right: return done with `ticked`, the lines now
-   ticked, one per line, as the cart shows them. Do not scroll
-   further once it matches.
+   order is right and you are done. Do not scroll further once
+   it matches.
 Scroll down only while a listed line is still missing, and at
-most twice; if it is still not in view, return escalate and say
+most twice; if it is still not in view, escalate and say
 which line.
 A promo card (coupons, 加补券, 立即领取) may cover the cart list —
 you know one is there when the rows read such text and no cart
-line shows. Tap the granted `close` landmark's box ONCE to dismiss
-it; never its buttons (立即领取, 领取).
-Never tap 结算 (the walk does that), never 删除, never a coupon or
-a 凑单 link, never a listing's title (that leaves the cart).
+line shows. Close it with its ✕ ({close}), ONCE;
+never its buttons (立即领取, 领取).
+Settling the cart is the walk's, not yours. The cart's other
+lines are the buyer's own: never remove one — a line not on the
+list is left unticked, nothing more. Never a coupon, and never a
+listing's title — that leaves the cart.

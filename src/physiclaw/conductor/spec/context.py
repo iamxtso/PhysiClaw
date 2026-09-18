@@ -1,79 +1,89 @@
-"""What an agent step may load beside its prompt — declared, never
-implied. An `agent`'s `context:` lists the sources; nothing else of the
-agent's memory travels to the model:
+"""What an agent step reads out of the agent's OWN memory — declared,
+never implied. A step's `context.memory:` names the parts, one entry
+per part, and nothing else of that memory travels to the model:
 
-  - ``memory``          the whole memory.md
-  - ``memory.<slug>``   ONLY its `## <slug>` section — a slug matches a
-                        heading as a whole whitespace-separated token
-                        (`shopping` never bleeds into `## shopping_blacklist`;
-                        a heading may carry a translation after its slug),
-                        and no match means no text (fail closed)
-  - ``daylog``          the recent daily-log window — the same one the
-                        engine preloads into the model's wake context
+  - ``<slug>: true``    ONLY the `## <slug>` section of memory.md — a
+                        slug matches a heading as a whole whitespace-
+                        separated token (`shopping` never bleeds into
+                        `## shopping_blacklist`; a heading may carry a
+                        translation after its slug), and no match means
+                        no text (fail closed)
+  - ``all: true``       the whole memory.md
+  - ``log: <n>``        the n most recent daily-log entries — the same
+                        window the engine preloads into a wake
 
-One loader per root in `_LOADERS`; the parser's `check_entry` reads
-legality off the same table, so a new source is one row. The conductor
-may never import the engine (architecture rule), so memory.md is read
-off the shared path constant here.
+A part is included because a line says so: there is no default and no
+switch, and an absent `memory:` sends nothing. A slug that matches no
+heading loads "" rather than vanishing: the author declared it, so the
+model reads an empty slot instead of wondering whether it was told. The conductor may never
+import the engine (architecture rule), so memory.md is read off the
+shared path constant here.
+
+Nothing here labels what it returns — `load` keys each body by the part
+that asked for it, and the step's own `context:` block is where the
+label is written.
 """
 
-from collections.abc import Callable
+from collections.abc import Mapping
+from typing import Any
 
 from physiclaw.common import daylog, paths
-from physiclaw.common.config import CONFIG
 from physiclaw.common.text import read_text
 from physiclaw.conductor.spec.specfile import INPUT_NAME_RE
 
-MEMORY = "memory"
-DAYLOG = "daylog"
+ALL = "all"  # the whole memory.md
+LOG = "log"  # the recent daily-log window, `log: <n>`
+# The parts the ENGINE names; any other key is a slug — one `## <slug>`
+# section of memory.md. `memory_gap` branches on this tuple and
+# `lints` reads its exemption off it (a part is the engine's own word, so a
+# prompt has no reason to spell it), which is why a new part is one row.
+PARTS = (ALL, LOG)
+MAX_LOG = 50  # daily-log entries one step may pull
 
 
-def check_entry(entry: object) -> str | None:
-    """None when `entry` is a legal `context:` item, else the rule it
-    breaks."""
-    if not isinstance(entry, str):
-        return "must be a string"
-    root, sep, slug = entry.partition(".")
-    if root not in _LOADERS or (
-        sep and not (root == MEMORY and INPUT_NAME_RE.match(slug))
-    ):
-        return f"must be `{MEMORY}`, `{MEMORY}.<slug>`, or `{DAYLOG}`"
+def memory_gap(spec: object) -> str | None:
+    """None when `spec` is a legal `memory:` block, else the rule it
+    breaks. The one legality reader: the parser calls it, and nothing
+    re-derives the vocabulary."""
+    if not isinstance(spec, dict):
+        return "must be a mapping of `<part>: <how much>`"
+    for part, value in spec.items():
+        if not isinstance(part, str):
+            return f"part {part!r} must be a name"
+        if part == LOG:
+            if isinstance(value, bool) or not isinstance(value, int):
+                return f"`{LOG}: {value!r}` must be how many entries, a number"
+            if not 1 <= value <= MAX_LOG:
+                return f"`{LOG}: {value}` must be from 1 to {MAX_LOG}"
+        elif value is not True:
+            return (
+                f"`{part}: {value!r}` must be `true` — a part is named to "
+                "include it, and left out to leave it behind"
+            )
+        elif part not in PARTS and not INPUT_NAME_RE.match(part):
+            return f"part {part!r} must be a `## <slug>` heading of memory.md"
     return None
 
 
-def load(entries: tuple[str, ...]) -> str:
-    """The declared sources, read now and joined — "" when nothing is
-    declared or nothing matches. Entries group by root, so memory.md is
-    read once however many of its sections are named."""
-    by_root: dict[str, list[str]] = {}
-    for entry in entries:
-        root, _, slug = entry.partition(".")
-        by_root.setdefault(root, []).append(slug)
-    parts = [_LOADERS[root](slugs) for root, slugs in by_root.items()]
-    return "\n\n".join(p for p in parts if p)
+def load(spec: Mapping[str, Any]) -> dict[str, str]:
+    """Each named part, read NOW and keyed by its own name — the label
+    the model reads, which is why no body carries a heading of its own.
+    memory.md is read and carved once however many sections are named,
+    and not touched at all when none is."""
+    slugs = [p for p in spec if p not in PARTS]
+    text = _memory_text() if slugs or ALL in spec else ""
+    sections = split_sections(text) if slugs else []
+    out = {slug: match_sections(sections, slug) for slug in slugs}
+    if ALL in spec:
+        out[ALL] = text
+    if LOG in spec:
+        out[LOG] = daylog.load_recent_entries(spec[LOG])
+    return out
 
 
-def _load_memory(slugs: list[str]) -> str:
-    """The whole file when named bare (an empty slug), else ONLY the
-    named sections."""
+def _memory_text() -> str:
     f = paths.memory_file()
-    text = read_text(f).strip() if f.exists() else ""
-    if not text:
-        return ""
-    if "" in slugs:
-        return f"memory.md:\n{text}"
-    return match_sections(split_sections(text), slugs)
-
-
-def _load_daylog(slugs: list[str]) -> str:
-    recent = daylog.load_recent_entries(CONFIG.memory.bootstrap_log_entries)
-    return f"Recent daily-log entries (newest first):\n{recent}" if recent else ""
-
-
-_LOADERS: dict[str, Callable[[list[str]], str]] = {
-    MEMORY: _load_memory,
-    DAYLOG: _load_daylog,
-}
+    return read_text(f).strip() if f.exists() else ""
 
 
 # One parsed section: (heading tokens, whole section text).
@@ -99,6 +109,6 @@ def split_sections(text: str) -> Sections:
     return sections
 
 
-def match_sections(sections: Sections, slugs: list[str]) -> str:
-    wanted = {slug.casefold() for slug in slugs}
-    return "\n".join(body for tokens, body in sections if wanted & tokens)
+def match_sections(sections: Sections, slug: str) -> str:
+    wanted = slug.casefold()
+    return "\n".join(body for tokens, body in sections if wanted in tokens)

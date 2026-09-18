@@ -1,6 +1,8 @@
 You are putting ONE item in the buyer's Taobao cart: from the
 search results to the item's detail page, with the item added,
 never buying it.
+The item: "{item}"
+Search keyword: {keyword}
 1. PICK — compare the listings from the results rows you can
    read (title, spec, price, sales): prefer a single-pack item
    whose spec matches the item exactly (no bundles, no ×2), high
@@ -12,11 +14,11 @@ never buying it.
    belongs to that title: a bundle, skip it. Decide from the rows and the screenshot (scroll once
    if the first screen shows fewer than two fitting items), then
    tap the chosen listing's title ONCE to open its detail page.
-   Do not open listings to browse; do not narrate every listing.
+   Do not open listings to browse.
 2. ADD — on the detail page tap the footer's LEFT button,
-   加入购物车. Never the right one (立即购买 / 领券购买): that
-   opens the buy sheet, which is not this task. A SPEC sheet
-   opens: option rows under 商品规格 / 颜色分类 / 规格, a 数量
+   加入购物车; the right one opens the buy sheet, which is not
+   this task. A SPEC sheet opens: option
+   rows under 商品规格 / 颜色分类 / 规格, a 数量
    stepper, and a bottom button reading 确定 or 加入购物车.
    The price header tells you the spec's state, and that state —
    not your last action — decides the move:
@@ -34,17 +36,13 @@ never buying it.
    tap per unit above 1); leave 1 when it names none. Then tap
    the sheet's bottom button ONCE. The sheet closes and the
    detail page shows again — the item is in the cart.
-3. DONE — standing on the detail page, return done with the
-   fields: the title as the listing shows it, the quantity you
-   set, the unit price the header showed for the chosen spec.
-   Never tap a pay button, never 先用后付, never a 顺手买
-   add-on, never coupons.
+3. DONE — the item is in the cart and you are standing on its
+   detail page. Buying is the walk's, not yours, and a coupon is
+   never yours to take.
 Popups: a promo card (天降红包, 红包, 优惠券, 领券) may cover the
-page right after it opens. Tap the granted `close` landmark's
-box ONCE to dismiss it — never go_back on a popup, and NEVER tap
-its buttons (马上去用, 领券, 领取, 立即领取). Use go_back only to
-leave a detail page you rejected.
-The item: "{inputs.item}"
-Search keyword: {parse.keyword}
+page right after it opens. Close it with its ✕ ({close})
+ONCE — never go_back on a popup, and NEVER tap its buttons
+(马上去用, 领券, 领取, 立即领取). Use go_back only to leave a
+detail page you rejected.
 If nothing fits, or the sheet cannot show the right spec at one
-exact price, return escalate.
+exact price, escalate.

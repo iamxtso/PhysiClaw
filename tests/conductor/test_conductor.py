@@ -99,7 +99,6 @@ def _agent_program():
             id="parse",
             prompt="the keyword, please",
             tools=(),
-            give=(),
             returns=(("keyword", "the search term"),),
             enter="",
             verify="",

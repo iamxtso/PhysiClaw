@@ -14,7 +14,9 @@ returns:
 
 route:
   - agent: parse
-    prompt: app.prompts.item-keyword  # the product words, no quantity or unit
+    context:
+      prompt: app.prompts.item-keyword  # the product words, no quantity or unit
+      given: {item: inputs.item}
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
@@ -28,9 +30,14 @@ route:
   - page: app.pages.store-results
 
   - agent: pick
-    prompt: app.prompts.store-pick  # rows to an item, one add, the sheets that follow
+    context:
+      prompt: app.prompts.store-pick  # rows to an item, one add, the sheets that follow
+      given:
+        item: inputs.item
+        keyword: parse.keyword
+        close: app.landmarks.close                    # a promo ✕
+        pairing_close: app.landmarks.pairing-close    # a 推荐搭配 sheet's ✕
     tools: [tap, scroll]
-    give: [app.landmarks.close, app.landmarks.pairing-close]   # a promo ✕, a 推荐搭配 sheet's ✕
     never_tap:
       - {label: ["去结算", "领券结算", "立即购买"], within: bottom}   # one target: the checkout button
       - {label: ["提交订单", "立即支付", "免密支付"], within: bottom}   # one target: the pay button

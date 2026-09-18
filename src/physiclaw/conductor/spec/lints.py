@@ -15,7 +15,7 @@ from collections.abc import Sequence
 from physiclaw.common.bbox import center_of
 from physiclaw.common.listing import Element, Screen, format_elements
 from physiclaw.common.paths import PACK_PROMPTS_DIRNAME, PROMPT_SUFFIX
-from physiclaw.conductor.spec import reply
+from physiclaw.conductor.spec import context, reply
 from physiclaw.conductor.spec.conventions import BOOT_PLAYBOOK, CHANNEL_APP
 from physiclaw.conductor.spec.match import SHORT_ANCHOR_MIN, normalize, score_page
 from physiclaw.conductor.spec.model import (
@@ -73,7 +73,7 @@ def screen_move(node: Node) -> bool:
     """A move whose enter page must read before it runs — a `do` with an
     enter, or an acting agent."""
     return (isinstance(node, DoNode) and bool(node.enter)) or (
-        isinstance(node, AgentNode) and bool(node.tools)
+        isinstance(node, AgentNode) and node.acts
     )
 
 
@@ -221,7 +221,64 @@ def readiness_warnings(spec: Playbook, pack: Pack) -> list[str]:
         + _anchor_warnings(spec, pack)
         + _think_warnings(spec)
         + _on_fail_warnings(spec)
+        + _prompt_warnings(spec)
     )
+
+
+# What the tool legend already teaches, spelled as an instruction. The
+# bare verbs are the author's to use ("if nothing fits, escalate") —
+# it is the REPLY FORMAT that is taught twice.
+_TAUGHT_TWICE = ("return done", "return escalate")
+
+
+def _prompt_warnings(spec: Playbook) -> list[str]:
+    """A prompt that steps outside the app brief. The engine writes the
+    mechanism (the reply contract, the tool legend, the granted lists,
+    the return fields) and the playbook writes the contract
+    (`context:`, `never_tap:`); a prompt that says either again
+    says it twice, and drifts from it at the next edit. All advisory:
+    prose is the author's, and only the author knows whether a label is
+    there to identify a control or to forbid it."""
+    out = []
+    for n in flatten(spec.nodes):
+        if not isinstance(n, AgentNode):
+            continue
+        # One text rule for every comparison here: prose is the author's,
+        # and they may write a label or a target in any case.
+        low = n.prompt.casefold()
+        out += [
+            f"agent {n.id!r}: its prompt says {phrase!r} — the tool legend "
+            "already spells the reply format; say the CONDITION, and leave "
+            "the envelope to the legend"
+            for phrase in _TAUGHT_TWICE
+            if phrase in low
+        ]
+        # A memory section the prose never names arrives in the block
+        # with nothing to attach it to. Only the slugs the AUTHOR chose:
+        # a part (`log`, `all`) is the engine's own word, and no natural
+        # prompt spells it. (A `given:` is held to its prompt by the
+        # parser: `{name}` is the one way to read it.)
+        out += [
+            f"agent {n.id!r}: `context.memory.{name}` is read for the model, "
+            f"but its prompt never names {name!r} — it reads as a loose line "
+            "under Context"
+            for name in n.memory
+            if name not in context.PARTS and name.casefold() not in low
+        ]
+        # The sharp one: `never_tap:` is withheld from the model BY
+        # DESIGN (`step_agent.refusal`), so a prompt that repeats a
+        # target hands back exactly what the guard rail was keeping.
+        out += [
+            f"agent {n.id!r}: its prompt names {reading!r}, which its own "
+            "`never_tap:` blocks — the ban is withheld from the model on "
+            "purpose, since naming a pay button tells the model where the "
+            "pay button is; name a label to say which control is which, "
+            "never to forbid one"
+            for target in n.never_tap
+            for reading in target.label
+            if reading.casefold() in low
+        ]
+    return out
 
 
 def _on_fail_warnings(spec: Playbook) -> list[str]:

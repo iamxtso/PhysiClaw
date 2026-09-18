@@ -7,11 +7,13 @@ frame beside its whole element listing — with append-only, uncompressed
 context (every earlier frame and listing stays, so every request's
 prefix is byte-identical to the previous one and the provider cache
 pays for all but the newest block) answered as a tool call the walk
-carries out exactly: a tap (a box — a listed element's, a granted
-landmark's, or one read off the screenshot — with the label the model
-gives it), a scroll or back, `done`, `escalate`, or a granted pack
-macro run by name. A landmark scoped to a page is shown only while
-that page is the verified reading. `done` is audited against the adjacent
+carries out exactly: a tap (a box — a listed element's, a landmark's
+the step's `given:` named, or one read off the screenshot — with the
+label the model gives it), a scroll or back, `done`, `escalate`, or a
+macro its `tools:` granted, run by name. Both grants are FIXED for the
+episode, so each is said once — the landmark in the brief where the
+prompt writes its name, the macro in the system prompt's legend — and
+every turn after the first carries the screen alone. `done` is audited against the adjacent
 verify page by the matcher, never trusted, and a payment episode
 re-runs the money predicates before EVERY tap or macro the model
 proposes — on a verified own-pack page, as the payment move does.
@@ -30,14 +32,13 @@ from physiclaw.conductor.spec.calls import (
     AGENT_TOOLS,
     ESCALATE,
     TOOL_RUN,
-    TOOL_TAP,
 )
 from physiclaw.conductor.spec.conventions import LOCKED_ID, page_id
 from physiclaw.conductor.spec.model import AgentNode, NeverTap
 from physiclaw.conductor.spec.pack import qualified_macro
 from physiclaw.conductor.spec.pages import Landmark
-from physiclaw.conductor.spec.refs import fill_refs
-from physiclaw.conductor.walk import money
+from physiclaw.conductor.spec.refs import fill_names, fill_refs
+from physiclaw.conductor.walk import money, prompts
 from physiclaw.conductor.walk.micro import (
     ACT_ARM,
     AGENT_ACT,
@@ -61,6 +62,17 @@ from physiclaw.conductor.walk.step import Step, Turn, Walk
 from physiclaw.conductor.walk.turns import scroll_args
 from physiclaw.conductor.walk.walklog import REASON_CLIP
 from physiclaw.macros.model import Macro as PackMacro
+
+
+def _labelled(name: str, body: str) -> str:
+    """One `context:` entry for the model: `- name: body`, or the name
+    with a body of several lines indented under it — the shape a
+    declared `returns:` field already reads in."""
+    if "\n" in body:
+        rows = "\n".join(f"    {line}" for line in body.split("\n"))
+        return f"- {name}:\n{rows}"
+    return f"- {name}: {body}"
+
 
 KIND_TAP = "agent-tap"
 KIND_SWIPE = "agent-swipe"
@@ -198,7 +210,7 @@ class AgentStep(Step[AgentNode]):
         super().__init__(walk, node)
         # Episode state. `history` is the append-only transcript of
         # settled (user content, model reply) pairs — replayed verbatim
-        # on every call; `lead` and `block` are the pending user turn
+        # on every call; `lead` and `elements` are the pending user turn
         # the next call sends (what happened or the brief, then the
         # screen: the walk's frame between them, the listing after);
         # `sent` is the request in flight, settled whole at resolve.
@@ -206,7 +218,6 @@ class AgentStep(Step[AgentNode]):
         # the per-tap predicates keep checking after the gate's consent
         # is consumed by the first fire.
         self.lead = ""
-        self.block = ""
         self.sent: DecisionRequest | None = None
         self.history: list[tuple[str, Content]] = []
         self.elements: tuple[Element, ...] = ()
@@ -217,7 +228,7 @@ class AgentStep(Step[AgentNode]):
         self.pending_desc = ""
 
     def open(self) -> Turn:
-        if not self.node.tools:
+        if not self.node.acts:
             # A pure-text call: no screen, no page contract — prompt in,
             # declared fields out.
             return self._fields_request()
@@ -232,25 +243,45 @@ class AgentStep(Step[AgentNode]):
         return self._episode_landed()
 
     def resolve(self, outcome: MicroOutcome | None) -> Turn:
-        if self.node.tools:
+        if self.node.acts:
             return self._episode_resolve(outcome)
         return self._fields_done(outcome)
 
     # ---- shared ----
 
-    def _prompt(self, vals: dict[str, str]) -> str:
-        """The authored prompt with its refs filled ONCE — then frozen."""
-        return str(
-            fill_refs(self.node.prompt, vals, where=f"agent {self.node.id!r} `prompt`")
+    def _fields(self) -> str:
+        return "\n".join(_labelled(n, d) for n, d in self.node.returns)
+
+    def _brief(self, vals: dict[str, str]) -> str:
+        """The prompt with its `given:` filled ONCE — each `{name}` the
+        value its ref reads now, or a landmark's reading and box, stated
+        as the fact it is (what MAY be tapped is the tap legend's to
+        say) — then frozen for the step."""
+        node, walk = self.node, self.walk
+        where = f"agent {node.id!r} `context.given`"
+        given = {
+            name: str(fill_refs(ref, vals, where=f"{where}.{name}"))
+            for name, ref in node.given.items()
+        }
+        given |= {
+            name: _landmark_line(walk.landmarks[spot])
+            for name, spot in node.landmarks.items()
+        }
+        return fill_names(
+            node.prompt, given, where=f"agent {node.id!r} `context.prompt`"
         )
 
-    def _fields(self) -> str:
-        return "\n".join(f"- {n}: {d}" for n, d in self.node.returns)
-
     def _context(self) -> str:
-        """What the author declared beside the prompt (`context:`),
-        loaded now — nothing else of the agent's memory travels."""
-        return context.load(self.node.context)
+        """The step's `context.memory:` read NOW, rendered one `- name:
+        body` per part (a body of several lines indented under its
+        name). "" when the step declared none, so there is never an
+        empty heading. The caller stamps the whole thing as data — the
+        agent's own memory is fact to judge, never instruction, and
+        nothing else of it travels. The brief is NOT in here."""
+        return "\n".join(
+            _labelled(part, body)
+            for part, body in context.load(self.node.memory).items()
+        )
 
     def _close(self, outcome: MicroOutcome, *, calls: int = 0) -> Turn:
         """The one done tail both forms share: record the returns,
@@ -280,7 +311,7 @@ class AgentStep(Step[AgentNode]):
             node_id=node.id,
             outcomes=(),
             material={
-                PROMPT: self._prompt(self.walk.ref_values()),
+                PROMPT: self._brief(self.walk.ref_values()),
                 FIELDS: self._fields(),
             },
             context=self._context(),
@@ -301,7 +332,7 @@ class AgentStep(Step[AgentNode]):
 
     def _episode_start(self) -> Turn:
         """Open an acting episode on the current (enter-verified) screen.
-        The prompt's refs fill ONCE here — the brief (prompt, return
+        The prompt's givens fill ONCE here — the brief (prompt, return
         fields, declared context) heads the first block and rides the
         replayed history verbatim; a payment episode additionally gets
         {ask.total} — the consented amount its adjacent gate bound — and
@@ -316,58 +347,23 @@ class AgentStep(Step[AgentNode]):
             self.consented = walk.gate.consented
             self.total_label = walk.gate.total_label
             vals = {**vals, "ask.total": money.plain(self.consented)}
-        brief = [self._prompt(vals)]
+        brief = [self._brief(vals)]
         if self.node.returns:
             brief.append(return_fields(self._fields()))
-        loaded = self._context()
-        if loaded:
-            brief.append(data_block("Context", loaded))
+        reads = self._context()
+        if reads:
+            brief.append(data_block(prompts.CONTEXT_HEADER, reads))
         self._screen_block("\n\n".join(brief))
         return self._request()
 
     def _screen_block(self, lead: str) -> None:
-        """Read the CURRENT screen into the pending user turn: `lead` (what happened, or
-        the brief), then the screen — the walk's frame rides between
-        lead and listing when the read carried one. When the episode
-        may tap, the model answers a box (a listed element's, a granted
-        landmark's, or one it reads off the frame) and the journal keeps
-        the model's own label for what it tapped; a page-scoped landmark is shown
-        only while its page is the verified reading; with no tap tool
-        there is nothing to tap. Granted macros are always answerable,
-        by name."""
-        walk, node = self.walk, self.node
-        assert walk.screen is not None
-        rows = act_rows(walk.screen.rows)
-        can_tap = TOOL_TAP in node.tools
-        give = tuple(n for n in node.give if self._granted(n)) if can_tap else ()
-        self.elements = rows
-        parts = [act_block("Current screen", rows)]
-        if give:
-            # Each with what it reads and where it sits: the model taps a
-            # landmark's box like any other box.
-            parts.append(
-                "Granted landmarks (spots the playbook knows; tap their box):\n"
-                + "\n".join(f"- {n}: {_landmark_line(walk.landmarks[n])}" for n in give)
-            )
-        if node.macros:
-            parts.append(
-                'Granted macros (run_macro with "name"): ' + ", ".join(node.macros)
-            )
-        self.lead = lead
-        self.block = "\n".join(parts)
-
-    def _granted(self, name: str) -> bool:
-        """Whether a landmark is on offer NOW: declared, and either
-        unscoped or scoped to the page the current verdict reads."""
+        """Read the CURRENT screen into the pending user turn: `lead`
+        (what happened, or the brief), then the screen — the walk's
+        frame rides between lead and listing when the read carried one."""
         walk = self.walk
-        landmark = walk.landmarks.get(name)
-        if landmark is None:
-            return False
-        if landmark.page is None:
-            return True
-        return walk.verdict is not None and walk.verdict.matches(
-            page_id(walk.app, landmark.page)
-        )
+        assert walk.screen is not None
+        self.elements = act_rows(walk.screen.rows)
+        self.lead = lead
 
     def _again(self, why: str) -> Turn:
         """A move the walker would not make: say why and re-ask over the
@@ -393,7 +389,10 @@ class AgentStep(Step[AgentNode]):
             call=AGENT_ACT,
             node_id=node.id,
             outcomes=tuple(actions),
-            material={LEAD: self.lead, BLOCK: self.block},
+            material={
+                LEAD: self.lead,
+                BLOCK: act_block("Current screen", self.elements),
+            },
             macros=tuple(node.macros),
             elements=self.elements,
             frame=self.walk.frame,
@@ -542,8 +541,9 @@ def _escalated(node_id: str, reason: str) -> str:
 
 
 def _landmark_line(landmark: Landmark) -> str:
-    """A granted landmark as the block shows it: its readings (the text
-    it carries, or the author's description of the spot) and its
-    declared box, the listing's spelling."""
+    """A landmark given as the brief shows it where the prompt writes
+    its name: its readings (the text it carries, or the author's
+    description of the spot) and its declared box, the listing's
+    spelling."""
     reads = " / ".join(f'"{r}"' for r in landmark.label) or '""'
     return f"reads {reads}, box {format_bbox(landmark.bbox)}"

@@ -13,14 +13,17 @@ route:
   # No tools: a pure-text call, before the arm moves. Its fields read
   # downstream as {parse.keyword}.
   - agent: parse
-    prompt: |
-      From the buyer's message, produce the Taobao search keyword.
-      The buyer said: "{inputs.user_said}"
-      Rules:
-      - a pure product keyword: name + spec (e.g. 五常大米 5kg)
-      - no quantity words (一袋/两盒), no verbs, no politeness
-      - keep the language the buyer used
-      If the message names no concrete product, return escalate.
+    context:
+      prompt: |
+        From the buyer's message, produce the Taobao search keyword.
+        The buyer said: "{buyer_said}"
+        Rules:
+        - a pure product keyword: name + spec (e.g. 五常大米 5kg)
+        - no quantity words (一袋/两盒), no verbs, no politeness
+        - keep the language the buyer used
+        If the message names no concrete product, escalate.
+      given:
+        buyer_said: inputs.user_said
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off                    # a keyword is read off the words, not reasoned out
@@ -40,9 +43,13 @@ route:
   # total there and the pay move is one recorded tap. The cart is never
   # touched; it is the buyer's own.
   - agent: pick
-    prompt: prompts.pick          # rows to a listing, the sheet's spec, stop before paying
+    context:
+      prompt: prompts.pick        # rows to a listing, the sheet's spec, stop before paying
+      given:                     # what the prompt writes in braces
+        buyer_said: inputs.user_said
+        keyword: parse.keyword
+        close: app.landmarks.close    # the ✕ of a promo card over the page
     tools: [tap, scroll, back]
-    give: [app.landmarks.close]       # the ✕ of a promo card over the page
     never_tap:                    # bans the walker enforces; never shown to the model
       # Banded because 免密支付 is also a label the total sits beside
       # (`total_label:` below), read mid-page: y 0.56 the label, y 0.92
@@ -50,6 +57,7 @@ route:
       - {label: ["免密支付", "立即支付"], within: bottom}
       - {label: ["提交订单", "确认支付"], within: bottom}
       - "先用后付"                 # an option row at y 0.34, so not banded
+      - "顺手买"                   # the add-on strip the sheet offers below the spec
     returns:
       summary: one line - title, spec, qty, the 实付 price
       message: a short Chinese message to the buyer asking them to

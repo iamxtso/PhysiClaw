@@ -220,7 +220,7 @@ class Program:
         # ask.
         self.channel = channel
         # The pack's declared fixed spots — recover hands tap them, agent
-        # episodes are granted them by name.
+        # episodes read them as a `given:`.
         self.landmarks: dict[str, Landmark] = landmarks or {}
         # The boot's activation (menu, parse_task, build) — what its
         # `select` step runs; None on every other walk — and the

@@ -15,7 +15,9 @@ returns:
 
 route:
   - agent: parse
-    prompt: app.prompts.item-keyword  # the product words, no quantity or unit
+    context:
+      prompt: app.prompts.item-keyword  # the product words, no quantity or unit
+      given: {item: inputs.item}
     returns:
       keyword: the search keyword, exactly as it should be typed
     think: off
@@ -32,12 +34,18 @@ route:
   - page: app.pages.results
 
   - agent: pick
-    prompt: prompts.pick-to-cart  # rows to a listing, the sheet's spec and quantity, 加入购物车
+    context:
+      prompt: prompts.pick-to-cart  # rows to a listing, the sheet's spec and quantity, 加入购物车
+      given:
+        item: inputs.item
+        keyword: parse.keyword
+        close: app.landmarks.close    # the ✕ of a promo card over the page
     tools: [tap, scroll, back]
-    give: [app.landmarks.close]       # the ✕ of a promo card over the page
     never_tap:
       - {label: ["立即购买", "领券购买"], within: bottom}
       - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}
+      - "先用后付"                 # an option row, not a bottom button, so not banded
+      - "顺手买"                   # the add-on strip the sheet offers below the spec
     returns:
       title: the listing title exactly as shown, the cart will show the same
       qty: the quantity set on the sheet, a number

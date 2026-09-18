@@ -121,8 +121,8 @@ class PageDecl:
 
 
 # The pack-level fixed spots: `landmarks:`, an OPEN vocabulary of named
-# spots the author knows — recover hands tap them, agent episodes are
-# granted them by name. No name is reserved: what a landmark is for is
+# spots the author knows — recover hands tap them, agent episodes read
+# them as a `given:`. No name is reserved: what a landmark is for is
 # said where it is used. (`MAX_LANDMARKS` caps them, in `limits.py`.)
 
 
@@ -133,8 +133,9 @@ class Landmark:
     chrome, consumed by recover hands and agent-episode grants (never by
     money paths). `label` is the readings tuple; on-screen text lets the
     tap be located live, a description documents the coordinates.
-    `page` (optional) scopes it: an episode is granted the landmark
-    only while that page is the verified reading."""
+    `page` (optional) scopes it: an episode may read the landmark only
+    when that is the page it opens on, since its `context:` — grants and
+    all — is resolved once, there."""
 
     label: tuple[str, ...]
     bbox: Bbox

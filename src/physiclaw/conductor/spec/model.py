@@ -24,8 +24,8 @@ vocabulary and the model classes below carry the same names)::
                   [recover] [tries]
                 | "start" name macro          # the unconditional cold-launch
                 | "do" name macro [with] [irreversible]
-                | "agent" name prompt [tools] [give] [returns] [limit]
-                  [context] [irreversible]   # the step handed to the model
+                | "agent" name context [tools] [returns] [limit]
+                  [irreversible]             # the step handed to the model
                 | "ask" name approve message yes no [denied] [total_label]
                   [wait] [rounds] [resume]    # payment: resume required when
                                               # a screen move follows
@@ -82,7 +82,7 @@ and its lints turn a `route:` into the nodes.
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Generic, Protocol, TypeVar
+from typing import Any, Generic, Protocol, TypeVar
 
 from physiclaw.common import paths
 from physiclaw.common.bbox import Bbox
@@ -179,7 +179,7 @@ class AgentNode:
     id: str
     prompt: str
     tools: tuple[str, ...]
-    give: tuple[str, ...]  # granted landmark names
+
     returns: tuple[tuple[str, str], ...]  # (field, description)
     enter: str
     verify: str
@@ -187,17 +187,37 @@ class AgentNode:
     max_scrolls: int
     irreversible: str | None = None
     # `never_tap:` — the targets this episode's taps may never press,
-    # the opposite of `give:`. Enforced by `step_agent.refusal`, which
+    # the opposite of a grant. Enforced by `step_agent.refusal`, which
     # owns the rule and says why they stay unnamed to the model.
     never_tap: tuple["NeverTap", ...] = ()
-    context: tuple[str, ...] = ()  # `context:` — what to load (`context.py`)
-    macros: tuple[
-        str, ...
-    ] = ()  # granted macros (`give: [macros.<name>]` / `[app.macros.<name>]`)
+    # `context.given:` — the values the prompt may name, name to ref
+    # template: each `{name}` in the prompt is filled from it once when
+    # the step opens, and the parser holds the two to each other. A
+    # landmark given lives in `landmarks` below, same block, same rule.
+    given: dict[str, str] = field(default_factory=dict)
+    # `context.memory:` — which parts of the agent's own memory travel
+    # (`context.memory_gap` owns the vocabulary).
+    memory: dict[str, Any] = field(default_factory=dict)
+    # The landmark givens (`<name>: app.landmarks.<n>`), name to
+    # declared landmark: the fixed spots this step may aim a tap at,
+    # each rendered into the prompt where it writes `{name}` as the
+    # reading and box it is. The permission stays in the tap legend.
+    landmarks: dict[str, str] = field(default_factory=dict)
+    # Macros this episode may run — `tools: [macros.<name>]` /
+    # `[app.macros.<name>]`, one menu with the gesture words.
+    macros: tuple[str, ...] = ()
     # `think:` — how much hidden thinking each of its calls asks the
     # model for; None = the vendor's default for that model.
     think: Thinking | None = None
     on_fail: str | None = None  # `on_fail:` — see ON_FAIL_MODES
+
+    @property
+    def acts(self) -> bool:
+        """Whether this step touches the SCREEN — the one predicate the
+        parser and the walker share. A granted macro is a hand like any
+        gesture, so a step that only runs one is an episode too; without
+        either it is a pure-text call, framed by no pages."""
+        return bool(self.tools or self.macros)
 
     @property
     def return_fields(self) -> tuple[str, ...]:
@@ -489,7 +509,7 @@ class Playbook:
         for i, node in enumerate(self.nodes):
             settled = (
                 isinstance(node, AgentNode)
-                and not node.tools
+                and not node.acts
                 and all(f"{node.id}.{f}" in outputs for f in node.return_fields)
             )
             if not settled:
@@ -534,7 +554,7 @@ class Files:
 
 def macro_resolver(ok: Mapping[str, Macro], errors: Mapping[str, str]) -> MacroResolver:
     """`app.macros.<name>` → one of the pack's hands, or why not — the one
-    lookup a playbook's `macro:`, an agent's `give:`, a manifest hand
+    lookup a playbook's `macro:`, an agent's `tools:`, a manifest hand
     and a macro file's `run:` all end in. One wording for "broken" and
     "not here"."""
 

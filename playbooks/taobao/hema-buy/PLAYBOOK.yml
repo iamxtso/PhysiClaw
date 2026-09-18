@@ -16,17 +16,23 @@ inputs:
 
 route:
   - agent: parse
-    prompt: |
-      The buyer said: "{inputs.user_said}"
-      Later replies, if any: {ask.replies}
-      The list as it stood before those replies: {parse.items}
-      Already in the 盒马 cart from this errand: {add.line}
-      Return the FULL list the buyer wants now, one product per line as
-      name + spec + quantity (e.g. 鲜牛奶 950ml ×2); leave out anything
-      they no longer want. Keep the buyer's language. Keep every line
-      of the earlier list the buyer did not change WORD FOR WORD — that
-      line is how the cart knows the item is already in it.
-      If the message names no concrete product, return escalate.
+    context:
+      prompt: |
+        The buyer said: "{buyer_said}"
+        Later replies, if any: {replies}
+        The list as it stood before those replies: {earlier_list}
+        Already in the 盒马 cart from this errand: {already_in_cart}
+        Return the FULL list the buyer wants now, one product per line as
+        name + spec + quantity (e.g. 鲜牛奶 950ml ×2); leave out anything
+        they no longer want. Keep the buyer's language. Keep every line
+        of the earlier list the buyer did not change WORD FOR WORD — that
+        line is how the cart knows the item is already in it.
+        If the message names no concrete product, escalate.
+      given:
+        buyer_said: inputs.user_said
+        replies: ask.replies
+        earlier_list: parse.items
+        already_in_cart: add.line
     returns:
       items: the full list now, one per line
     think: off

@@ -24,9 +24,12 @@ route:
   - page: app.pages.hema-cart
 
   - agent: tick
-    prompt: app.prompts.store-tick  # the list, the checkbox geometry, the footer total
-    tools: [tap, scroll]
-    give: [app.landmarks.close, app.macros.store-nudge]   # a promo ✕, the stroke
+    context:
+      prompt: app.prompts.store-tick  # the list, the checkbox geometry, the footer total
+      given:
+        lines: inputs.lines
+        close: app.landmarks.close    # a promo ✕
+    tools: [tap, scroll, app.macros.store-nudge]
     never_tap:
       - ["去结算", "领券结算"]
       - "清空"

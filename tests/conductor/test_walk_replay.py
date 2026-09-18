@@ -27,7 +27,9 @@ inputs:
     description: what to search
 route:
   - agent: parse
-    prompt: "Turn this into a search term: {inputs.keyword}"
+    context:
+      prompt: "Turn {keyword} into a search term"
+      given: {keyword: "{inputs.keyword}"}
     returns:
       term: the search term
   - page: app.pages.home
@@ -45,7 +47,9 @@ inputs:
 route:
   - page: app.pages.home
   - agent: pick
-    prompt: "Pick the cheapest {inputs.keyword}"
+    context:
+      prompt: "Pick the cheapest of {keyword}"
+      given: {keyword: "{inputs.keyword}"}
     tools: [tap, scroll]
     returns:
       summary: what was picked

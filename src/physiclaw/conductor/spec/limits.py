@@ -48,6 +48,10 @@ DEFAULT_AGENT_SCROLLS = 6
 # pasted document (a real brief runs a few thousand characters).
 MAX_PROMPT_LEN = 8000
 MAX_RETURNS = 6
+# Everything one agent step reads beside its brief: `context.given`
+# (values and landmarks) and `context.memory` together, since they are
+# the names a reader has to hold in their head to read the prompt.
+MAX_CONTEXT = 12
 MAX_NEVER_TAP = 8  # `never_tap:` targets on one agent step
 # A message to the user may hold lines (an itemised confirmation, one
 # item per line), each bounded like any prose; this bounds the count.

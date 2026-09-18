@@ -132,7 +132,7 @@ ACT_ARM = "act"  # the routing arm a tap or a macro run maps to
 # The material keys a call's builder fills and its `_SPECS` row reads —
 # one spelling, so a typo cannot yield a silently empty part.
 LEAD = "lead"  # an episode turn's opening line: the brief, or what just happened
-BLOCK = "block"  # an episode turn's listing block (+ granted landmarks/macros)
+BLOCK = "block"  # an episode turn's element listing
 PROMPT = "prompt"  # the pure-text call's authored prompt
 FIELDS = "fields"  # the declared return fields, rendered
 MENU = "menu"  # parse_task's playbook menu
@@ -897,10 +897,12 @@ _SPECS: dict[str, _CallSpec] = {
         threaded=True,
         walk_fallback=True,
     ),
-    # The two agent rows: the author's prompt IS the brief (the first
-    # user block — replayed verbatim in an episode), the conductor adds
-    # only the output contract, the answers the author's tools grant,
-    # and — for an episode — what its screen block is made of.
+    # The two agent rows: the author's prompt is the APP brief with its
+    # givens filled once (the first user block — replayed verbatim in an
+    # episode), the conductor adds the output contract, the answers the
+    # author's tools grant, the step's memory parts as data
+    # (`user_content` appends it), and — for an episode — what its
+    # screen block is made of. The brief runs prompt → contract → data.
     AGENT_FIELDS: _CallSpec(
         field=ACTION,
         contract=_contract(ACTION),
@@ -971,9 +973,9 @@ def user_content(req: DecisionRequest) -> str | list[ContentBlock]:
         parts.append(data_block(prompts.SINCE_HEADER, req.material[SINCE]))
     parts.extend(spec.user_parts(req))
     if req.context:
-        # Context (the recent daily log) is agent-written but ultimately
-        # screen-derived too — same stamp.
-        parts.append(data_block("Context", req.context))
+        # What a step reads beside its brief: the agent's own memory and
+        # the spots it may aim at. Facts to judge, under the one stamp.
+        parts.append(data_block(prompts.CONTEXT_HEADER, req.context))
     if spec.threaded:
         # What to answer THIS time — the tail, never the system prompt.
         parts.append("This time: " + spec.answer_spec(req, spec.answer_space(req)))

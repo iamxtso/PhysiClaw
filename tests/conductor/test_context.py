@@ -19,45 +19,51 @@ def _write_memory(text: str = MEMORY) -> None:
 
 
 @pytest.mark.parametrize(
-    "entry, ok",
+    "spec, ok",
     [
-        ("memory", True),
-        ("memory.shopping_prefs", True),
-        ("daylog", True),
-        ("pitfalls", False),
-        ("memory.", False),
-        ("memory.Bad-Slug", False),
-        (3, False),
+        ({"shopping_prefs": True}, True),
+        ({"all": True}, True),
+        ({"log": 12}, True),
+        ({"shopping_prefs": True, "log": 3}, True),
+        ({"log": True}, False),  # a count, not a switch
+        ({"log": 0}, False),
+        ({"log": 999}, False),
+        ({"shopping_prefs": "yes"}, False),  # named to include, or left out
+        ({"Bad-Slug": True}, False),
+        ([], False),
     ],
 )
-def test_check_entry_names_the_three_sources(entry, ok: bool) -> None:
-    assert (context.check_entry(entry) is None) is ok
+def test_memory_gap_owns_the_vocabulary(spec, ok: bool) -> None:
+    assert (context.memory_gap(spec) is None) is ok
 
 
 def test_memory_slice_is_token_matched_and_fail_closed() -> None:
-    # Least-privilege: only the declared section travels — token-exact
+    # Least-privilege: only the named section travels — token-exact
     # heading match (no substring bleed), and NO match means NO text.
     _write_memory()
 
-    sliced = context.load(("memory.shopping_prefs",))
-    assert "只买伊利" in sliced and "三无" not in sliced
+    loaded = context.load({"shopping_prefs": True})
+    assert (
+        "只买伊利" in loaded["shopping_prefs"]
+        and "三无" not in loaded["shopping_prefs"]
+    )
     # `shopping` is a substring of both headings but a token of neither.
-    assert context.load(("memory.shopping",)) == ""
-    assert context.load(("memory.nothing",)) == ""
+    assert context.load({"shopping": True}) == {"shopping": ""}
+    assert context.load({"nothing": True}) == {"nothing": ""}
 
 
-def test_whole_memory_and_daylog_load_when_declared() -> None:
+def test_the_whole_file_and_the_log_load_when_named() -> None:
     _write_memory()
     daylog.append_log("[11:02] demo: bought milk ¥45")
 
-    loaded = context.load(("memory", "daylog"))
+    loaded = context.load({"all": True, "log": 5})
 
-    assert "只买伊利" in loaded and "三无" in loaded
-    assert "bought milk ¥45" in loaded
+    assert "只买伊利" in loaded["all"] and "三无" in loaded["all"]
+    assert "bought milk ¥45" in loaded["log"]
 
 
-def test_nothing_declared_loads_nothing() -> None:
+def test_naming_no_part_reads_nothing() -> None:
     _write_memory()
     daylog.append_log("[11:02] demo: bought milk ¥45")
 
-    assert context.load(()) == ""
+    assert context.load({}) == {}

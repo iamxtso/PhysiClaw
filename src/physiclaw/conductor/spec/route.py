@@ -33,7 +33,12 @@ from physiclaw.common.paths import (
     run_by,
 )
 from physiclaw.conductor.spec import context, lints, match, reply
-from physiclaw.conductor.spec.calls import AGENT_TOOLS, CONTRACT_FIELDS, RESERVED_KEYS
+from physiclaw.conductor.spec.calls import (
+    AGENT_TOOLS,
+    CONTRACT_FIELDS,
+    RESERVED_KEYS,
+    TOOL_TAP,
+)
 from physiclaw.conductor.spec.conventions import (
     BOOT_PLAYBOOK,
     CHANNEL_APP,
@@ -52,6 +57,7 @@ from physiclaw.conductor.spec.limits import (
     MAX_AGENT_CALLS,
     MAX_ASK_ROUNDS,
     MAX_ASK_WAIT_SECONDS,
+    MAX_CONTEXT,
     MAX_MESSAGE_LINES,
     MAX_NEVER_TAP,
     MAX_NODES,
@@ -102,9 +108,11 @@ from physiclaw.conductor.spec.pages import (
     route_decl,
 )
 from physiclaw.conductor.spec.refs import (
+    BARE_REF_RE,
     check_arg_refs,
     check_refs,
     field_name,
+    names_in,
     refs_in,
 )
 from physiclaw.contract.dto import THINKING_LEVELS, Thinking
@@ -151,9 +159,8 @@ _ENTRY_KEYS = {
     "do": {"do", "with", "macro", "irreversible", "on_fail"},
     "agent": {
         "agent",
-        "prompt",
+        "context",
         "tools",
-        "give",
         "never_tap",
         "returns",
         "limit",
@@ -750,7 +757,7 @@ def _waypoint_id(pos: int, name: str, entry: dict, pack: Pack, declared: set) ->
 
 def _unique_list(raw: Any, where: str, check: Callable[[Any], _T]) -> list[_T]:
     """A list of distinct entries, each validated (and normalized) by
-    `check` — the one shape `tools`, `give`, and the reply words share."""
+    `check` — the one shape `tools` and the reply words share."""
     if not isinstance(raw, list):
         raise PlaybookError(f"{where} must be a list")
     out: list[_T] = []
@@ -833,7 +840,7 @@ def _guard_grants(
     ctx: _Ctx,
     where: str,
     never_tap: tuple[NeverTap, ...],
-    give: tuple[str, ...],
+    spots: tuple[str, ...],
     granted: tuple[Macro, ...],
 ) -> None:
     """Refuse a grant that walks around this episode's `never_tap:`.
@@ -867,11 +874,11 @@ def _guard_grants(
                 return " / ".join(target.label)
         return None
 
-    for name in give:
+    for name in spots:
         hit = _named(ctx.pack.landmarks[name].label)
         if hit is not None:
             raise PlaybookError(
-                f"{where}: `give` grants landmark {name!r}, which this step "
+                f"{where}: `context.given` names landmark {name!r}, which this step "
                 f"declares never_tap ({hit}) — the grant would hand the model "
                 "the box the guard exists to refuse"
             )
@@ -880,7 +887,7 @@ def _guard_grants(
             hit = _named(tap.label)
             if hit is not None:
                 raise PlaybookError(
-                    f"{where}: `give` grants macro {macro.name!r}, which presses "
+                    f"{where}: `tools` grants macro {macro.name!r}, which presses "
                     f"{hit} — this step declares that never_tap, and a macro "
                     "runs its recorded steps without proposing a tap"
                 )
@@ -890,7 +897,7 @@ def _guard_grants(
                 # placeholder has no centre); under a never_tap it is
                 # refused here rather than let through unjudged.
                 raise PlaybookError(
-                    f"{where}: `give` grants macro {macro.name!r}, whose "
+                    f"{where}: `tools` grants macro {macro.name!r}, whose "
                     f"{tap.label[0]!r} box carries a placeholder — this step "
                     "declares never_tap, and a box filled at run time cannot "
                     "be judged against it; record the box"
@@ -984,21 +991,10 @@ def _reply_words(entry: dict, key: str, where: str) -> list[str]:
     return out
 
 
-def _context_entries(entry: dict, where: str) -> list[str]:
-    """An agent's `context:` — the sources it loads beside its prompt."""
-
-    def _one(item: Any) -> str:
-        bad = context.check_entry(item)
-        if bad is not None:
-            raise PlaybookError(f"{where}: `context` entry {item!r} {bad}")
-        return item
-
-    return _unique_list(entry.get("context", []), f"{where}: `context`", _one)
-
-
 def _landmark_name(ctx: _Ctx, value: Any, where: str) -> str:
     """An `app.landmarks.<name>` reference resolved to its bare name —
-    ONE spelling for `give:` entries and a recover hand's `tap:`. The name
+    ONE spelling for a landmark `given:` and a recover hand's
+    `tap:`. The name
     half rides the shared name grammar (`check_name`), so a landmark
     reference can never drift from the section's own naming rule."""
     r = parse_ref(value) if isinstance(value, str) else None
@@ -1017,42 +1013,29 @@ def _landmark_name(ctx: _Ctx, value: Any, where: str) -> str:
     return name
 
 
-@dataclass(frozen=True)
-class _Grant:
-    """One resolved `give:` entry. Two grants are the same grant by root
-    and name (`_unique_list`); a macro's resolved body rides beside its
-    name for the grant guard and is neither compared nor printed."""
-
-    root: str
-    name: str
-    macro: Macro | None = field(default=None, compare=False, repr=False)
-
-
-def _grant(ctx: _Ctx, value: Any, where: str, nid: str) -> _Grant:
-    """One `give:` entry: an `app.landmarks.<name>` the episode may tap
-    blind, or a macro it may run — `macros.<name>` for this route's own
+def _grant(ctx: _Ctx, value: Any, where: str, nid: str) -> Macro:
+    """One macro in a `tools:` list: `macros.<name>` for this route's own
     hand, `app.macros.<name>` for the pack's — argument-less, like every
     helper hand, and never spelled like a fixed answer (`done`,
     `escalate`, a verb) that the episode legend already owns. A macro's
     name is its dispatch name (`_argless_macro`)."""
     r = parse_ref(value) if isinstance(value, str) else None
     own = r is not None and not r.shared and r.kind == MACROS_KIND
-    shared = r is not None and (r.is_app(LANDMARKS_KIND) or r.is_app(MACROS_KIND))
-    if r is None or not (own or shared):
+    if r is None or not (own or r.is_app(MACROS_KIND)):
         raise PlaybookError(
-            f"{where}: {value!r} must look like `macros.<name>` (this route's own "
-            f"hand), `{app_ref(MACROS_KIND, '<name>')}` or "
-            f"`{app_ref(LANDMARKS_KIND, '<name>')}` (the pack's)"
+            f"{where}: {value!r} is neither a gesture "
+            f"({', '.join(AGENT_TOOLS)}) nor a macro to run "
+            f"(`macros.<name>`, this route's own hand, or "
+            f"`{app_ref(MACROS_KIND, '<name>')}`, the pack's)"
         )
     if r.name in RESERVED_KEYS:
         raise PlaybookError(
             f"{where}: {r.name!r} is a fixed episode answer — a granted "
-            "landmark or macro cannot be spelled like one"
+            "macro cannot be spelled like one"
         )
-    if r.kind == LANDMARKS_KIND:
-        return _Grant(LANDMARKS_KIND, _landmark_name(ctx, value, where))
-    macro = _argless_macro(value if shared else r.name, "give", where, nid, ctx.resolve)
-    return _Grant(MACROS_KIND, macro.name, macro)
+    return _argless_macro(
+        value if r.shared else r.name, "tools", where, nid, ctx.resolve
+    )
 
 
 # ---------- macros ----------
@@ -1072,7 +1055,7 @@ def _local_registry(entry: str, pack: Pack, local: Scanned[Macro]) -> dict[str, 
     hands — the playbooks it runs share them: each
     `<entry>/macros/<name>.yml` dispatches as `<entry>.<name>` — an
     inline body written down — referenced or not (a stepping tool, an
-    agent's `give:` may name it). A pack hand of the same name is no
+    agent's `tools:` may name it). A pack hand of the same name is no
     clash: a bare reference is always the file beside this one, the
     pack's is `app.macros.<name>`."""
     return {
@@ -1200,7 +1183,7 @@ def _argless_macro(
     raw: Any, key: str, where: str, nid: str, resolve: _MacroResolve
 ) -> Macro:
     """Resolve one argument-less pack macro for a helper-hand slot
-    (`resume:`, `recover:`, an agent's `give:`). The slot may wrap its
+    (`resume:`, `recover:`, an agent's `tools:`). The slot may wrap its
     body one level (`{macro: ...}`) — unwrapped HERE, the rule's one
     home, so the resolver sees the same shapes a `do` does. All roles
     dispatch with no arguments, so a required input could only abort at
@@ -1303,6 +1286,154 @@ def _parse_do(
     )
 
 
+# What an agent's `context:` may hold: the brief, what it may name,
+# and the parts of the agent's memory to read. One listing, so the
+# unknown-key check and the prose can never drift apart.
+_CONTEXT_KEYS = ("prompt", "given", "memory")
+
+
+@dataclass(frozen=True)
+class _Context:
+    """An agent's `context:`, parsed — everything the call is built
+    from, under `AgentNode`'s names."""
+
+    prompt: str
+    given: dict[str, str]
+    memory: dict[str, Any]
+    landmarks: dict[str, str]
+
+
+def _parse_context(
+    ctx: _Ctx, where: str, entry: dict, payloads: dict[str, tuple[str, ...]]
+) -> _Context:
+    """An agent's `context:` — everything the call is built from, in one
+    block: `prompt:` the APP brief, `given:` what it may name (`<name>:
+    <ref>` for a value the walk fills, `<name>: app.landmarks.<n>` for
+    a fixed spot a tap may aim at — either written `{name}` in the
+    prompt and rendered there once when the step opens), and `memory:`
+    the parts of the agent's own memory to read (`context.py`). `given:`
+    is the whole of what a prompt may name: a `{name}` it does not hold
+    is refused, and a name the prompt never writes is refused too, so
+    what a prompt reads is declared, exactly. Memory rides one stamped
+    data block below the brief, because a memory line is never an
+    instruction. Permission is in neither: the tap legend is what says
+    a box may be a granted landmark's, and a landmark given only says
+    where it is — whether this step's hands can use it is the step's
+    question (`_parse_agent`), not the block's.
+
+    The two are bounded TOGETHER (`MAX_CONTEXT`): they are what a
+    reader has to hold in their head to read the prompt."""
+    raw = entry.get("context")
+    keys = ", ".join(f"`{k}:`" for k in _CONTEXT_KEYS)
+    if not isinstance(raw, dict):
+        raise PlaybookError(
+            f"{where}: `context:` is the block the call is built from — {keys}"
+        )
+    unknown = sorted(set(raw) - set(_CONTEXT_KEYS))
+    if unknown:
+        raise PlaybookError(
+            f"{where}: `context:` has unknown key(s) {', '.join(unknown)} — "
+            f"it holds {keys}"
+        )
+    memory = raw.get("memory", {})
+    gap = context.memory_gap(memory)
+    if gap is not None:
+        raise PlaybookError(f"{where}: `context.memory` {gap}")
+    # A memory part is rendered under its name, so the label the model
+    # reads cannot be spelled like an answer it gives.
+    for part in memory:
+        if part in RESERVED_KEYS:
+            raise PlaybookError(
+                f"{where}: `context.memory` names {part!r} — that is a fixed "
+                "episode answer, and a label the model reads cannot be spelled "
+                "like one"
+            )
+
+    # `given:` — each entry under the name the prompt writes it by, a
+    # landmark reference or a ref the walk fills, told apart by the
+    # spelling (`app.landmarks.<n>` is never a walk ref).
+    block = raw.get("given", {})
+    at = f"{where}: `context.given`"
+    if not isinstance(block, dict):
+        raise PlaybookError(
+            f"{at} must be a mapping of `<name>: <ref>` or `<name>: "
+            f"{app_ref(LANDMARKS_KIND, '<name>')}` — each one under the name "
+            "its prompt writes"
+        )
+    given: dict[str, str] = {}
+    landmarks: dict[str, str] = {}
+    for name, value in block.items():
+        field_name(name, f"{at} name")
+        one = f"{at}.{name}"
+        # A pack reference (`parse_ref` reads a plain word as a kindless
+        # one, so the kind is the test) is a landmark or nothing.
+        r = parse_ref(value) if isinstance(value, str) else None
+        if r is not None and r.kind is not None:
+            if not r.is_app(LANDMARKS_KIND):
+                raise PlaybookError(
+                    f"{one}: {value!r} — a given is a value the walk fills "
+                    f"(`inputs.x`, `node.field`) or a landmark "
+                    f"(`{app_ref(LANDMARKS_KIND, '<name>')}`)"
+                )
+            landmarks[name] = _landmark_name(ctx, value, one)
+            continue
+        # A value the walk fills, checked like any other move's `with:`
+        # and filled the same way when the step opens — written as the
+        # bare ref when it is nothing else (`inputs.user_said`), or as a
+        # template holding one (`"{inputs.user_said}"`).
+        text = require_str(value, one)
+        if BARE_REF_RE.fullmatch(text):
+            text = f"{{{text}}}"
+        refs = refs_in(text, one)
+        if not refs:
+            raise PlaybookError(
+                f"{one}: {text!r} holds no ref — a given is a value the walk "
+                "fills (`{{inputs.x}}`, `{{node.field}}`); text that never "
+                "changes belongs in the prompt"
+            )
+        check_refs(refs, ctx.input_names, payloads, one)
+        given[name] = text
+    if len(block) + len(memory) > MAX_CONTEXT:
+        raise PlaybookError(
+            f"{where}: `context:` reads {len(block) + len(memory)} things > max "
+            f"{MAX_CONTEXT}"
+        )
+    # One namespace across the two: a prompt reads a given as `{name}`
+    # and a memory part by its label in the block below, so a name in
+    # both could mean either.
+    twice = sorted(set(block) & set(memory))
+    if twice:
+        raise PlaybookError(
+            f"{where}: `context:` reads {', '.join(twice)} twice — the block "
+            "is one list of labels, so each name is read once"
+        )
+    # The brief, read against the block it may name.
+    at = f"{where}: `context.prompt`"
+    prompt = _prompt_text(ctx, require_str(raw.get("prompt"), at), where)
+    if len(prompt) > MAX_PROMPT_LEN:
+        raise PlaybookError(f"{at} is {len(prompt)} characters (max {MAX_PROMPT_LEN})")
+    # `given:` is the whole of what a prompt may name — each way round.
+    written = names_in(prompt, at)
+    declared = ", ".join(block) or "nothing"
+    unknown = sorted(written - set(block))
+    if unknown:
+        raise PlaybookError(
+            f"{at} refers to {{{unknown[0]}}}, which `context.given:` does not "
+            f"hold (it holds {declared}) — every name a prompt writes is "
+            "declared there"
+        )
+    unused = sorted(set(block) - written)
+    if unused:
+        raise PlaybookError(
+            f"{where}: `context.given` holds {unused[0]!r}, which the prompt "
+            f"never writes as {{{unused[0]}}} — a given is a value the prompt "
+            "reads; refer to it or drop it"
+        )
+    return _Context(
+        prompt=prompt, given=given, memory=dict(memory), landmarks=landmarks
+    )
+
+
 def _parse_agent(
     ctx: _Ctx,
     where: str,
@@ -1313,60 +1444,47 @@ def _parse_agent(
 ) -> AgentNode:
     """An `agent` move. No `tools` = a pure-text call (needs `returns`,
     no pages); tools = an acting episode framed by the adjacent
-    waypoints exactly like a `do`. The prompt is the author's whole
-    brief — refs validated here, filled once when the step opens; it
-    may quote the step's own returns (its last answer, empty the first
-    time — what a revision re-reads), so they are declared before it."""
+    waypoints exactly like a `do`.
 
-    def _tool(t: Any) -> str:
-        if not isinstance(t, str) or t not in AGENT_TOOLS:
-            raise PlaybookError(
-                f"{where}: tool {t!r} — the episode vocabulary is "
-                f"{', '.join(AGENT_TOOLS)}"
-            )
-        return t
+    Everything the call is built from is `context:` — the brief, the
+    values it names, the memory parts — parsed by `_parse_context`. A
+    given may quote the step's own returns (its last answer, empty the
+    first time — what a revision re-reads), so they are declared before
+    it."""
 
-    tools = _unique_list(entry.get("tools", []), f"{where}: `tools`", _tool)
-    if not tools:
+    # One menu, as the model reads it: the gesture words and the macros
+    # it may run, both answered in the same envelope (`_act_legend`).
+    # Each comes back under the NAME the model answers with, so
+    # `_unique_list` catches a repeat by that name and prints it rather
+    # than a macro body; the bodies ride beside, for the grant guard.
+    by_name: dict[str, Macro] = {}
+
+    def _one_tool(t: Any) -> str:
+        if isinstance(t, str) and t in AGENT_TOOLS:
+            return t
+        macro = _grant(ctx, t, f"{where}: `tools` entry", nid)
+        by_name[macro.name] = macro
+        return macro.name
+
+    named = _unique_list(entry.get("tools", []), f"{where}: `tools`", _one_tool)
+    tools = tuple(n for n in named if n not in by_name)
+    granted = tuple(by_name.values())
+    macros = tuple(by_name)
+    # `tools:` is the one thing that says whether this step ACTS. A
+    # macro is a hand like any gesture, so a step granted one alone is
+    # an episode: framed by pages, and walked down the episode path
+    # (`AgentNode.acts`, which the walker reads off the same two).
+    acts = bool(named)
+    if not acts:
         # Everything below `tools` is about the screen an episode acts
         # on; on a pure-text call it is dead config.
-        for key in ("give", "irreversible", "limit"):
+        for key in ("irreversible", "limit"):
             if key in entry:
                 raise PlaybookError(
                     f"{where}: `{key}` is for acting episodes — a pure-text "
                     "call has no screen"
                 )
-    grants = _unique_list(
-        entry.get("give", []),
-        f"{where}: `give`",
-        lambda g: _grant(ctx, g, f"{where}: `give` entry", nid),
-    )
-    give = tuple(g.name for g in grants if g.root == LANDMARKS_KIND)
-    granted = tuple(g.macro for g in grants if g.macro is not None)
-    macros = tuple(m.name for m in granted)
-    shared = sorted(set(give) & set(macros))
-    if shared:
-        raise PlaybookError(
-            f"{where}: `give` names {', '.join(shared)} as both a landmark and "
-            "a macro — the model answers by name, so the two must differ"
-        )
     never_tap = _never_tap(entry, where)
-    # A granted macro presses its own recorded boxes without ever
-    # proposing a tap, so `never_tap` has something to guard on a
-    # macro-only episode too (`_guard_grants` at parse, and
-    # `step_agent.macro_refusal` on the live screen).
-    if never_tap and "tap" not in tools and not granted:
-        raise PlaybookError(
-            f"{where}: `never_tap` guards what this episode presses, but it has "
-            "neither a `tap` tool nor a granted macro — grant one or drop the "
-            "targets"
-        )
-    _guard_grants(ctx, where, never_tap, give, granted)
-    if give and "tap" not in tools:
-        raise PlaybookError(
-            f"{where}: `give` grants landmarks, but without `tap` the episode "
-            "cannot press one — grant `tap` or drop the landmarks"
-        )
 
     raw_returns = entry.get("returns")
     returns: list[tuple[str, str]] = []
@@ -1389,15 +1507,7 @@ def _parse_agent(
                 )
             returns.append((fname, prose(desc, f"{where}: `returns.{fname}`")))
     ctx.payloads[nid] = tuple(f for f, _ in returns)
-    prompt = _prompt_text(
-        ctx, require_str(entry.get("prompt"), f"{where}: `prompt`"), where
-    )
-    if len(prompt) > MAX_PROMPT_LEN:
-        raise PlaybookError(
-            f"{where}: `prompt` is {len(prompt)} characters (max {MAX_PROMPT_LEN})"
-        )
-
-    if not tools and not returns:
+    if not acts and not returns:
         raise PlaybookError(
             f"{where}: an agent with neither `tools` nor `returns` can do "
             "nothing — give it hands, fields to fill, or both"
@@ -1405,7 +1515,7 @@ def _parse_agent(
     irreversible = _irreversible_class(entry, where)
 
     enter = verify = ""
-    if tools:
+    if acts:
         if current_page is None:
             raise PlaybookError(
                 f"{where}: an acting agent needs the page it starts on — "
@@ -1447,18 +1557,45 @@ def _parse_agent(
     g_payloads = (
         ctx.payloads_with_total() if irreversible == "payment" else ctx.payloads
     )
-    check_refs(
-        refs_in(prompt, f"{where}: `prompt`"),
-        ctx.input_names,
-        g_payloads,
-        f"{where}: `prompt`",
-    )
+    reads = _parse_context(ctx, where, entry, g_payloads)
+    # The hands, the fence and the frame, held to each other — every
+    # rule of "what this step may press" in one place.
+    if reads.landmarks and TOOL_TAP not in tools:
+        raise PlaybookError(
+            f"{where}: `context.given` names landmark "
+            f"{', '.join(reads.landmarks)} to aim a tap at, but without `tap` "
+            "this step cannot press one — grant `tap` or drop it"
+        )
+    for name, spot in reads.landmarks.items():
+        # A landmark scoped to a page (`page:` in the manifest) is held
+        # to the page this episode opens on, because the grant is
+        # decided once with the rest of the context — a scope that
+        # cannot hold is the author's mistake, named at load, never a
+        # spot that silently fails to appear.
+        scope = ctx.pack.landmarks[spot].page
+        if scope is not None and scope != enter:
+            raise PlaybookError(
+                f"{where}: `context.given.{name}`: landmark {spot!r} is scoped "
+                f"to page {scope!r}, but this episode opens on {enter!r} — a "
+                "grant is decided once, when the step opens"
+            )
+    # A granted macro presses its own recorded boxes without ever
+    # proposing a tap, so `never_tap` has something to guard on a
+    # macro-only episode too (`_guard_grants` at parse, and
+    # `step_agent.macro_refusal` on the live screen).
+    if never_tap and TOOL_TAP not in tools and not granted:
+        raise PlaybookError(
+            f"{where}: `never_tap` guards what this episode presses, but it has "
+            "neither a `tap` tool nor a granted macro — grant one or drop the "
+            "targets"
+        )
+    _guard_grants(ctx, where, never_tap, tuple(reads.landmarks.values()), granted)
 
     return AgentNode(
         id=nid,
-        prompt=prompt,
+        prompt=reads.prompt,
         tools=tuple(tools),
-        give=give,
+        landmarks=reads.landmarks,
         never_tap=never_tap,
         returns=tuple(returns),
         enter=enter,
@@ -1466,7 +1603,8 @@ def _parse_agent(
         max_calls=max_calls,
         max_scrolls=max_scrolls,
         irreversible=irreversible,
-        context=tuple(_context_entries(entry, where)),
+        given=reads.given,
+        memory=reads.memory,
         macros=macros,
         think=_think_level(entry, where),
         on_fail=_on_fail(entry, where),

@@ -14,8 +14,9 @@ boot route's job; this owns only the menu, the call, and the build.
 import logging
 from dataclasses import dataclass
 
+from physiclaw.common import daylog
+from physiclaw.common.config import CONFIG
 from physiclaw.conductor.drive.build import build_program, resolve_inputs
-from physiclaw.conductor.spec import context
 from physiclaw.conductor.spec.channel import Channel
 from physiclaw.conductor.spec.conventions import RESERVED_APPS
 from physiclaw.conductor.spec.model import (
@@ -221,5 +222,8 @@ def _activation_context(entries: dict[str, tuple[Playbook, Pack]]) -> str:
     OWN memory convention (never a conductor-private store): the recent
     daily-log window — where completed purchases and suspensions are
     recorded, so "never re-run a finished task" reads off the same
-    record the model would. The one loader agent steps declare through."""
-    return context.load((context.DAYLOG,))
+    record the model would. The same window an agent step names as
+    `context.memory: {log: <n>}`, labelled here because a wake block has
+    no author to label it."""
+    recent = daylog.load_recent_entries(CONFIG.memory.bootstrap_log_entries)
+    return f"Recent daily-log entries (newest first):\n{recent}" if recent else ""

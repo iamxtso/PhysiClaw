@@ -27,7 +27,9 @@ route:
     with: {message: "{inputs.keyword}"}
   - page: app.pages.home
   - agent: choose
-    prompt: "Pick the cheapest {inputs.keyword} and land on the results"
+    context:
+      prompt: "Pick the cheapest of {keyword} and land on the results"
+      given: {keyword: "{inputs.keyword}"}
     tools: [tap, scroll]
     returns:
       pick: the chosen item's title
@@ -134,7 +136,7 @@ def test_retired_keys_are_unknown() -> None:
     pack = _pack()
     for text, fragment in (
         (
-            VALID.replace("enabled: false\n", "enabled: false\ncontext: [memory.x]\n"),
+            VALID.replace("enabled: false\n", "enabled: false\nmemory: [x]\n"),
             "unknown key",
         ),
         (VALID + "  - sync: fix\n", "exactly one of"),
@@ -232,7 +234,7 @@ def _mutate(old: str, new: str) -> str:
             "`irreversible` must be one of",
         ),
         # stray brace
-        (_mutate("cheapest {inputs.keyword}", "cheapest {Keyword}"), "stray"),
+        (_mutate("cheapest of {keyword}", "cheapest {Keyword}"), "stray"),
         # bare ref: `{inputs.name}` is the ONE written form
         (
             _mutate(
@@ -386,16 +388,17 @@ def test_an_agent_prompt_may_quote_its_own_returns() -> None:
     # and only to its own fields, a later step's stay out of reach.
     pack = _pack()
     text = _mutate(
-        'prompt: "Pick the cheapest {inputs.keyword} and land on the results"',
-        'prompt: "Pick the cheapest {inputs.keyword}; last time: {choose.pick}"',
-    )
+        'given: {keyword: "{inputs.keyword}"}',
+        'given: {keyword: "{inputs.keyword}", last: "{choose.pick}"}',
+    ).replace("the cheapest of {keyword}", "the cheapest of {keyword} after {last}")
 
     p = pb.parse_playbook(text, "buy", pack)
 
-    assert "{choose.pick}" in next(n for n in p.nodes if n.id == "choose").prompt
+    choose = next(n for n in p.nodes if n.id == "choose")
+    assert choose.given["last"] == "{choose.pick}"
     with pytest.raises(PlaybookError, match="no output"):
         pb.parse_playbook(
-            text.replace("last time: {choose.pick}", "last time: {choose.nope}"),
+            text.replace('last: "{choose.pick}"', 'last: "{choose.nope}"'),
             "buy",
             pack,
         )
@@ -441,7 +444,9 @@ def test_payment_agent_episode_takes_the_ask_total() -> None:
     text = (
         VALID
         + """  - agent: checkout
-    prompt: "Pay exactly ¥{ask.total}"
+    context:
+      prompt: "Pay exactly {total}"
+      given: {total: "{ask.total}"}
     tools: [tap]
     irreversible: payment
     limit: {calls: 3}
@@ -472,19 +477,23 @@ def test_ask_reply_words_are_declared(old, new, fragment) -> None:
 
 
 def test_agent_context_is_declared_and_checked() -> None:
+    # One field for everything the step reads: refs the walk fills and
+    # sources the engine loads, side by side under the names its prompt
+    # calls them by.
     text = _mutate(
-        "    limit: {calls: 4, scrolls: 2}\n",
-        "    limit: {calls: 4, scrolls: 2}\n    context: [memory.shopping, daylog]\n",
+        'given: {keyword: "{inputs.keyword}"}',
+        'given: {keyword: "{inputs.keyword}"}\n      memory: {shopping: true, log: 5}',
     )
 
     p = pb.parse_playbook(text, "buy", _pack())
-    assert p.nodes[1].context == ("memory.shopping", "daylog")
+    assert p.nodes[1].given == {"keyword": "{inputs.keyword}"}
+    assert p.nodes[1].memory == {"shopping": True, "log": 5}
 
-    with pytest.raises(PlaybookError, match="`context` entry"):
+    with pytest.raises(PlaybookError, match="`## <slug>` heading"):
         pb.parse_playbook(
             _mutate(
-                "    limit: {calls: 4, scrolls: 2}\n",
-                "    limit: {calls: 4, scrolls: 2}\n    context: [pitfalls]\n",
+                'given: {keyword: "{inputs.keyword}"}',
+                "memory: {Bad-Slug: true}",
             ),
             "buy",
             _pack(),
@@ -1051,6 +1060,73 @@ def test_the_boot_select_takes_think_too() -> None:
     assert spec.nodes[-1].think == "off"
 
 
+def _prompt_lints(text: str) -> list[str]:
+    from physiclaw.conductor.spec import lints
+
+    pack = _pack()
+    spec = pb.parse_playbook(text, "buy", pack)
+    return [w for w in lints.readiness_warnings(spec, pack) if "agent 'choose'" in w]
+
+
+def test_check_names_a_prompt_that_repeats_its_own_never_tap() -> None:
+    # The sharp one: `never_tap:` is withheld from the model by design,
+    # so a prompt that spells a target hands back what the guard rail
+    # was keeping. Advisory — only the author knows whether the label is
+    # there to identify a control or to forbid it.
+    text = (
+        _mutate(
+            'prompt: "Pick the cheapest of {keyword} and land on the results"',
+            'prompt: "Pick the cheapest {keyword}"',
+        )
+        .replace(
+            "    tools: [tap, scroll]",
+            '    never_tap: ["Pay Now"]\n    tools: [tap, scroll]',
+        )
+        .replace(
+            "Pick the cheapest {keyword}",
+            "Pick the cheapest {keyword}; never tap Pay Now",
+        )
+    )
+
+    (line,) = _prompt_lints(text)
+
+    assert "names 'Pay Now'" in line and "withheld from the model" in line
+
+
+def test_check_names_a_prompt_that_teaches_the_reply_format() -> None:
+    # The bare verb is the author's ("if nothing fits, escalate"); it is
+    # the envelope the legend already owns.
+    text = _mutate(
+        'prompt: "Pick the cheapest of {keyword} and land on the results"',
+        'prompt: "Pick the cheapest {keyword}, then return done with the fields"',
+    )
+
+    (line,) = _prompt_lints(text)
+
+    assert "'return done'" in line and "leave the envelope to the legend" in line
+    assert (
+        _prompt_lints(
+            _mutate(
+                'prompt: "Pick the cheapest of {keyword} and land on the results"',
+                'prompt: "Pick the cheapest {keyword}; if nothing fits, escalate"',
+            )
+        )
+        == []
+    )
+
+
+def test_check_names_a_context_entry_the_prompt_never_names() -> None:
+    # It would arrive in the Context block with nothing to attach it to.
+    text = _mutate(
+        'given: {keyword: "{inputs.keyword}"}',
+        'given: {keyword: "{inputs.keyword}"}\n      memory: {nobody: true}',
+    )
+
+    (line,) = _prompt_lints(text)
+
+    assert "`context.memory.nobody` is read for the model" in line
+
+
 def test_check_names_a_model_step_that_leaves_think_unsaid() -> None:
     from physiclaw.conductor.spec import lints
 
@@ -1283,18 +1359,20 @@ def test_a_granted_macro_with_a_templated_box_is_refused_under_never_tap() -> No
 
     with pytest.raises(PlaybookError, match="placeholder"):
         pb.parse_playbook(
-            spec('    never_tap: ["Pay"]\n    give: [app.macros.tmpl]\n'), "buy", pack
+            _tools("tap, scroll, app.macros.tmpl", '    never_tap: ["Pay"]\n'),
+            "buy",
+            pack,
         )
-    pb.parse_playbook(spec("    give: [app.macros.tmpl]\n"), "buy", pack)
+    pb.parse_playbook(_tools("tap, scroll, app.macros.tmpl"), "buy", pack)
 
 
 def test_the_same_grant_twice_is_named_without_its_body() -> None:
     pack = _pack()
-    with pytest.raises(PlaybookError, match=r"duplicate entry .*add-cart.*\)$"):
+    with pytest.raises(PlaybookError, match=r"duplicate entry 'add-cart'$"):
         pb.parse_playbook(
             _mutate(
                 "    tools: [tap, scroll]\n",
-                "    tools: [tap, scroll]\n    give: [app.macros.add-cart, app.macros.add-cart]\n",
+                "    tools: [tap, scroll, app.macros.add-cart, app.macros.add-cart]\n",
             ),
             "buy",
             pack,
@@ -1374,9 +1452,7 @@ def test_never_tap_is_allowed_on_an_episode_that_only_runs_a_macro() -> None:
     spec = pb.parse_playbook(
         _mutate(
             "    tools: [tap, scroll]\n",
-            "    tools: [scroll]\n"
-            "    give: [app.macros.add-cart]\n"
-            '    never_tap: ["Pay Now"]\n',
+            '    tools: [scroll, app.macros.add-cart]\n    never_tap: ["Pay Now"]\n',
         ),
         "buy",
         _pack(),
@@ -1384,6 +1460,27 @@ def test_never_tap_is_allowed_on_an_episode_that_only_runs_a_macro() -> None:
 
     node = next(n for n in spec.nodes if n.id == "choose")
     assert node.never_tap and node.macros == ("add-cart",)
+
+
+def _tools(tools: str, extra: str = "") -> str:
+    """VALID with the `choose` episode's tool menu swapped, plus any
+    extra key on the step."""
+    return _mutate("    tools: [tap, scroll]\n", f"    tools: [{tools}]\n{extra}")
+
+
+def _spot(name: str, extra: str = "", tools: str = "tap, scroll") -> str:
+    """VALID with a landmark given to the episode, and written in its
+    prompt."""
+    return (
+        _tools(tools, extra)
+        .replace(
+            '      given: {keyword: "{inputs.keyword}"}',
+            f'      given: {{keyword: "{{inputs.keyword}}", {name}: app.landmarks.{name}}}',
+        )
+        .replace(
+            "the cheapest of {keyword}", f"the cheapest of {{keyword}} via {{{name}}}"
+        )
+    )
 
 
 def test_a_grant_that_walks_around_never_tap_is_refused_at_parse() -> None:
@@ -1404,15 +1501,13 @@ def test_a_grant_that_walks_around_never_tap_is_refused_at_parse() -> None:
     guarded = '    never_tap: ["t"]\n'
 
     with pytest.raises(PlaybookError, match="never_tap"):
-        pb.parse_playbook(
-            spec(guarded + "    give: [app.landmarks.pay]\n"), "buy", pack
-        )
+        pb.parse_playbook(_spot("pay", guarded), "buy", pack)
     # The shared fixture macro taps "t" too.
     with pytest.raises(PlaybookError, match="presses"):
         pb.parse_playbook(
-            spec(guarded + "    give: [app.macros.add-cart]\n"), "buy", pack
+            _tools("tap, scroll, app.macros.add-cart", guarded), "buy", pack
         )
     # The same grants, with nothing declared, stay legal.
     pb.parse_playbook(
-        spec("    give: [app.landmarks.pay, app.macros.add-cart]\n"), "buy", pack
+        _spot("pay", tools="tap, scroll, app.macros.add-cart"), "buy", pack
     )

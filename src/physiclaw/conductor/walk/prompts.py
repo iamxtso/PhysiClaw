@@ -114,3 +114,7 @@ SINCE_HEADER = "What the playbook did since the last call"
 RETURN_FIELDS_HEADER = (
     'Return fields (the keys of "args" when "action" is "done", each a plain string):'
 )
+# The step's memory parts — what it reads beside its brief, each part
+# under its name. They arrive as DATA (`micro.data_block`) and never
+# inside the brief: a memory line is a fact, not an instruction.
+CONTEXT_HEADER = "Context"

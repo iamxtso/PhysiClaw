@@ -71,9 +71,11 @@ inputs:
     description: verbatim ask
 route:
   - agent: parse
-    prompt: |
-      Derive the keyword.
-      Said: "{inputs.user_said}"
+    context:
+      prompt: |
+        Derive the keyword.
+        The buyer said: {said}
+      given: {said: "{inputs.user_said}"}
     returns:
       keyword: the search keyword
   - start: app
@@ -88,15 +90,22 @@ route:
   - page: app.pages.results
     recover: {tap: app.landmarks.back}
   - agent: pick
-    prompt: |
-      Add the right item to the cart, then finish on the done page.
+    context:
+      prompt: |
+        Add the right item to the cart, then finish on the done page.
+        Leave a wrong page by the back chevron: {back}
+      given: {back: app.landmarks.back}
     tools: [tap, scroll]
-    give: [app.landmarks.back]
     returns:
       total: the audited total
     limit: {calls: 5, scrolls: 1}
   - page: app.pages.done
 """
+
+# The parse prompt as the model reads it: its one given filled.
+AGENTED_PARSE_PROMPT = "Derive the keyword.\nThe buyer said: 买牛奶"
+# The one `context.given:` line every fixture mutation swaps out.
+SAID = 'given: {said: "{inputs.user_said}"}'
 
 HOME = make_screen(("Files", 0.5, 0.1)).text
 RESULTS = make_screen(("综合", 0.5, 0.1), ("Milk 5kg", 0.5, 0.4)).text
@@ -107,6 +116,12 @@ RESULTS_WITH_PAY = make_screen(
 ).text
 DONE = make_screen(("AllDone", 0.5, 0.1)).text
 
+
+# The pick episode's one landmark given, prompt line and declaration.
+BACK = (
+    "        Leave a wrong page by the back chevron: {back}\n"
+    "      given: {back: app.landmarks.back}\n"
+)
 
 GUARDED = AGENTED.replace(
     "  - agent: pick\n", '  - agent: pick\n    never_tap: ["免密支付"]\n'
@@ -136,7 +151,8 @@ def test_parse_the_agented_playbook() -> None:
     assert isinstance(start, DoNode) and start.enter == "" and start.verify == "home"
     assert isinstance(pick, AgentNode)
     assert pick.enter == "results" and pick.verify == "done"
-    assert pick.give == ("back",) and pick.max_calls == 5 and pick.max_scrolls == 1
+    assert pick.landmarks == {"back": "back"}
+    assert pick.max_calls == 5 and pick.max_scrolls == 1
     assert spec.recovers["home"].elsewhere.tool == "force_quit"
     assert spec.recovers["home"].covered is spec.recovers["home"].elsewhere
     assert spec.recovers["results"].elsewhere.landmark == "back"
@@ -179,16 +195,16 @@ def test_route_shape_lints(mutate, fragment) -> None:
         _parse(text)
 
 
-def test_give_may_grant_a_pack_macro() -> None:
+def test_tools_may_grant_a_pack_macro() -> None:
     spec = _parse(
         AGENTED.replace(
-            "give: [app.landmarks.back]",
-            "give: [app.landmarks.back, app.macros.add-cart]",
+            "tools: [tap, scroll]",
+            "tools: [tap, scroll, app.macros.add-cart]",
         )
     )
     pick = spec.nodes[3]
     assert isinstance(pick, AgentNode)
-    assert pick.give == ("back",) and pick.macros == ("add-cart",)
+    assert pick.landmarks == {"back": "back"} and pick.macros == ("add-cart",)
     assert pb.disabled_macros(spec, pb.load_pack("demo")) == []
 
 
@@ -198,13 +214,15 @@ def test_give_may_grant_a_pack_macro() -> None:
         ("app.macros.nope", "not found in this pack"),
         ("macros.nope", "no macro 'nope' in walk/macros/"),
         ("macros.done", "fixed episode answer"),
-        ("gestures.back", "must look like"),
+        ("gestures.back", "neither a gesture"),
     ],
 )
-def test_give_grants_are_checked(grant, fragment) -> None:
+def test_tool_grants_are_checked(grant, fragment) -> None:
     write_pack(
         playbooks={
-            "walk": AGENTED.replace("give: [app.landmarks.back]", f"give: [{grant}]")
+            "walk": AGENTED.replace(BACK, "").replace(
+                "tools: [tap, scroll]", f"tools: [tap, scroll, {grant}]"
+            )
         },
         landmarks=BACK_LANDMARK,
         macros=("open-app", "add-cart", "done"),
@@ -213,12 +231,12 @@ def test_give_grants_are_checked(grant, fragment) -> None:
         build.load_spec("demo", "walk", require_live=False)
 
 
-def test_give_is_optional() -> None:
-    _parse(AGENTED.replace("    give: [app.landmarks.back]\n", ""))
+def test_landmarks_are_optional() -> None:
+    _parse(AGENTED.replace(BACK, ""))
 
 
-def test_agent_give_must_name_a_declared_landmark() -> None:
-    text = AGENTED.replace("give: [app.landmarks.back]", "give: [app.landmarks.cart]")
+def test_a_granted_landmark_must_be_declared() -> None:
+    text = AGENTED.replace("back: app.landmarks.back", "cart: app.landmarks.cart")
     with pytest.raises(PlaybookError, match="not declared under\n?.*`landmarks`"):
         _parse(text)
 
@@ -237,10 +255,104 @@ def test_recover_rejects_an_unknown_tool() -> None:
         _parse(text)
 
 
-def test_agent_prompt_refs_are_validated() -> None:
+def test_agent_context_refs_are_validated() -> None:
     text = AGENTED.replace("{inputs.user_said}", "{inputs.nope}")
     with pytest.raises(PlaybookError, match="not declared under `inputs`"):
         _parse(text)
+
+
+def test_a_prompt_names_only_what_its_given_holds() -> None:
+    # `given:` is the whole of what a prompt may write in braces: a
+    # dotted ref is told the spelling, an undeclared name is refused
+    # with what IS declared, and a given the prompt never writes is dead
+    # config, refused too.
+    dotted = AGENTED.replace("The buyer said: {said}", 'Said: "{inputs.user_said}"')
+    with pytest.raises(PlaybookError, match="declare `<name>: inputs.user_said`"):
+        _parse(dotted)
+    unknown = AGENTED.replace("The buyer said: {said}", "The buyer said: {words}")
+    with pytest.raises(PlaybookError, match=r"refers to \{words\}.*it holds said"):
+        _parse(unknown)
+    unused = AGENTED.replace("The buyer said: {said}", "The buyer said something.")
+    with pytest.raises(PlaybookError, match=r"holds 'said', which the prompt never"):
+        _parse(unused)
+
+
+def test_a_prompt_is_filled_from_its_given_in_one_pass() -> None:
+    # The render reads the same `given:` the parser checked the prompt
+    # against: each {name} is the value once, a doubled brace is the
+    # literal, and a VALUE holding braces lands verbatim — it is never
+    # read as a name, so a buyer's message cannot reach into the block.
+    _write(
+        AGENTED.replace(
+            "The buyer said: {said}", "The buyer said: {said} (a {{brace}})"
+        )
+    )
+    p = _program(name="walk", user_said="买 {milk} {{x}}")
+    h = _history()
+    _feed(h, p.advance(h), ELSEWHERE)
+    req = p.advance(h)
+    assert isinstance(req, DecisionRequest) and req.call == AGENT_FIELDS
+    assert (
+        req.material["prompt"]
+        == "Derive the keyword.\nThe buyer said: 买 {milk} {{x}} (a {brace})"
+    )
+
+
+def test_a_given_may_be_the_bare_ref() -> None:
+    # `said: inputs.user_said` and `said: "{inputs.user_said}"` are one
+    # declaration; the node holds the template either way.
+    spec = _parse(AGENTED.replace(SAID, "given: {said: inputs.user_said}"))
+    parse = spec.nodes[0]
+    assert isinstance(parse, AgentNode)
+    assert parse.given == {"said": "{inputs.user_said}"}
+
+
+@pytest.mark.parametrize(
+    "block, fragment",
+    [
+        # One named string per value: the name is the label the model
+        # reads, so it is a field name like a return field's.
+        ('given: {"Said": "{inputs.user_said}"}', "`context.given` name"),
+        ('given: {said: ["{inputs.user_said}"]}', "must be a string"),
+        ("given: [inputs.user_said]", "must be a mapping"),
+        # A field is a value the walk fills; a constant is the prompt's.
+        ('given: {said: "a constant"}', "belongs in the prompt"),
+        ("memory: {said: 3}", "must be `true`"),
+        ("memory: {log: 0}", "must be from 1 to"),
+        ("memory: [shopping]", "must be a mapping"),
+        # One cap on the whole block: the three parts land in one place,
+        # and that place is what a reader has to hold in their head.
+        (
+            "given: {"
+            + ", ".join(f"f{i}: '{{inputs.user_said}}'" for i in range(13))
+            + "}",
+            "`context:` reads 13 things > max",
+        ),
+        (
+            'given: {said: "{inputs.user_said}"}\n'
+            "      memory: {" + ", ".join(f"s{i}: true" for i in range(12)) + "}",
+            "`context:` reads 13 things > max",
+        ),
+    ],
+)
+def test_an_agents_context_is_named_and_bounded(block, fragment) -> None:
+    text = AGENTED.replace(SAID, block)
+    with pytest.raises(PlaybookError, match=fragment):
+        _parse(text)
+
+
+def test_an_agent_may_be_handed_its_own_last_answer() -> None:
+    # What a `revise:` re-reads: the step's returns are declared before
+    # its `context:` is checked, so a field may quote its own return.
+    spec = _parse(
+        AGENTED.replace(
+            SAID,
+            'given: {said: "{inputs.user_said}", last: "{parse.keyword}"}',
+        ).replace("The buyer said: {said}", "The buyer said: {said} (last: {last})")
+    )
+    parse = spec.nodes[0]
+    assert isinstance(parse, AgentNode)
+    assert parse.given["last"] == "{parse.keyword}"
 
 
 def test_landmarks_section_is_the_open_spelling() -> None:
@@ -310,7 +422,10 @@ def _boot(playbook: str = AGENTED):
     _feed(h, p.advance(h), ELSEWHERE)
     req = p.advance(h)
     assert isinstance(req, DecisionRequest) and req.call == AGENT_FIELDS
-    assert "买牛奶" in req.material["prompt"]
+    # The brief is the prompt with its given filled once; with no memory
+    # and no landmarks, nothing rides beside it.
+    assert req.material["prompt"] == AGENTED_PARSE_PROMPT
+    assert req.context == ""
     return p, h, req
 
 
@@ -342,8 +457,8 @@ def test_declared_context_rides_the_brief_and_nothing_else_does() -> None:
     daylog.append_log("[11:02] demo: bought milk ¥45")
     _write(
         AGENTED.replace(
-            "      keyword: the search keyword\n",
-            "      keyword: the search keyword\n    context: [memory.shopping]\n",
+            SAID,
+            'given: {said: "{inputs.user_said}"}\n      memory: {shopping: true}',
         )
     )
     p = _program(name="walk", user_said="买牛奶")
@@ -353,7 +468,11 @@ def test_declared_context_rides_the_brief_and_nothing_else_does() -> None:
     req = p.advance(h)
 
     assert isinstance(req, DecisionRequest) and req.call == AGENT_FIELDS
-    assert "prefers oat milk" in req.context
+    # The given fills the prompt; the memory part rides the data block
+    # under the name the prompt calls it by.
+    assert req.material["prompt"] == AGENTED_PARSE_PROMPT
+    assert "- said" not in req.context
+    assert "- shopping:\n    ## shopping\n    prefers oat milk" in req.context
     assert "secret" not in req.context and "bought milk" not in req.context
 
 
@@ -400,6 +519,35 @@ def _at_episode(playbook: str = AGENTED, screen: str = RESULTS):
     return p, h, req
 
 
+def test_an_episodes_brief_is_the_prompt_filled_then_the_contract() -> None:
+    # The brief's order is prompt (its givens filled — the buyer's words
+    # and a landmark's reading and box, each where the author wrote its
+    # name) → return fields; with no memory, nothing rides below.
+    _, _, req = _at_episode(
+        AGENTED.replace(
+            "        Add the right item to the cart, then finish on the done page.\n",
+            "        Add the right item ({said}) to the cart, then finish on the done page.\n",
+        ).replace(
+            "given: {back: app.landmarks.back}",
+            'given: {back: app.landmarks.back, said: "{inputs.user_said}"}',
+        )
+    )
+
+    lead = req.material["lead"]
+    assert lead.startswith("Add the right item (买牛奶) to the cart")
+    assert 'by the back chevron: reads "back", box [' in lead
+    assert lead.count("买牛奶") == 1
+    assert "Return fields" in lead and "Context (data to judge" not in lead
+
+
+def test_an_episode_that_reads_nothing_gets_no_context_block() -> None:
+    # What the playbook declares is what the model reads: no givens, no
+    # memory, no landmarks — no block, never an empty heading.
+    _, _, req = _at_episode(AGENTED.replace(BACK, ""))
+
+    assert "Context" not in req.material["lead"]
+
+
 def _spot(req: DecisionRequest, text: str, label: str | None = None) -> Tap:
     """A tap on the listed element reading `text` — the box the model
     would copy off the listing, with the label in its own words."""
@@ -414,17 +562,15 @@ def test_episode_offers_rows_grants_and_verbs() -> None:
     assert TOOL_TAP in req.outcomes  # taps are boxes, not names
     assert any(e.label == "Milk 5kg" for e in req.elements)  # the live screen
     assert AGENT_DONE in req.outcomes and TOOL_SCROLL in req.outcomes
-    # A granted landmark shows what it reads and where it sits, not a
-    # bare name the model would have to take on faith.
-    assert (
-        "Granted landmarks (spots the playbook knows; tap their box):"
-        in (req.material["block"])
-    )
-    assert (
-        '- back: reads "back", box [0.000,0.000,0.100,0.100]' in req.material["block"]
-    )
+    # A granted spot rides the brief's context block, once, with what it
+    # reads and where it sits — a fact, under the name the prompt calls
+    # it by. The turn's block is the SCREEN and nothing else.
+    lead = req.material["lead"]
+    assert lead.startswith("Add the right item")  # the brief leads
+    # The landmark renders where the prompt wrote its name, once.
+    assert 'chevron: reads "back", box [0.000,0.000,0.100,0.100]' in lead
     assert LISTING_HEADER in req.material["block"]  # the whole listing, not labels
-    assert req.material["lead"].startswith("Add the right item")  # the brief leads
+    assert "back" not in req.material["block"]  # said once, not every turn
 
 
 def test_episode_tap_grounds_and_history_is_append_only() -> None:
@@ -451,6 +597,68 @@ def test_episode_tap_grounds_and_history_is_append_only() -> None:
     assert req2.material["lead"] == (
         "[you tapped 'the milk listing' at [0.450,0.380,0.550,0.420]]"
     )
+
+
+def test_an_episodes_context_is_said_once_across_its_turns() -> None:
+    # Everything an episode reads beside the screen — the givens (a
+    # buyer's words, a landmark's box), a memory section, the tool and
+    # macro legend — is FIXED for the episode, so each rides exactly one
+    # place: the givens and memory in the first user block (replayed
+    # verbatim as history), the legend in the system prompt. A later
+    # turn's own block is what happened and the screen, nothing else.
+    from physiclaw.common import paths
+    from physiclaw.common.text import write_text
+    from physiclaw.conductor.walk import micro
+
+    f = paths.memory_file()
+    f.parent.mkdir(parents=True, exist_ok=True)
+    write_text(f, "## shopping\nprefers oat milk\n")
+    p, h, req = _at_episode(
+        AGENTED.replace(
+            "        Add the right item to the cart, then finish on the done page.\n",
+            "        Add the right item ({said}) to the cart, then finish on the done page.\n",
+        )
+        .replace(
+            "given: {back: app.landmarks.back}",
+            'given: {back: app.landmarks.back, said: "{inputs.user_said}"}\n'
+            "      memory: {shopping: true}",
+        )
+        .replace("tools: [tap, scroll]", "tools: [tap, scroll, app.macros.add-cart]")
+    )
+    row = _spot(req, "Milk 5kg", "the milk listing")
+    tap = p.resolve(
+        MicroOutcome(out=ACT_ARM, reason="fits", confidence=0.9, picked=row)
+    )
+    _feed(h, tap, RESULTS)
+    req2 = p.advance(h)
+    assert isinstance(req2, DecisionRequest) and req2.call == AGENT_ACT
+
+    # What the provider sees on the second call, as one text.
+    system = micro._system(req2)
+    replayed = "\n".join(
+        c if isinstance(c, str) else "\n".join(getattr(b, "text", "") for b in c)
+        for _, c in req2.history
+    )
+    newest = user_content(req2)
+    assert isinstance(newest, str)
+    whole = "\n".join([system, replayed, newest])
+    once = {
+        "the buyer's words": "买牛奶",
+        "the landmark": 'reads "back", box [',
+        "the memory section": "prefers oat milk",
+        "the return fields": "Return fields",
+        "the macro legend": "add-cart",
+    }
+    for what, text in once.items():
+        assert whole.count(text) == 1, what
+    # The legend lives in the system prompt; the rest in the first block.
+    assert "add-cart" in system and "run_macro" in system
+    assert replayed.count("买牛奶") == 1 and replayed.count("prefers oat milk") == 1
+    # The newest block is what happened and the screen, nothing else.
+    assert newest.startswith("[you tapped 'the milk listing' at [")
+    assert "Current screen" in newest
+    for text in once.values():
+        assert text not in newest
 
 
 def test_episode_taps_a_box_off_the_listing() -> None:
@@ -529,7 +737,11 @@ def test_episode_taps_an_icon_by_its_listed_box() -> None:
 def test_episode_runs_a_granted_macro_by_name() -> None:
     from physiclaw.conductor.walk.step_agent import KIND_MACRO
 
-    _write(AGENTED.replace("give: [app.landmarks.back]", "give: [app.macros.add-cart]"))
+    _write(
+        AGENTED.replace(BACK, "").replace(
+            "tools: [tap, scroll]", "tools: [tap, scroll, app.macros.add-cart]"
+        )
+    )
     p = _program(name="walk", user_said="买牛奶")
     h = _history()
     _feed(h, p.advance(h), ELSEWHERE)
@@ -538,7 +750,10 @@ def test_episode_runs_a_granted_macro_by_name() -> None:
     _feed(h, p.advance(h), RESULTS)
     req = p.advance(h)
     assert isinstance(req, DecisionRequest)
-    assert "Granted macros" in req.material["block"]
+    # The names ride the system prompt's `run_macro` legend, which is
+    # fixed for the episode — said once, never retyped each turn.
+    assert req.macros == ("add-cart",)
+    assert "add-cart" not in req.material["block"]
     assert req.macros == ("add-cart",)
     macro = Macro("add-cart")
 
@@ -556,21 +771,21 @@ def test_episode_runs_a_granted_macro_by_name() -> None:
     assert KIND_MACRO in p._step.kinds
 
 
-@pytest.mark.parametrize("page, offered", [("results", True), ("home", False)])
-def test_page_scoped_landmark_is_offered_only_on_its_page(page, offered) -> None:
-    scoped = BACK_LANDMARK.rstrip("\n") + f"\n  page: {page}\n"
-    write_pack(playbooks={"walk": AGENTED}, landmarks=scoped)
-    p = _program(name="walk", user_said="买牛奶")
-    h = _history()
-    _feed(h, p.advance(h), ELSEWHERE)
-    assert isinstance(p.advance(h), DecisionRequest)
-    _feed(h, p.resolve(_done_outcome(keyword="milk")), HOME)
-    _feed(h, p.advance(h), RESULTS)  # the episode opens on results
+def test_a_page_scoped_landmark_is_checked_against_the_page_it_opens_on() -> None:
+    # The grant is decided ONCE, with the rest of the context, so a
+    # scope that cannot hold is the author's mistake — named at load,
+    # never a spot that silently fails to appear.
+    def _scoped(page: str) -> str:
+        write_pack(
+            playbooks={"walk": AGENTED},
+            landmarks=BACK_LANDMARK.rstrip("\n") + f"\n  page: {page}\n",
+        )
+        return build.load_spec("demo", "walk", require_live=False)[0]
 
-    req = p.advance(h)
-
-    assert isinstance(req, DecisionRequest)
-    assert ("Granted landmarks" in req.material["block"]) is offered
+    spec = _scoped("results")  # the page this episode opens on
+    assert spec.nodes[3].landmarks == {"back": "back"}
+    with pytest.raises(PlaybookError, match="scoped to page 'home'"):
+        _scoped("home")
 
 
 def test_episode_done_is_audited_against_the_verify_page() -> None:
@@ -741,9 +956,12 @@ route:
     resume:
       macro: app.macros.open-app
   - agent: pay
+    context:
+      prompt: |
+        Pay exactly {total}, then finish on
+        the done page.
+      given: {total: "{ask.total}"}
     irreversible: payment
-    prompt: |
-      Pay exactly ¥{ask.total}, then finish on the done page.
     tools: [tap]
     limit: {calls: 3}
   - page: app.pages.done
@@ -779,7 +997,9 @@ def _at_pay_episode(resume_screen: str = SHEET, playbook: str = AGENT_PAY):
 def test_payment_episode_taps_under_consent_then_completes() -> None:
     p, h, req = _at_pay_episode()
     assert isinstance(req, DecisionRequest)
-    assert "¥45" in req.material["lead"]  # {ask.total} filled into the prompt
+    # The consented amount reaches a payment episode where its prompt
+    # wrote {total}.
+    assert req.material["lead"].startswith("Pay exactly 45, then finish on")
 
     row = _spot(req, "支付")
     tap = p.resolve(MicroOutcome(out=ACT_ARM, reason="pay", confidence=0.9, picked=row))
@@ -816,12 +1036,15 @@ def test_payment_episode_second_tap_keeps_the_paid_record() -> None:
 @pytest.mark.parametrize(
     "old, new, fragment",
     [
-        # A granted name can never be spelled like a fixed answer.
+        # A memory part is rendered under its name, so that label can
+        # never be spelled like a fixed answer.
         (
-            "give: [app.landmarks.back]",
-            "give: [app.landmarks.done]",
+            "given: {back: app.landmarks.back}",
+            "given: {back: app.landmarks.back}\n      memory: {done: true}",
             "fixed episode answer",
         ),
+        # A pack ref that is not a landmark is neither kind of given.
+        ("back: app.landmarks.back", "back: app.macros.open-app", "or a landmark"),
         # A return field cannot reuse the reply contract's own fields.
         ("      keyword: the search keyword\n", "      answer: the pick\n", "contract"),
         # scroll granted with no scroll budget would hand over at once.
@@ -840,19 +1063,24 @@ def test_episode_grammar_lints(old, new, fragment) -> None:
         build.load_spec("demo", "walk", require_live=False)
 
 
-def test_give_refuses_one_name_as_both_landmark_and_macro() -> None:
+def test_a_given_may_share_its_name_with_a_macro() -> None:
+    # A given's name is substituted into the prompt and never shown; a
+    # macro's name is what the model answers with. Different namespaces,
+    # so `back` may be both.
     write_pack(
         playbooks={
             "walk": AGENTED.replace(
-                "give: [app.landmarks.back]",
-                "give: [app.landmarks.back, app.macros.back]",
+                "tools: [tap, scroll]",
+                "tools: [tap, scroll, app.macros.back]",
             )
         },
         landmarks=BACK_LANDMARK,
         macros=("open-app", "add-cart", "back"),
     )
-    with pytest.raises(PlaybookError, match="both a landmark and a macro"):
-        build.load_spec("demo", "walk", require_live=False)
+    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    pick = spec.nodes[3]
+    assert isinstance(pick, AgentNode)
+    assert pick.landmarks == {"back": "back"} and pick.macros == ("back",)
 
 
 def test_payment_ask_before_a_screen_move_needs_resume() -> None:
@@ -921,27 +1149,29 @@ def test_payment_episode_blocks_a_tap_when_the_sheet_changed() -> None:
 
 # ---------- prompts as files: `prompt: prompts.<name>` ----------
 
+# The parse step's brief as a file; the step reads no given, so the
+# file's prose is free.
 FILE_PROMPT = AGENTED.replace(
-    '    prompt: |\n      Derive the keyword.\n      Said: "{inputs.user_said}"\n',
-    "    prompt: prompts.parse\n",
+    "      prompt: |\n        Derive the keyword.\n"
+    "        The buyer said: {said}\n"
+    '      given: {said: "{inputs.user_said}"}\n',
+    "      prompt: prompts.parse\n",
 )
 
 
-def test_a_prompt_file_is_the_step_prompt_verbatim_with_refs_filled_later() -> None:
+def test_a_prompt_file_is_the_step_prompt_verbatim() -> None:
     from physiclaw.common import paths
 
     _write(FILE_PROMPT)
     root = paths.playbooks_dir() / "demo"
-    write_prompt(
-        root, "walk", "parse", '# Keyword\n\nDerive it.\nSaid: "{inputs.user_said}"\n\n'
-    )
+    write_prompt(root, "walk", "parse", "# Keyword\n\nDerive it from `said`.\n\n")
 
     spec, _ = build.load_spec("demo", "walk", require_live=False)
 
     parse = spec.nodes[0]
     assert isinstance(parse, AgentNode)
     # Body only, trailing whitespace trimmed, headings are the author's prose.
-    assert parse.prompt == '# Keyword\n\nDerive it.\nSaid: "{inputs.user_said}"'
+    assert parse.prompt == "# Keyword\n\nDerive it from `said`."
     assert spec.prompts_used == frozenset({"walk/prompts/parse.md"})
 
 
@@ -957,13 +1187,15 @@ def test_a_pack_level_prompt_is_shared_by_every_route() -> None:
     assert spec.nodes[0].prompt == "Shared brief."
 
 
-def test_a_prompt_file_ref_is_validated_like_inline_prose() -> None:
+def test_a_prompt_file_takes_no_refs_either() -> None:
+    # The rule is the prompt's, not the spelling's: a file is held to
+    # the step's `given:` exactly as inline prose is.
     from physiclaw.common import paths
 
     _write(FILE_PROMPT)
     write_prompt(paths.playbooks_dir() / "demo", "walk", "parse", "Said: {inputs.nope}")
 
-    with pytest.raises(PlaybookError, match="`prompt`"):
+    with pytest.raises(PlaybookError, match="declare `<name>: inputs.nope`"):
         build.load_spec("demo", "walk", require_live=False)
 
 
@@ -1341,7 +1573,9 @@ def test_a_granted_macro_tapping_a_target_is_refused_at_run_time() -> None:
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
-        GUARDED.replace("give: [app.landmarks.back]", "give: [app.macros.pay-bar]"),
+        GUARDED.replace(BACK, "").replace(
+            "tools: [tap, scroll]", "tools: [tap, scroll, app.macros.pay-bar]"
+        ),
         RESULTS_WITH_PAY,
     )
     assert req.macros == ("pay-bar",)
@@ -1374,7 +1608,9 @@ def test_a_granted_playbook_local_macro_is_named_as_it_dispatches() -> None:
         "  - tap: the orange button\n    at: [0.30, 0.91, 0.70, 0.95]\n",
     )
     p, h, req = _at_episode(
-        GUARDED.replace("give: [app.landmarks.back]", "give: [macros.pay-bar]"),
+        GUARDED.replace(BACK, "").replace(
+            "tools: [tap, scroll]", "tools: [tap, scroll, macros.pay-bar]"
+        ),
         RESULTS_WITH_PAY,
     )
     assert p.spec.nodes[3].macros == ("walk.pay-bar",)

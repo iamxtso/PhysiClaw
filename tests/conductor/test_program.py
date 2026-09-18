@@ -154,7 +154,9 @@ inputs:
     description: what to search
 route:
   - agent: parse
-    prompt: "Turn this into a search term: {inputs.keyword}"
+    context:
+      prompt: "Turn {keyword} into a search term"
+      given: {keyword: "{inputs.keyword}"}
     returns:
       term: the search term
   - page: app.pages.home
@@ -194,7 +196,8 @@ route:
     with: {message: "{inputs.keyword}"}
   - page: app.pages.results
   - agent: choose
-    prompt: "pick one"
+    context:
+      prompt: "pick one"
     tools: [tap]
     returns:
       pick: the pick
@@ -1515,7 +1518,7 @@ def test_handover_records_run_line_at_the_failing_node() -> None:
 
 
 def test_completed_payment_walk_records_history_fields() -> None:
-    # The completed line carries the structured fields: inputs and the
+    # The completed line carries the structured given: inputs and the
     # fired total (consent is consumed at fire — this is where it
     # survives).
     from physiclaw.conductor.walk import walklog
@@ -1621,7 +1624,6 @@ def test_session_setup_assembles_the_activation_context() -> None:
 
     assert boot is not None and boot.activation is not None
     ctx = boot.activation.context
-    assert "Recent daily-log entries" in ctx
     assert "bought milk ¥45" in ctx
 
 

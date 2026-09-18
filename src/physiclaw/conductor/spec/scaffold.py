@@ -121,15 +121,16 @@ description: EDIT ME — what this pack automates, and when to adopt it
 #     example: SomeOne
 
 # Named fixed spots the author KNOWS — recover hands tap them, and
-# agent episodes are granted them by name (`give: [app.landmarks.back]`).
+# agent episodes read them as a `given:` (`back: app.landmarks.back`).
 # Open vocabulary; each is {{label, at, [page]}}: the tap fires at `at`
 # as declared, the label says what it is; `page:` scopes it — an
-# episode is offered it only while that page is the verified reading.
+# episode may read it only when that is the page it opens on, since a
+# grant is decided once, with the rest of its `context:`.
 # landmarks:
 #   back:
 #     label: "back chevron (top-left)"
 #     at: [0.015, 0.045, 0.095, 0.095]
-#     page: detail
+#     # page: home   # optional: refused to an episode that opens elsewhere
 
 # Pages more than one playbook lands on are declared here once and
 # referenced as `app.pages.<name>` from every route; a page only one
@@ -162,7 +163,8 @@ description: EDIT ME — one line saying what task this playbook does
 # A valid playbook is enabled by default; this scaffold starts off.
 enabled: false
 # Values filled at activation; reference them as {{inputs.name}} in
-# `with:` values and agent prompts. ≤ {max_inputs}; `default`
+# `with:` values and an agent's `context.given:` (a prompt writes
+# `{{name}}` for a given, never the ref). ≤ {max_inputs}; `default`
 # present = optional.
 inputs:
   message:
@@ -177,9 +179,11 @@ route:
   # An agent step with no tools may open the route — derive values
   # from the user's words before the phone is touched:
   # - agent: parse
-  #   prompt: |
-  #     EDIT ME — say exactly what to derive and the rules.
-  #     The user said: "{{inputs.message}}"
+  #   context:
+  #     prompt: |
+  #       EDIT ME — say exactly what to derive and the rules.
+  #       The user said: "{{said}}"
+  #     given: {{said: inputs.message}}   # what the prompt may write as {{name}}
   #   returns:
   #     keyword: EDIT ME — what this field holds
   #   think: off
@@ -221,11 +225,15 @@ route:
   - page: home              # the landing check — hand over if not reached
   # An acting agent episode — the judgment stretch, delegated whole:
   # - agent: choose
-  #   prompt: |
-  #     EDIT ME — the goal, the rules, and where to finish.
-  #   tools: [{agent_tools}]
-  #   give: [app.landmarks.back, app.macros.{macro}]
-  #   context: [daylog]
+  #   context:                       # everything the call is built from
+  #     prompt: |
+  #       EDIT ME — the goal, the rules, and where to finish.
+  #       The item: {{item}}. Leave a wrong page by the back chevron: {{back}}
+  #     given:                       # what the prompt may write as {{name}}
+  #       item: parse.keyword        #   a value the walk fills
+  #       back: app.landmarks.back   #   a spot a tap may aim at
+  #     memory: {{log: 5}}             # parts of the agent's own memory
+  #   tools: [{agent_tools}, app.macros.{macro}]  # gestures, and macros to run
   #   returns:
   #     summary: EDIT ME — what to report back
   #   limit: {{calls: {agent_calls}, scrolls: {agent_scrolls}}}
@@ -333,20 +341,35 @@ runs, one level deep.
 
 What the playbook declares is what runs — no more, no less: nothing
 retries, unlocks, waits or recovers unless a line says so. An
-`agent` step is the model's, inside the author's fence: `prompt:` is
-the whole brief (refs fill once when the step opens; the conductor
-adds only the output contract), `tools:` the closed gesture allowlist,
-`give:` the landmarks shown to it each turn with their reading and box
-(`app.landmarks.<name>`) and the macros it may run whole (`macros.<name>`,
-this route's; `app.macros.<name>`, the pack's), `never_tap:` the
+`agent` step is the model's, inside the author's fence. `context:` is
+everything the call is built from, in one block: `prompt:` the APP brief
+— what the screen is, which tap means what, the traps — and nothing
+else (the conductor writes the mechanism around it, and `never_tap:` is
+withheld from the model on purpose, so a prompt names a label to say
+which control is which, never to forbid one); `given:` the whole of what
+the prompt may write as `{{name}}`: `<name>: <ref>` with the ref bare
+(`inputs.item`) or in braces, a value the walk fills, or `<name>:
+app.landmarks.<n>`, a fixed spot a tap may aim at, rendered as its
+reading and box, stated as the fact it is (what MAY be tapped is the
+tap legend's to say; it needs the `tap` tool) — each `{{name}}` is filled once when the step opens (`{{{{` and `}}}}`
+are a literal brace), a name the block does not hold is
+refused, a given the prompt never writes is refused, and a ref in a
+prompt is refused (a prompt names a value, never its ref); `memory:`
+which parts of the agent's own memory travel — `<slug>: true` for one
+`## <slug>` section, `all: true` for the whole file, `log: <n>` for the
+n newest daily-log entries, and nothing unless a line says so, riding
+ONE block stamped as data below the brief, because a memory line is a
+fact and never an instruction.
+Then `tools:` the gestures it may make AND the macros it may run whole
+(`macros.<name>`, this route's; `app.macros.<name>`, the pack's —
+argument-less, like every helper hand), one menu, as the model reads
+it, `never_tap:` the
 targets its taps may NEVER press —
 a reading, alternate readings of one target, or `{{label, within}}` to
 say which band the target sits in; a granted macro's recorded taps are
 held to it too; never shown to the model, so a pay button stays
 unnameable, and a refused move costs one call while the episode goes
-on, `context:` what to
-load beside the prompt (`memory`, `memory.<slug>`, `daylog` — nothing
-else travels), `returns:` the fields it must fill, `limit:` its
+on, `returns:` the fields it must fill, `limit:` its
 call/scroll budget, `think:` how much hidden thinking each call may
 spend (off, low, medium, high — the vendor translates the word; the
 reply's own `reason` field is always written); each episode turn the
@@ -372,7 +395,9 @@ log's memory line) and closes the session DONE itself.
 
 A pack may declare `landmarks:` — named fixed spots ({{label, at,
 [page]}}, open vocabulary) that recover hands tap and agent episodes
-are granted; a `page:` scope offers the spot only on that page. A
+read as a `given:` (`back: app.landmarks.back`, written `{{back}}` in
+the prompt); a `page:` scope is checked against the page the episode
+opens on. A
 page's `recover:` declares its recovery hand — a bare gesture
 (`go_back`, `force_quit`, `home_screen`, `unlock_phone`), `{{tap:
 app.landmarks.<name>}}`, or `{{macro: app.macros.<name>}}` — or one hand per reading

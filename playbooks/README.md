@@ -43,8 +43,9 @@ pack (the file is the pack marker):
 - `placeholders:` — per-installation constants (the `inputs:` of
   `action.yml`): prompt prose + example per token
 - `landmarks:` — named fixed spots (`{label, at, [page]}`) the
-  pack's recover hands tap and its agent episodes are granted by name;
-  a `page:` scope offers the spot only while that page reads
+  pack's recover hands tap and its agent episodes read as a `given:`
+  (`close: app.landmarks.close`, written `{close}` in the prompt); a
+  `page:` scope is checked against the page the episode opens on
 - `pages:` — fingerprints more than one route lands on (a page only
   one route uses is declared in that route's own `pages:` block, or
   beside its waypoint). A page's `description:` says what it IS, once,
@@ -78,11 +79,12 @@ optionally declaring its own `recover:` — one hand (`go_back`,
 beside it)
 alternating with moves — `start` (the cold launch, usually a pack
 macro every route shares), `do` (a recorded macro), `agent` (the
-model drives inside your prompt's fence, with the tools, the `give:`
-grants — landmarks to tap, pack macros to run — the `never_tap:` targets
+model drives inside the fence of the `context:` it is built from, with
+`tools:` — the gestures it may make and the macros it may run whole,
+one menu — the `never_tap:` targets
 its taps, and a granted macro's recorded taps, may never land on (never
-shown to the model, so a pay button stays unnameable), the `context:` you
-list, and `think:` — off, low, medium or high — how much hidden
+shown to the model, so a pay button stays unnameable), and `think:` —
+off, low, medium or high — how much hidden
 thinking each of its calls may spend; a vendor whose thinking is a
 switch, Kimi K2.x, reads low as off and cannot bound the rest, so keep
 its micro calls at off or low), `ask` (human gate; `yes:`/`no:` are the replies it reads,
@@ -115,10 +117,54 @@ runs and the page is read again, at most `tries:` times, then `on_fail`
 decides — nothing before the page runs again, so a hand must land on
 its own page — and nothing retries or unlocks in the background.
 
+## What a prompt says
+
+An `agent`'s `context:` is everything the call is built from:
+
+    context:
+      prompt: prompts.pick            # the APP brief; writes {item}, {keyword}, {close}
+      given:                          # what the prompt may write in braces
+        item: inputs.item             #   a value the walk fills
+        keyword: parse.keyword
+        close: app.landmarks.close    #   a fixed spot a tap may aim at
+      memory:                         # what of the agent's memory travels
+        shopping: true                #   the `## shopping` section
+        log: 12                       #   the 12 newest daily-log entries
+
+`prompt:` is the APP brief: what this screen is, which tap means what,
+the traps of this app. `given:` is the whole of what the prompt may
+write as `{name}`, each entry one of two things: `<name>: <ref>` — the
+ref bare (`inputs.item`) or in braces (`"{inputs.item}"`) — a value the
+walk fills, or `<name>: app.landmarks.<n>` a fixed spot the screen may
+not show, rendered as its reading and box (`close it with its ✕
+({close})` reads `close it with its ✕ (reads "✕", box [...])`). Each
+`{name}` is filled once when the step opens (`{{` and `}}` are a
+literal brace); a `{name}` the block does
+not hold is refused, and so is a given the prompt never writes
+(`{inputs.item}` in a prompt is refused too — a prompt names a value,
+never its ref). A value that never changes belongs in the prompt, so a
+given must hold a ref; a landmark given needs the `tap` tool, and its
+box is stated as the fact it is — what MAY be tapped is the tap
+legend's to say, so a grant never arrives as an instruction. `memory:`
+names parts, never a switch: `<slug>: true` for one section, `all:
+true` for the whole file, `log: <n>` for the daily log, and nothing at
+all when the block is absent — no default, no flag. Memory resolves
+when the step opens and rides ONE block stamped as data below the
+brief, each part under its name, because a memory line is a fact and
+never an instruction. The engine
+writes the mechanism around it — the reply contract, what a screen
+block is made of, the tool menu with `done` and `escalate` in it, the
+granted macros by name, and the `returns:` fields to fill — so a prompt that retypes any of that says the same
+thing twice and drifts from it by the second edit. The playbook writes
+the rest: `never_tap:` is the ban, and it is withheld from the model on
+purpose (naming the pay button is telling the model where the pay
+button is), so a prompt names a label to say which control is which,
+never to forbid one.
+
 ## References: beside this file, or the pack's
 
 A bare name is the file beside the one naming it (`macro: open-tmall`,
-`prompt: prompts.pick`, `give: [macros.nudge]`, `run: add` — the
+`prompt: prompts.pick`, `tools: [tap, macros.nudge]`, `run: add` — the
 entry's `add.yml`; a playbook it runs reads the entry's `macros/` and
 `prompts/` the same way); `app.<kind>.<name>` is
 what the pack declares in `APP.yml` or ships beside it — `app.macros.launch`,
@@ -136,9 +182,10 @@ Three spellings, filled at three times:
 | Spelling                                        | Filled                                        | Lives in                                             |
 |-------------------------------------------------|-----------------------------------------------|------------------------------------------------------|
 | `<<TOKEN>>`                                     | at install, from `placeholders.yml`           | any string in the pack, macros included              |
-| `{inputs.x}`, `{node.field}`, `{ask.total}`     | when the walk reaches the move                | a move's `with:`, an `ask`/`tell` `message:`, a prompt |
+| `{inputs.x}`, `{node.field}`, `{ask.total}`     | when the walk reaches the move                | a move's `with:`, an `agent`'s `context.given:` (bare there, or in braces), an `ask`/`tell` `message:` |
 | `{run.field}`, `{ask.replies}`                  | the same; empty before the run's rounds / any reply | the same — the one forward ref, for a plan that re-reads |
-| a step's own `{node.field}`                     | its last answer; empty the first time         | that step's prompt — what a revision re-reads        |
+| a step's own `{node.field}`                     | its last answer; empty the first time         | that step's own `context.given:` — what a revision re-reads |
+| `{name}`                                        | when the agent step opens, from its `given:`  | that step's prompt — a name, never a dotted ref      |
 | `{x}`                                           | when the macro runs, from the move's `with:`  | a macro's steps and checks                           |
 
 A check reads the same everywhere it appears — a macro step's `require`

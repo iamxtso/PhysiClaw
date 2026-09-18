@@ -474,7 +474,9 @@ inputs:
     description: what to search
 route:
   - agent: parse
-    prompt: "keyword for {inputs.keyword}"
+    context:
+      prompt: "a keyword for {keyword}"
+      given: {keyword: "{inputs.keyword}"}
     returns:
       keyword: the keyword
   - page: app.pages.home

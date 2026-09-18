@@ -135,7 +135,7 @@ def test_never_tap_judges_a_callees_taps_too() -> None:
     pack = pb.load_pack("demo")
     text = VALID.replace(
         "    tools: [tap, scroll]\n",
-        '    tools: [scroll]\n    give: [app.macros.send]\n    never_tap: ["t"]\n',
+        '    tools: [scroll, app.macros.send]\n    never_tap: ["t"]\n',
     )
 
     with pytest.raises(PlaybookError, match="grants macro 'send', which presses"):

@@ -269,8 +269,10 @@ inputs:
     description: what
 route:
   - agent: parse
-    prompt: |
-      List the items in: "{inputs.keyword}"
+    context:
+      prompt: |
+        List the items for {keyword}.
+      given: {keyword: "{inputs.keyword}"}
     returns:
       items: the items, one per line
   - run: leg
@@ -405,7 +407,9 @@ returns:
   did: "searched {inputs.what}"
 route:
   - agent: plan
-    prompt: "a keyword for {inputs.what}"
+    context:
+      prompt: "a keyword for {what}"
+      given: {what: "{inputs.what}"}
     returns:
       key: the keyword
   - start: app
@@ -476,11 +480,15 @@ inputs:
     description: what
 route:
   - agent: parse
-    prompt: |
-      List the items in: "{inputs.keyword}"
-      Later replies, if any: {ask.replies}
-      As it stood: {parse.items}
-      Already searched: {leg.did}
+    context:
+      prompt: |
+        List the items for {keyword}, re-read against {replies}; the list
+        stood at {as_it_stood}, and {already_searched} was searched.
+      given:
+        keyword: "{inputs.keyword}"
+        replies: "{ask.replies}"
+        as_it_stood: "{parse.items}"
+        already_searched: "{leg.did}"
     returns:
       items: the items, one per line
   - run: leg
@@ -533,11 +541,14 @@ def test_an_uncovered_reply_revises_from_the_named_agent_and_reuses_finished_rou
     assert isinstance(read, DecisionRequest) and read.call == READ_REPLY
     replan = p.resolve(MicroOutcome(out="other", reason="a change", confidence=0.9))
 
-    # Back at parse, which now sees the reply and what was searched.
+    # Back at parse, whose prompt now reads the reply and what was
+    # searched where it wrote their names.
     assert isinstance(replan, DecisionRequest) and replan.node_id == "parse"
-    assert "再加 juice，不要 milk" in replan.material["prompt"]
-    assert "As it stood: milk\neggs" in replan.material["prompt"]  # its own last answer
-    assert "searched milk\nsearched eggs" in replan.material["prompt"]
+    brief = replan.material["prompt"]
+    assert "against 再加 juice，不要 milk;" in brief
+    # Its own last answer, and the rounds' returns — a list one per line.
+    assert "stood at milk\neggs, and" in brief
+    assert "searched milk\nsearched eggs was searched" in brief
     assert p.gate.revisions == 1 and not p.gate.awaiting
     assert set(p.ledger.rounds) == {"leg[milk]", "leg[eggs]"}  # finished rounds only
     # The old list is its last answer, not a decision: a walk opening
@@ -615,14 +626,14 @@ def test_a_stepping_rebuild_after_a_revision_opens_at_the_revised_agent() -> Non
     feed(h2, stepped.advance(h2), ELSEWHERE)
     again = stepped.advance(h2)
     assert isinstance(again, DecisionRequest) and again.node_id == "parse"
-    assert "As it stood: milk\neggs" in again.material["prompt"]
+    assert "stood at milk\neggs, and" in again.material["prompt"]
 
 
 def test_a_step_reads_its_own_returns_empty_the_first_time() -> None:
     p, h = _walk(flow=REVISING, pay=PAY, keyword="milk and eggs")
     first = p.advance(h)
     assert isinstance(first, DecisionRequest) and first.node_id == "parse"
-    assert "As it stood: \nAlready searched:" in first.material["prompt"]
+    assert "stood at , and  was searched" in first.material["prompt"]
 
 
 def test_a_reply_sent_before_the_ask_landed_revises_at_the_landing() -> None:
@@ -689,7 +700,7 @@ def test_a_run_only_playbook_reads_its_entrys_leaf_folders() -> None:
     leg = LEG.replace("macro: app.macros.add-cart", "macro: hand").replace(
         "  - page: app.pages.results\n",
         "  - page: app.pages.results\n"
-        "  - agent: read\n    prompt: prompts.note\n"
+        "  - agent: read\n    context:\n      prompt: prompts.note\n"
         "    returns:\n      what: a word\n  - page: app.pages.results\n",
     )
     root = write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
@@ -1162,7 +1173,9 @@ inputs:
     description: what
 route:
   - agent: parse
-    prompt: "describe {inputs.keyword}"
+    context:
+      prompt: "describe {keyword}"
+      given: {keyword: "{inputs.keyword}"}
     returns:
       items: the items, one per line
   - page: app.pages.results

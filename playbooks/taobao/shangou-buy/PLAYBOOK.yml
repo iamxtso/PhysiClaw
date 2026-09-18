@@ -16,19 +16,24 @@ inputs:
 
 route:
   - agent: parse
-    prompt: |
-      The buyer said: "{inputs.user_said}"
-      Later replies, if any: {ask.replies}
-      The list as it stood before those replies: {parse.dishes}
-      This is a takeout order on 淘宝闪购: ONE store, one or more dishes.
-      Return `store`: the restaurant or shop to order from, as the buyer
-      named it (a brand is enough — 瑞幸咖啡, 麦当劳; keep a branch when
-      they named one). Return `dishes`: one dish per line as name + spec
-      + quantity (e.g. 生椰拿铁 大杯 冰 ×2); leave out anything they no
-      longer want. Keep the buyer's language, and keep every line of
-      the earlier list the buyer did not change word for word.
-      If the message names no store and no dish that implies one, return
-      escalate.
+    context:
+      prompt: |
+        The buyer said: "{buyer_said}"
+        Later replies, if any: {replies}
+        The list as it stood before those replies: {earlier_list}
+        This is a takeout order on 淘宝闪购: ONE store, one or more dishes.
+        Return `store`: the restaurant or shop to order from, as the buyer
+        named it (a brand is enough — 瑞幸咖啡, 麦当劳; keep a branch when
+        they named one). Return `dishes`: one dish per line as name + spec
+        + quantity (e.g. 生椰拿铁 大杯 冰 ×2); leave out anything they no
+        longer want. Keep the buyer's language, and keep every line of
+        the earlier list the buyer did not change word for word.
+        If the message names no store and no dish that implies one,
+        escalate.
+      given:
+        buyer_said: inputs.user_said
+        replies: ask.replies
+        earlier_list: parse.dishes
     returns:
       store: the store to order from
       dishes: the dishes, one per line
@@ -56,7 +61,9 @@ route:
   # is the store is a reading of names the results reorder, so it is
   # the model's; the dishes follow in the same context.
   - agent: order
-    prompt: prompts.dish-order    # the card by name, each dish through its spec sheet
+    context:
+      prompt: prompts.dish-order    # the card by name, each dish through its spec sheet
+      given: {store: parse.store, dishes: parse.dishes}
     tools: [tap, scroll, back]
     never_tap:
       - {label: ["去结算", "领券结算", "立即支付", "提交订单"], within: bottom}
@@ -64,7 +71,7 @@ route:
       - "凑单"
       - "换购"
     returns:
-      added: the dishes now in the cart, one per line, with the spec chosen
+      added: the dishes now in the cart, one per line as the store names them, with the spec chosen
     limit: {calls: 18, scrolls: 8}       # the card, then ~4 calls a dish for four dishes
     think: low
     on_fail: stop

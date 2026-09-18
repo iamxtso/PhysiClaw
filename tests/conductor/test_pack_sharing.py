@@ -61,9 +61,10 @@ route:
     with: {message: "{inputs.keyword}"}
   - page: app.pages.results
   - agent: pick
-    prompt: "pick for <<CONTACT>>"
+    context:
+      prompt: "pick for <<CONTACT>>, dismissing promos at {dismiss}"
+      given: {dismiss: app.landmarks.dismiss}
     tools: [tap]
-    give: [app.landmarks.dismiss]
     returns:
       summary: one line
   - page: app.pages.results
@@ -167,7 +168,7 @@ def test_shared_macros_placeholders_and_landmarks_reach_every_file(shop) -> None
     assert "pick for Alice" in specs["buy"].nodes[2].prompt
     assert specs["track"].nodes[2].message.startswith("Alice,")
     # The landmark granted by name in one file is the manifest's.
-    assert specs["buy"].nodes[2].give == ("dismiss",)
+    assert specs["buy"].nodes[2].landmarks == {"dismiss": "dismiss"}
 
 
 def test_the_matcher_sees_the_shared_pages_and_a_walk_builds(shop) -> None:
