@@ -22,7 +22,7 @@ from physiclaw.contract.dto import ImageBlock, TextBlock
 
 
 def _ledger() -> Ledger:
-    return Ledger(ref="taobao/buy", nodes=7, task={"user_said": "buy milk"})
+    return Ledger(ref="taobao/buy", task={"user_said": "buy milk"})
 
 
 def test_every_thread_call_shares_one_system_prompt() -> None:
@@ -81,7 +81,7 @@ def test_a_later_call_extends_the_earlier_one_byte_for_byte() -> None:
 
 
 def test_the_ledgers_delta_rides_the_next_call_once() -> None:
-    boot = Ledger(ref="channel/boot", nodes=3, task={})
+    boot = Ledger(ref="channel/boot", task={})
     thread = Thread()
     parse = thread.request(
         PARSE_TASK, "parse", ("taobao/buy",), {MENU: "m"}, ledger=boot

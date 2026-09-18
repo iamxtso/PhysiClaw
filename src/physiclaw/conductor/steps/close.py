@@ -19,7 +19,7 @@ class CloseStep(Step[None]):
     def __init__(self, walk: Walk) -> None:
         super().__init__(walk, None)
         self.sent: DecisionRequest | None = None
-        n = walk.ledger.nodes
+        n = len(walk.course)
         self.fallback = walk.ledger.recap(
             f"{walk.ledger.ref} completed ({n}/{n} nodes)"
         )

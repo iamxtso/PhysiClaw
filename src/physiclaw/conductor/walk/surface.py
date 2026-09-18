@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from physiclaw.conductor.spec.match import Verdict
     from physiclaw.conductor.spec.model import Channel, Checked, Playbook
     from physiclaw.conductor.spec.pages import Landmark
+    from physiclaw.conductor.walk.course import Course
     from physiclaw.conductor.walk.gate import Gate
     from physiclaw.conductor.walk.ledger import Ledger
     from physiclaw.conductor.walk.program import Program
@@ -80,7 +81,7 @@ class Walk(Protocol):
 
     # ---- the reading: where the walk is and what it has seen ----
     app: str
-    idx: int
+    course: "Course"  # the route and the cursor on it (`course.py`)
     spec: "Playbook"
     gate: "Gate"
     screen: "Screen | None"

@@ -49,10 +49,9 @@ class DoStep(Step[DoNode]):
             args["inputs"] = inputs
         if node.irreversible == "payment":
             walk.spend_consent()
-        nodes = walk.ledger.nodes
         return walk.synth(
             KIND_RUN,
-            f"conductor: move {node.id} ({walk.idx + 1}/{nodes}) — "
+            f"conductor: move {walk.course.label()} — "
             f"macro {node.macro}, verify {node.verify}",
             gesture_vocab.RUN_MACRO,
             args,

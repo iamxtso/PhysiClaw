@@ -31,20 +31,15 @@ def walk_brief(
     reason: str,
     *,
     ledger: Ledger,
-    node: str | None,
-    idx: int,
+    where: str,
     consented: float | None,
     advice: str = "",
 ) -> str:
     """A handed-over walk's report: why, what the model taking over
-    owes (`advice`, when the path left one), where, and the walk's
-    account (`Ledger.account` — the same facts every other exit
-    reports) with the two money warnings that model must read."""
-    where = (
-        f"node {node} ({idx + 1}/{ledger.nodes})"
-        if node is not None
-        else f"past the last node ({ledger.nodes}/{ledger.nodes})"
-    )
+    owes (`advice`, when the path left one), where (`Course.label`,
+    the one prose reading of the cursor), and the walk's account
+    (`Ledger.account` — the same facts every other exit reports) with
+    the two money warnings that model must read."""
     parts = [f"conductor handing over: {reason}."]
     if advice:
         parts.append(f"{advice[0].upper()}{advice[1:]}.")
@@ -70,7 +65,7 @@ def walk_brief(
     return " ".join(parts)
 
 
-def stop_recap(reason: str, *, ref: str, node: str, ledger: Ledger) -> str:
+def stop_recap(reason: str, *, ref: str, where: str, ledger: Ledger) -> str:
     """A stop's last word: where the walk stood, the account, and whether
     money moved — after a fired payment a stop leaves what it paid for
     unverified. The money clause is a WARNING, not a tally, which is why
@@ -80,4 +75,4 @@ def stop_recap(reason: str, *, ref: str, node: str, ledger: Ledger) -> str:
         if ledger.paid is not None
         else "nothing paid"
     )
-    return "; ".join([f"{ref} stopped at {node} — {reason}", *ledger.account(), spent])
+    return "; ".join([f"{ref} stopped at {where} — {reason}", *ledger.account(), spent])

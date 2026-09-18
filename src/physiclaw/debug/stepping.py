@@ -54,6 +54,7 @@ from physiclaw.conductor.spec.model import (
     resolve_inputs,
 )
 from physiclaw.conductor.spec.specfile import SpecError
+from physiclaw.conductor.walk.course import Course
 from physiclaw.conductor.walk.gate import Gate
 from physiclaw.conductor.walk.suspension import read_position
 from physiclaw.contract.dto import ToolCall
@@ -149,10 +150,11 @@ def node_index(spec: Playbook, node: str) -> int:
 
 
 def node_label(spec: Playbook, idx: int) -> str:
-    total = len(spec.nodes)
-    if idx >= total:
-        return f"(end, {total}/{total})"
-    return f"{spec.nodes[idx].id} ({idx + 1}/{total})"
+    """The walk's own spelling of a spec position (`Course.label`), for
+    a stored state that carries none."""
+    course = Course(spec)
+    course.skip_to(idx)
+    return course.label()
 
 
 # ---------- the position ----------
@@ -443,7 +445,7 @@ async def step(
         )
         program.step_one = True
         registry = conductor_setup.walk_registry(program, channel)
-        emit(f"node {program.label()}")
+        emit(f"node {program.course.label()}")
         outcome = await rehearsal.walk(
             program,
             registry,

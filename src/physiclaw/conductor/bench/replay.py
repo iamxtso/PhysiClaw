@@ -80,7 +80,7 @@ def replay(
             return Replay(tuple(turns), program.outcome or "stopped", "went quiet")
         note, act = step.tool_calls
         summary = str(note.arguments.get("summary", ""))
-        node = program.node
+        node = program.course.node
         turns.append(
             ReplayTurn(
                 node=node.id if node is not None else None,
@@ -112,7 +112,7 @@ def _answer(
 ) -> MicroOutcome | None:
     """A pure-text agent's answer from the supplied outputs — every
     declared return field present — else None (the replay stops)."""
-    node = program.node
+    node = program.course.node
     if (
         req.call != AGENT_FIELDS
         or not isinstance(node, AgentNode)

@@ -535,7 +535,7 @@ def test_tell_sends_then_the_walk_moves_on() -> None:
 
     assert "move 'wrap' expects page 'results'" in summary
     assert not suspension.suspended_path().exists()
-    assert p.idx == 2  # the cursor stood on `wrap`, past the tell
+    assert p.course.idx == 2  # the cursor stood on `wrap`, past the tell
 
 
 def test_tell_landing_off_the_thread_hands_over() -> None:
@@ -1159,7 +1159,10 @@ def test_a_stepping_position_recovers_in_place() -> None:
     _feed(h, back, ELSEWHERE)  # the hand did not restore results
     again = stepped.advance(h)
     assert again is not None and again.tool_names() == ["note", "go_back"]
-    assert stepped.idx == 1 and "still off" in again.tool_calls[0].arguments["summary"]
+    assert (
+        stepped.course.idx == 1
+        and "still off" in again.tool_calls[0].arguments["summary"]
+    )
 
 
 def test_declared_unlock_hand_wakes_the_phone_then_continues() -> None:
@@ -2007,8 +2010,7 @@ def test_the_asks_verdict_reaches_every_exit_as_an_answer() -> None:
     assert "answered gate='yes'" in brief.walk_brief(
         "something else broke",
         ledger=p.ledger,
-        node="pay",
-        idx=4,
+        where="pay (5/6)",
         consented=None,
     )
     # The journal line still keeps the reply verbatim and who read it.

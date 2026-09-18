@@ -104,9 +104,9 @@ micro/ — asking the model: the scoped calls, one subsystem:
     channel.py          the channel: the provider call, retries, the logs
 
 walk/ — one playbook executing:
-    program.py          the walk: cursor and phase, verdicts, recovery, ends
+    program.py          the walk: phase, cursor moves, verdicts, recovery, ends
     surface.py          the seam with the steps: `Step`, `Walk`, `Steps`
-    rounds.py           the route as slots, and a run's rounds
+    course.py           the Course: the route as slots, and the cursor on it
     speak.py            the walk's voice: send, land, read replies
     gate.py             the ask-and-hold state, one suspension projection
     money.py            the declared total and the payment predicates

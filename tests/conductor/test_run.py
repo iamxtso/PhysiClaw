@@ -204,7 +204,7 @@ def test_a_run_walks_the_leg_under_its_prefix_and_hands_its_return_forward() -> 
 
     start = p.advance(h)  # the leg's own cold start — the run's first node
     assert start.tool_calls[1].arguments["name"] == "demo/open-app"
-    assert p.label() == "leg[]/app (1/3)"  # the leg's two moves, then the tell
+    assert p.course.label() == "leg[]/app (1/3)"  # the leg's two moves, then the tell
     feed(h, start, HOME)
     search = p.advance(h)
     assert search.tool_calls[1].arguments == {
@@ -253,7 +253,7 @@ def test_a_suspension_inside_a_round_resumes_inside_it() -> None:
 
     resumed = setup.load_suspended()
 
-    assert resumed is not None and resumed.label() == "leg[]/go (3/4)"
+    assert resumed is not None and resumed.course.label() == "leg[]/go (3/4)"
     h2 = history()
     peek = resumed.advance(h2)
     assert peek.tool_names() == ["note", "peek"]
@@ -315,9 +315,13 @@ def test_each_walks_one_round_per_line_and_joins_the_returns() -> None:
     p, h = _walk(flow=EACH, keyword="milk and eggs")
 
     start = _listed(p, h, "milk\neggs\n")
-    assert p.label() == "leg[milk]/app (2/6)"  # parse, two rounds of two, the tell
+    assert (
+        p.course.label() == "leg[milk]/app (2/6)"
+    )  # parse, two rounds of two, the tell
     second = _round(p, h, start, "milk")
-    assert p.label() == "leg[eggs]/app (2/4)"  # the done round has left the route
+    assert (
+        p.course.label() == "leg[eggs]/app (2/4)"
+    )  # the done round has left the route
     tell = _round(p, h, second, "eggs")
 
     assert tell.tool_calls[1].arguments["inputs"]["message"] == (
@@ -388,7 +392,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
     flow = EACH.replace("    limit: {rounds: 2}\n", "    miss: skip\n")
     p, h = _walk(flow=flow, keyword="milk and eggs")
     start = _listed(p, h, "milk\neggs")
-    assert p.label() == "leg[milk]/app (2/6)"
+    assert p.course.label() == "leg[milk]/app (2/6)"
     p.step_one = True
 
     feed(h, start, HOME)  # the leg's cold start landed
@@ -399,7 +403,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
 
     assert p.phase == "paused"  # not walking into the eggs round
     assert isinstance(step, Paused)
-    assert p.label() == "leg[eggs]/app (2/4)"
+    assert p.course.label() == "leg[eggs]/app (2/4)"
     assert p.ledger.rounds["leg[milk]"]["done"] == "missed"
 
 
@@ -570,7 +574,7 @@ def test_an_uncovered_reply_revises_from_the_named_agent_and_reuses_finished_rou
         )
     )
     # Only the juice round runs: eggs kept its record, milk is off the list.
-    assert p.label() == "leg[juice]/app (2/5)"
+    assert p.course.label() == "leg[juice]/app (2/5)"
     assert p.outputs["parse.items"] == "eggs\njuice" and not p.ledger.previous
     resend = _round(p, h, start, "juice")
     assert resend.tool_calls[1].arguments["inputs"]["message"] == (
@@ -858,7 +862,7 @@ def test_a_suspension_inside_the_second_round_resumes_there_without_the_first() 
     feed(h, back, RESULTS)
     # Round two up to its ask, then silence.
     start2 = p.advance(h)
-    assert p.label() == "leg[eggs]/app (2/5)"
+    assert p.course.label() == "leg[eggs]/app (2/5)"
     feed(h, start2, HOME)
     feed(h, p.advance(h), RESULTS)
     send2 = p.advance(h)
@@ -868,7 +872,7 @@ def test_a_suspension_inside_the_second_round_resumes_there_without_the_first() 
 
     resumed = setup.load_suspended()
 
-    assert resumed is not None and resumed.label() == "leg[eggs]/go (4/5)"
+    assert resumed is not None and resumed.course.label() == "leg[eggs]/go (4/5)"
     assert resumed.ledger.round_finished("leg[milk]")  # round one is not walked again
     h2 = history()
     peek = resumed.advance(h2)
@@ -900,7 +904,7 @@ def test_a_recover_hand_inside_a_round_runs_again_never_the_rounds_start() -> No
     # The same hand again, in place — never the milk round's cold
     # launch, never the eggs round, never the parse.
     assert again.tool_calls[1].name == "go_back"
-    assert p.label() == "leg[milk]/search (3/6)"
+    assert p.course.label() == "leg[milk]/search (3/6)"
     assert "parse.items" in p.ledger.decided
 
 
@@ -1000,7 +1004,7 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
             out="done", reason="r", confidence=0.9, payload={"items": "milk\neggs"}
         )
     )
-    assert resumed.label() == "leg[eggs]/app (2/5)"
+    assert resumed.course.label() == "leg[eggs]/app (2/5)"
     feed(h2, start2, HOME)
     search = resumed.advance(h2)
     feed(h2, search, ELSEWHERE)
@@ -1011,7 +1015,7 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
     again = resumed.advance(h2)
 
     assert again.tool_calls[1].name == "go_back"  # the hand again, in place
-    assert resumed.label() == "leg[eggs]/search (3/5)"
+    assert resumed.course.label() == "leg[eggs]/search (3/5)"
 
 
 def test_a_runs_on_fail_word_covers_failures_inside_its_rounds() -> None:
@@ -1063,7 +1067,7 @@ def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
 
     # The hand runs a second time where the walk stands: the move after
     # the run — both rounds are done and gone, never their cold starts.
-    assert p.label() == "after (2/3)"
+    assert p.course.label() == "after (2/3)"
     assert again.tool_calls[1].name == "go_back"
 
 
