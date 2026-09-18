@@ -7,7 +7,9 @@ import base64
 from textwrap import indent
 
 from physiclaw.common.listing import Element, Screen, format_elements
-from physiclaw.conductor.walk.micro import DecisionRequest
+from physiclaw.conductor.load.pack import load_spec
+from physiclaw.conductor.micro.decision import DecisionRequest
+from physiclaw.conductor.spec.model import resolve_inputs
 from physiclaw.contract.dto import (
     AssistantMessage,
     FinishReason,
@@ -283,13 +285,13 @@ def build_program(
     replaced arming as the way to get a Program without a wake. `dry`
     builds the replay's no-trace walk."""
     from physiclaw.conductor.drive import build
-    from physiclaw.conductor.spec import channel
+    from physiclaw.conductor.load import channel
 
-    spec, pack = build.load_spec(app, name, require_live=False)
+    spec, pack = load_spec(app, name)
     return build.build_program(
         spec,
         pack,
-        build.resolve_inputs(spec, values),
+        resolve_inputs(spec, values),
         channel.load_channel(),
         dry=dry,
     )

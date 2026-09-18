@@ -13,8 +13,8 @@ from typer.testing import CliRunner
 
 from physiclaw.cli import app
 from physiclaw.common import paths
-from physiclaw.conductor.spec import pack as pb
-from physiclaw.conductor.spec import pages, scaffold
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load import prints, scaffold
 from physiclaw.conductor.spec.model import PlaybookError
 
 runner = CliRunner()
@@ -33,7 +33,7 @@ def test_active_txt_picks_among_several_folders() -> None:
     write_active("whatsapp")
 
     assert paths.pack_root("channel").name == "whatsapp"
-    assert pages.learned_file("channel").name == "channel-whatsapp.json"
+    assert prints.learned_file("channel").name == "channel-whatsapp.json"
 
 
 def test_several_folders_without_active_txt_is_no_channel() -> None:

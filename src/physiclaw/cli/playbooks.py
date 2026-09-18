@@ -4,13 +4,13 @@ validate, rehearse, and step them; `pages` for their fingerprints.
 The CLI is a skin. Every command is typer around one driver — the
 rehearsal core (`conductor/rehearsal.py`), the stepping driver
 (`debug/stepping.py`), the replay (`conductor/replay.py`), the page
-tools (`cli/pages.py` over `conductor/capture.py`) — and the studio
+tools (`cli/pages.py` over `conductor/bench/capture.py`) — and the studio
 puts a browser UI over the same drivers for a person. Mirrors the
 macros CLI's shapes throughout: `init` prints the next steps, `check`
 is the all-or-nothing gate with valid-is-not-live warnings, and `run`
 rehearses one playbook against the live server the way `macros run`
 rehearses one macro — the test you do BEFORE enabling. The scaffolding
-itself lives in `conductor/scaffold.py` (the `store.init_macro` split:
+itself lives in `conductor/load/scaffold.py` (the `store.init_macro` split:
 the CLI only prints).
 
 Nothing here writes cross-wake state. A rehearsal drives the phone now
@@ -36,12 +36,15 @@ from physiclaw.cli._format import (
 from physiclaw.cli.pages import pages_app
 from physiclaw.common.paths import PACK_FILENAME
 from physiclaw.common.ready import START_HINT
-from physiclaw.conductor.drive import rehearsal
+from physiclaw.conductor.bench import runs
+from physiclaw.conductor.drive import rehearsal, setup
+from physiclaw.conductor.load.files import read_template_manifest
 from physiclaw.conductor.spec.model import PlaybookError
 
 if TYPE_CHECKING:
-    from physiclaw.conductor.drive import decisions
-    from physiclaw.conductor.spec.model import Pack, Playbook, PlaybookEntry
+    from physiclaw.conductor.bench import decisions
+    from physiclaw.conductor.load.pack import PlaybookEntry
+    from physiclaw.conductor.spec.model import Pack, Playbook
 
 playbooks_app = typer.Typer(no_args_is_help=True)
 
@@ -80,7 +83,7 @@ def init(
     example playbook folder, and an example pack macro — parse-clean,
     disabled. `channel/<im>` scaffolds the user channel for one IM app."""
     from physiclaw.common.paths import PACK_FILENAME
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import scaffold
     from physiclaw.conductor.spec.conventions import (
         BOOT_PLAYBOOK,
         CHANNEL_APP,
@@ -163,7 +166,6 @@ def install(
         write_placeholder_values,
     )
     from physiclaw.common.text import read_text, write_text
-    from physiclaw.conductor.spec import scaffold
     from physiclaw.conductor.spec.specfile import SpecError
 
     if not src.is_dir():
@@ -195,7 +197,7 @@ def install(
     # `name`/`description` plus the `placeholders:` map that drives the
     # prompts below. It installs WITH the pack, tokens intact.
     try:
-        meta = scaffold.read_template_manifest(src)
+        meta = read_template_manifest(src)
     except SpecError as e:
         exit_error(str(e))
     if meta.get("description"):
@@ -275,7 +277,7 @@ def _gather_values(
 
 
 def _warn_strays() -> None:
-    from physiclaw.conductor.spec import pack as pb
+    from physiclaw.conductor.load import pack as pb
 
     for stray in pb.stray_dirs():
         typer.echo(
@@ -289,8 +291,8 @@ def _warn_strays() -> None:
 @playbooks_app.command("list")
 def list_cmd() -> None:
     """List every pack and its playbooks: enabled, disabled, or invalid."""
-    from physiclaw.conductor.spec import pack as pb
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import pack as pb
+    from physiclaw.conductor.load import scaffold
 
     scaffold.ensure_format_readme()
     _warn_strays()
@@ -537,8 +539,8 @@ def replay(
     listing file is one screen. Writes nothing."""
     from physiclaw.cli._sessions import resolve_sid
     from physiclaw.common.text import read_text
-    from physiclaw.conductor.drive import corpus
-    from physiclaw.conductor.drive import replay as replay_mod
+    from physiclaw.conductor.bench import corpus
+    from physiclaw.conductor.bench import replay as replay_mod
 
     app, name = _split_ref(ref)
     if (session is None) == (not listings):
@@ -549,7 +551,7 @@ def replay(
         else:
             assert session is not None  # the exactly-one check above
             screens = corpus.session_listings(resolve_sid(session))
-        program, _ = rehearsal.arm(
+        program, _ = setup.arm(
             app,
             name,
             parse_inputs(inputs or []),
@@ -578,16 +580,15 @@ def stats(
     """Per-playbook walk outcomes from playbooks/runs.jsonl — the
     escalation-rate KPI. A playbook that keeps handing over at one node
     is a rehearsal bug this table points at."""
-    from physiclaw.conductor.walk import walklog
 
-    rows = walklog.load()
+    rows = runs.load()
     if not rows:
         typer.echo(
             "No walks recorded yet — runs land in playbooks/runs.jsonl "
             "as playbooks execute (wakes and rehearsals alike)."
         )
         return
-    for key, st in sorted(walklog.summarize(rows).items()):
+    for key, st in sorted(runs.summarize(rows).items()):
         typer.echo(
             f"{key}: runs={st.runs} completed={st.completed} "
             f"suspended={st.suspended} handover={st.handover} "
@@ -615,10 +616,9 @@ def _decisions_section(rows: list[dict]) -> None:
     the sessions the runs name — the second KPI beside escalation: a
     decision that takes minutes or escalates is a `think:` level, a
     prompt, or a model to change."""
-    from physiclaw.conductor.drive import decisions
-    from physiclaw.conductor.walk import walklog
+    from physiclaw.conductor.bench import decisions
 
-    dirs = walklog.session_dirs(rows)
+    dirs = runs.session_dirs(rows)
     stats = decisions.decision_stats(dirs)
     if not stats:
         return
@@ -636,7 +636,7 @@ def _decisions_section(rows: list[dict]) -> None:
 def _mark(r: "decisions.Reply", rec: "decisions.Recorded") -> str:
     """One word on a reply, beside the recorded move — the same
     agreement `decisions.summarize` counts."""
-    from physiclaw.conductor.drive import decisions
+    from physiclaw.conductor.bench import decisions
 
     if r.error:
         return "error"
@@ -650,7 +650,7 @@ def _mark(r: "decisions.Reply", rec: "decisions.Recorded") -> str:
 def _move(answer: "str | None", args: "dict | None") -> str:
     """A recorded or replayed move in words (`describe_move`); an
     invalid reply reads as None."""
-    from physiclaw.conductor.walk.micro import describe_move
+    from physiclaw.conductor.micro.moves import describe_move
 
     return describe_move(answer, args or {}) if answer is not None else "None"
 
@@ -694,7 +694,7 @@ def micro(
     from physiclaw.common import paths
     from physiclaw.common.config import CONFIG
     from physiclaw.common.model_ref import parse_model_ref
-    from physiclaw.conductor.drive import decisions
+    from physiclaw.conductor.bench import decisions
     from physiclaw.contract.dto import THINKING_LEVELS, Thinking
     from physiclaw.provider import make_provider
 
@@ -797,9 +797,8 @@ def propose(
     that make a pack patch out of the recorded evidence. Nothing
     self-applies — every escalation the author fixes here prevents the
     next one."""
-    from physiclaw.conductor.walk import walklog
 
-    sites = walklog.escalation_sites(walklog.load(), top=top)
+    sites = runs.escalation_sites(runs.load(), top=top)
     if not sites:
         typer.echo("No escalations recorded — nothing to propose.")
         return
@@ -824,8 +823,9 @@ def propose(
 def check() -> None:
     """Validate every pack: pages, pack macros, playbooks. Exit 1 if any
     is invalid."""
-    from physiclaw.conductor.spec import lints, scaffold
-    from physiclaw.conductor.spec import pack as pb
+    from physiclaw.conductor.load import pack as pb
+    from physiclaw.conductor.load import scaffold
+    from physiclaw.conductor.route import lints
 
     scaffold.ensure_format_readme()
     _warn_strays()
@@ -857,8 +857,8 @@ def _pack_label(app: str) -> str:
 def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":
     """Report one pack: (anything invalid, the valid playbooks by ref —
     what the cross-pack advisory reads, so nothing loads twice)."""
-    from physiclaw.conductor.spec import lints
-    from physiclaw.conductor.spec import pack as pb
+    from physiclaw.conductor.load import pack as pb
+    from physiclaw.conductor.route import lints
 
     try:
         pack = pb.load_pack(app)
@@ -870,7 +870,7 @@ def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":
         typer.echo(step_fail(f"{app}/{rel}: {err}"))
         bad = True
     entries = pb.scan_playbooks(app, pack)
-    for line in lints.pack_warnings(pack, entries):
+    for line in lints.pack_warnings(pack, [e.spec for e in entries if e.spec]):
         typer.echo(warn(f"{app}/{line}"))
     for entry in entries:
         if entry.spec is None:
@@ -895,9 +895,9 @@ def _check_app(app: str) -> "tuple[bool, dict[str, Playbook]]":
 def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> None:
     """Valid is not live: a green check invites the wrong assumption. Say
     which playbooks the boot will not offer, and why — the reason from
-    `pack.live_gap`, the one rule the wake roster and `require_live`
+    `spec.model.live_gap`, the one rule the wake roster and `require_live`
     also read. Rehearse them (`playbooks run`), then enable."""
-    from physiclaw.conductor.spec.pack import live_gap
+    from physiclaw.conductor.spec.model import live_gap
 
     for e in entries:
         if e.spec is None or not e.spec.offered:
@@ -908,7 +908,7 @@ def _report_not_live(app: str, pack: "Pack", entries: "list[PlaybookEntry]") -> 
 
 def _split_ref(ref: str) -> tuple[str, str]:
     """`<app>/<playbook>` — the pack's own parse, exiting on a bad one."""
-    from physiclaw.conductor.spec.pack import split_ref
+    from physiclaw.conductor.spec.model import split_ref
     from physiclaw.conductor.spec.specfile import SpecError
 
     try:
@@ -957,7 +957,7 @@ async def _rehearse(
     # Local import: the mcp SDK only loads when actually rehearsing.
     from physiclaw.agent.engine.mcp_tool import McpClient
 
-    program, registry = rehearsal.arm(
+    program, registry = setup.arm(
         app, name, values, emit_warn=lambda s: typer.echo(warn(s))
     )
     async with McpClient() as mcp:

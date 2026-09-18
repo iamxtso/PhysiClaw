@@ -19,13 +19,21 @@ from conductor_fakes import (
     write_pack,
 )
 
-from physiclaw.conductor.drive import activation, build, setup
-from physiclaw.conductor.spec import lints
-from physiclaw.conductor.spec import pack as pb
+from physiclaw.conductor.drive import build, setup
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load.pack import discover, load_spec
+from physiclaw.conductor.micro.decision import READ_REPLY, DecisionRequest, MicroOutcome
+from physiclaw.conductor.route import lints, playbook
 from physiclaw.conductor.spec.limits import MAX_MESSAGE_LINES
-from physiclaw.conductor.spec.model import PlaybookError, RunNode, TellNode
-from physiclaw.conductor.walk.micro import READ_REPLY, DecisionRequest, MicroOutcome
-from physiclaw.conductor.walk.step import Paused
+from physiclaw.conductor.spec.model import (
+    PlaybookError,
+    RunNode,
+    TellNode,
+    disabled_macros,
+    live_gap,
+    qualified_inline,
+)
+from physiclaw.conductor.walk.surface import Paused
 
 LEG = """\
 kind: playbook
@@ -75,7 +83,7 @@ def _parse(text: str, name: str = "flow", **playbooks: str):
     """One playbook parsed against a pack holding it. A keyword spells
     the id's dot with an underscore (`flow_leg=`), which Python allows."""
     others = {k.replace("_", "."): v for k, v in playbooks.items()}
-    return pb.parse_playbook(text, name, _pack(**{name: text, **others}))
+    return playbook.parse_playbook(text, name, _pack(**{name: text, **others}))
 
 
 def test_a_run_is_a_move_framed_like_a_do() -> None:
@@ -171,10 +179,10 @@ def test_a_leg_without_its_own_start_needs_the_page_before_the_run() -> None:
 
 def test_the_registry_and_the_readiness_rule_see_the_leg_too() -> None:
     pack = _pack(flow=FLOW)
-    spec = pb.parse_playbook(FLOW, "flow", pack)
+    spec = playbook.parse_playbook(FLOW, "flow", pack)
 
-    assert pb.disabled_macros(spec, pack) == []
-    assert pb.qualified_inline("demo", spec) == {}
+    assert disabled_macros(spec, pack) == []
+    assert qualified_inline("demo", spec) == {}
 
 
 # ---------- the walk ----------
@@ -618,7 +626,7 @@ def test_a_stepping_rebuild_after_a_revision_opens_at_the_revised_agent() -> Non
     replan = p.resolve(MicroOutcome(out="other", reason="a change", confidence=0.9))
     assert isinstance(replan, DecisionRequest) and replan.node_id == "parse"
 
-    spec, pack = build.load_spec("demo", "flow", require_live=False)
+    spec, pack = load_spec("demo", "flow")
     stepped = build.build_program(
         spec, pack, {"keyword": "milk and eggs"}, None, position=p.state(), dry=True
     )
@@ -657,11 +665,11 @@ def test_a_reply_sent_before_the_ask_landed_revises_at_the_landing() -> None:
 
 def test_a_run_only_playbook_is_off_the_boot_menu_but_its_entry_walks_it() -> None:
     pack = _pack(flow=FLOW)
-    spec = pb.parse_playbook(LEG, "flow.leg", pack)
-    flow = pb.parse_playbook(FLOW, "flow", pack)
+    spec = playbook.parse_playbook(LEG, "flow.leg", pack)
+    flow = playbook.parse_playbook(FLOW, "flow", pack)
     assert spec.run_by == "flow" and flow.run_by is None
 
-    found = activation.discover()
+    found = discover()
 
     assert "demo/flow" in found.entries and "demo/flow.leg" not in found.entries
     assert "demo/flow.leg (run by flow)" in found.roster
@@ -707,7 +715,7 @@ def test_a_run_only_playbook_reads_its_entrys_leaf_folders() -> None:
     write_local_macro(root, "flow", "hand")
     write_prompt(root, "flow", "note", "read the screen")
 
-    spec = pb.parse_playbook(leg, "flow.leg", pb.load_pack("demo"))
+    spec = playbook.parse_playbook(leg, "flow.leg", pb.load_pack("demo"))
 
     assert spec.inline_macros["flow.hand"].name == "flow.hand"
     assert spec.prompts_used == frozenset({"flow/prompts/note.md"})
@@ -1138,7 +1146,7 @@ def test_a_run_of_a_disabled_playbook_is_not_live() -> None:
     write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
     pack = pb.load_pack("demo")
 
-    assert pb.live_gap(pb.parse_playbook(FLOW, "flow", pack), pack) == (
+    assert live_gap(playbook.parse_playbook(FLOW, "flow", pack), pack) == (
         "runs disabled playbook 'flow.leg'"
     )
 

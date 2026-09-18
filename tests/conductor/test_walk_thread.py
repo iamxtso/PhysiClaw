@@ -6,19 +6,17 @@ from __future__ import annotations
 
 from conductor_fakes import FRAME
 
-from physiclaw.conductor.walk.ledger import Ledger
-from physiclaw.conductor.walk.micro import (
-    _SPECS,
+from physiclaw.conductor.micro.calltable import SPECS
+from physiclaw.conductor.micro.compose import messages, system, user_content
+from physiclaw.conductor.micro.decision import (
     ASK,
     MENU,
     PARSE_TASK,
     READ_REPLY,
     SUMMARIZE,
     MicroOutcome,
-    _messages,
-    _system,
-    user_content,
 )
+from physiclaw.conductor.walk.ledger import Ledger
 from physiclaw.conductor.walk.thread import Thread
 from physiclaw.contract.dto import ImageBlock, TextBlock
 
@@ -36,13 +34,13 @@ def test_every_thread_call_shares_one_system_prompt() -> None:
     read = thread.request(READ_REPLY, "confirm", (), {ASK: "pay?"}, ledger=ledger)
     close = thread.request(SUMMARIZE, "close", (), {}, ledger=ledger)
 
-    prompts = {_system(req) for req in (parse, read, close)}
+    prompts = {system(req) for req in (parse, read, close)}
 
     assert len(prompts) == 1  # the whole thread is one cached prefix
-    (system,) = prompts
-    assert "OUTSTANDING" in system and '"answer"' in system
+    (text,) = prompts
+    assert "OUTSTANDING" in text and '"answer"' in text
     # The call's legend is the user block's tail, never the system prompt.
-    assert "playbook EXACTLY as listed" not in system
+    assert "playbook EXACTLY as listed" not in text
     assert str(user_content(parse)).endswith("(follow its e.g. example when shown).")
 
 
@@ -58,7 +56,7 @@ def test_a_later_call_extends_the_earlier_one_byte_for_byte() -> None:
         listing="buy milk",
         frame=FRAME,
     )
-    first = _messages(parse)
+    first = messages(parse)
     thread.settle(
         parse,
         MicroOutcome(
@@ -71,7 +69,7 @@ def test_a_later_call_extends_the_earlier_one_byte_for_byte() -> None:
     )
 
     read = thread.request(READ_REPLY, "confirm", (), {ASK: "pay ¥45?"}, ledger=ledger)
-    second = _messages(read)
+    second = messages(read)
 
     # The prefix is the previous request whole, then its canonical reply.
     assert second[: len(first)] == first
@@ -139,7 +137,7 @@ def test_read_reply_carries_the_ask_the_replies_and_the_frame() -> None:
             'When unsure, "other": the move fires on confirm and cannot be undone.'
         )
     )
-    assert _SPECS[READ_REPLY].answer_space(req) == ("confirm", "deny", "other")
+    assert SPECS[READ_REPLY].answer_space(req) == ("confirm", "deny", "other")
 
 
 def test_later_thread_calls_inherit_the_first_calls_think_level() -> None:

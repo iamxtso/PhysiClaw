@@ -1,4 +1,4 @@
-"""Tests for `physiclaw.conductor.drive.replay` (behind `playbooks replay`) —
+"""Tests for `physiclaw.conductor.bench.replay` (behind `playbooks replay`) —
 the real walk over recorded screens, writing nothing."""
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from conductor_fakes import (
 from typer.testing import CliRunner
 
 from physiclaw.cli.playbooks import playbooks_app
-from physiclaw.conductor.drive import replay
+from physiclaw.conductor.bench import replay
 from physiclaw.conductor.walk import suspension, walklog
 
 AGENT_FLOW = """\
@@ -164,14 +164,14 @@ def test_a_replay_stops_at_an_acting_agent_it_cannot_answer() -> None:
     # An acting episode's move is a model decision like a text agent's:
     # only a model can answer it, so the replay must STOP and say where,
     # not fall through and report a handover. The rule is read off the
-    # call's own declaration (`micro.has_fallback`).
-    from physiclaw.conductor.walk.micro import (
+    # call's own declaration (`micro.calltable.has_fallback`).
+    from physiclaw.conductor.micro.calltable import has_fallback
+    from physiclaw.conductor.micro.decision import (
         AGENT_ACT,
         AGENT_FIELDS,
         PARSE_TASK,
         READ_REPLY,
         SUMMARIZE,
-        has_fallback,
     )
 
     write_pack(playbooks={"flow": ACTING_FLOW})

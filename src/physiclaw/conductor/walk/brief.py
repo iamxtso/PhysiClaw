@@ -19,12 +19,12 @@ the app showed — and the messages sent, so that clause wears the same
 stamp the micro calls put on untrusted text (`prompts.DATA_STAMP`). The
 model taking over holds every tool; the note it resumes from must not
 read a seller's words as the conductor's. A model-written reason is
-quoted and clipped where it enters (`step_agent`), for the same cause.
+quoted and clipped where it enters (`steps.agent`), for the same cause.
 """
 
+from physiclaw.conductor.micro.prompts import DATA_STAMP
 from physiclaw.conductor.walk import money
 from physiclaw.conductor.walk.ledger import Ledger
-from physiclaw.conductor.walk.prompts import DATA_STAMP
 
 
 def walk_brief(
@@ -68,3 +68,16 @@ def walk_brief(
         "peek shows the current screen. Verify state before acting."
     )
     return " ".join(parts)
+
+
+def stop_recap(reason: str, *, ref: str, node: str, ledger: Ledger) -> str:
+    """A stop's last word: where the walk stood, the account, and whether
+    money moved — after a fired payment a stop leaves what it paid for
+    unverified. The money clause is a WARNING, not a tally, which is why
+    it is worded here, not by `Ledger.recap`."""
+    spent = (
+        f"a payment of {money.plain(ledger.paid)} fired, unverified"
+        if ledger.paid is not None
+        else "nothing paid"
+    )
+    return "; ".join([f"{ref} stopped at {node} — {reason}", *ledger.account(), spent])

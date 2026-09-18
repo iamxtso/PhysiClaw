@@ -37,6 +37,13 @@ class Gate:
     replies: list[str] = field(default_factory=list)
     revisions: int = 0
 
+    def opened(self, text: str, yes: tuple[str, ...], no: tuple[str, ...]) -> None:
+        """An ask goes out: the question, and the words its reply will
+        be judged by once it lands."""
+        self.ask = text
+        self.next_words = (yes, no)
+        self.tried_open = False
+
     def abandon_ask(self) -> "Gate":
         """Leave the ask the cursor was holding (a stepping JUMP): the
         ask text, its reply words, the thread snapshot they were read

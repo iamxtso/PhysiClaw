@@ -1,0 +1,284 @@
+"""Micro-calls — the conductor's scoped model calls, one channel.
+
+Two live in an agent step: `agent_fields` (a pure-text call: the
+author's prompt in, declared fields out) and `agent_act` (one episode
+turn: a tool call — tap, scroll, back, run_macro, done, or escalate,
+each with its own args). Three more are the session's thread
+(`thread.py`), which asks about the errand rather than a screen:
+`parse_task` (does the chat thread assign a task a playbook covers?),
+`read_reply` (a reply the ask's own yes/no words could not decide) and
+`summarize` (the record a completed walk closes on). Each call's shape
+is ONE row of `calltable.SPECS`; the shapes are `decision.py`, the
+reply reader `answers.py`.
+
+`MicroCaller` is the channel: one provider call with one transient
+retry, one repair retry on a reply the call's own rules refuse, a
+confidence judged against the config floor, and every round-trip in
+the trace and the wire log. Anything else resolves to no outcome and
+the walk hands over — escalation, never a guess. Wired by `plugin.py`
+off the setup context.
+"""
+
+import asyncio
+import logging
+import time
+from typing import Any, Callable
+
+from physiclaw.common.config import CONFIG
+from physiclaw.conductor.micro.answers import parse_reply
+from physiclaw.conductor.micro.calltable import SPECS
+from physiclaw.conductor.micro.compose import messages
+from physiclaw.conductor.micro.decision import (
+    DecisionRequest,
+    Macro,
+    MicroOutcome,
+    MicroResult,
+    Tap,
+)
+from physiclaw.conductor.micro.moves import reply_args
+from physiclaw.contract.dto import (
+    USAGE_CALL_MICRO,
+    AssistantMessage,
+    ContentBlock,
+    Message,
+    MicroRecord,
+    UserMessage,
+    role_of,
+)
+from physiclaw.contract.plugin import ChatProvider, EventSink, WireSink
+from physiclaw.provider import Provider, ProviderTransientError
+from physiclaw.provider.wire import anthropic_image_part, encode_content
+
+log = logging.getLogger(__name__)
+
+
+class MicroCaller:
+    """The session's decision-call channel — provider + confidence floor
+    + logging sinks, constructed by `plugin.py` off the setup context."""
+
+    def __init__(
+        self,
+        # The fail-open floor only ever answers `chat` — the structural
+        # contract slice, so the seam can hand us the session provider
+        # without the conductor demanding the full Provider surface.
+        provider: ChatProvider,
+        *,
+        confidence_floor: float,
+        tr: "EventSink | None" = None,
+        rlog: "WireSink | None" = None,
+        owned_factory: "Callable[[], Provider] | None" = None,
+    ):
+        self._provider = provider
+        self._floor = confidence_floor
+        self._tr = tr
+        self._rlog = rlog
+        # The cheap-tier provider, built lazily on the FIRST call: most
+        # sessions that wire a caller (an activation trigger) never fire
+        # a micro-call, so the second client must not be paid for at
+        # wake. Ours to close (`aclose`); the session provider is not.
+        self._owned_factory = owned_factory
+        self._owned: Provider | None = None
+
+    def _live_provider(self) -> ChatProvider:
+        if self._owned_factory is not None:
+            factory, self._owned_factory = self._owned_factory, None
+            try:
+                self._owned = factory()
+            except Exception:
+                # One attempt; a broken cheap tier falls back to the
+                # session model permanently (fail-open, logged once).
+                log.warning(
+                    "micro provider unusable — using the session model",
+                    exc_info=True,
+                )
+        return self._owned if self._owned is not None else self._provider
+
+    async def aclose(self) -> None:
+        """Close the lazily-built cheap-tier provider, if one was built."""
+        if self._owned is not None:
+            await self._owned.aclose()
+
+    async def run(self, req: DecisionRequest) -> MicroResult:
+        """One decision. `result.outcome` is None when the caller should
+        escalate. Never raises."""
+        t0 = time.perf_counter()
+        try:
+            outcome, detail, attempts = await self._ask(req)
+        except Exception as e:
+            log.warning("micro %s (%s): provider failed — %s", req.call, req.node_id, e)
+            outcome, detail, attempts = None, "provider error", 0
+        result = MicroResult(
+            outcome=outcome,
+            detail=detail,
+            attempts=attempts,
+            elapsed_ms=int((time.perf_counter() - t0) * 1000),
+        )
+        self._trace(req, result)
+        return result
+
+    async def _ask(
+        self, req: DecisionRequest
+    ) -> "tuple[MicroOutcome | None, str, int]":
+        """One decision on the live provider: fresh messages, one repair
+        retry, floor judgment. No outcome means escalate — the walk hands
+        over rather than asking a second model the same question."""
+        allowed = SPECS[req.call].answer_space(req)
+        provider = self._live_provider()
+        msgs = messages(req)
+        attempts = 0
+        err = ""
+        for attempts in (1, 2):  # one bounded repair retry
+            try:
+                asst = await _chat(provider, msgs, req)
+            except Exception as e:
+                # Escalate HERE, not via run()'s catch-all, so the
+                # attempt count the trace records stays exact. (Tokens are
+                # the provider's `usage` events, one per attempt.)
+                log.warning(
+                    "micro %s (%s): provider failed — %s", req.call, req.node_id, e
+                )
+                return None, "provider error", attempts
+            parsed, err = parse_reply(asst.content or "", allowed, req.call)
+            self._log_wire(req, msgs, asst, allowed, parsed)
+            if parsed is None:
+                log.info(
+                    "micro %s (%s) attempt %d invalid: %s",
+                    req.call,
+                    req.node_id,
+                    attempts,
+                    err,
+                )
+                # Repair retry: the model sees its own reply + the exact
+                # validation error, once. A second miss escalates.
+                msgs = [
+                    *msgs,
+                    asst,
+                    UserMessage(
+                        content=f"Invalid: {err}. Reply with ONLY the JSON object."
+                    ),
+                ]
+                continue
+            answer, reason, confidence, obj = parsed
+            if confidence < self._floor:
+                log.info(
+                    "micro %s (%s): confidence %.2f below floor %.2f — escalating",
+                    req.call,
+                    req.node_id,
+                    confidence,
+                    self._floor,
+                )
+                return None, f"confidence {confidence:.2f} below floor", attempts
+            outcome = SPECS[req.call].to_outcome(req, answer, reason, confidence, obj)
+            return outcome, reason, attempts
+        return None, f"invalid after repair retry: {err}", attempts
+
+    def _log_wire(
+        self,
+        req: DecisionRequest,
+        messages: list[Message],
+        asst: AssistantMessage,
+        allowed: tuple[str, ...],
+        parsed: "tuple[str, str, float, dict[str, Any]] | None",
+    ) -> None:
+        """One round-trip to the wire sink, whole — every message, an
+        episode's replayed history included (its replayed assistant
+        turns are the contract's re-serialisation, not the raw replies,
+        so a trimmed record could not be rebuilt byte for byte). Frames
+        ride as typed blocks the sink scrubs to session files, the way
+        a turn's request is kept. The prefix repeats per call, bounded
+        by the call limit: a long episode over dense screens logs a few
+        megabytes of text."""
+        if self._rlog is None:
+            return
+        self._rlog.write_micro(
+            MicroRecord(
+                call=req.call,
+                node=req.node_id,
+                thinking=req.thinking,
+                allowed=allowed,
+                answer=parsed[0] if parsed else None,
+                confidence=parsed[2] if parsed else None,
+                request=[
+                    {"role": role_of(m), "content": wire_content(m.content)}
+                    for m in messages
+                ],
+                raw=asst.raw,
+                reason=parsed[1] if parsed else None,
+                args=reply_args(parsed[3]) if parsed else None,
+            )
+        )
+
+    def _trace(self, req: DecisionRequest, result: MicroResult) -> None:
+        """The decision event — one per decision, whatever happened; the
+        trace renders it once and mirrors that line into the process
+        log. Its tokens are the provider's `usage` event (written by the
+        provider itself, under the model that answered — the cheap tier
+        when one is wired)."""
+        if self._tr is None:
+            return
+        self._tr.write(
+            {
+                "event": "micro_call",
+                "call": req.call,
+                "node": req.node_id,
+                # An episode turn's listed elements — the count says how
+                # much screen the decision saw (a truncated one is
+                # visible here, not only in the process log) — and
+                # whether the frame rode beside them.
+                "rows": len(req.elements),
+                "frame": req.frame is not None,
+                "out": result.outcome.out if result.outcome else None,
+                # What an action touched, as the model spoke it.
+                "label": _picked_words(result.outcome),
+                "confidence": (result.outcome.confidence if result.outcome else None),
+                "detail": result.detail,
+                "attempts": result.attempts,
+                "elapsed_ms": result.elapsed_ms,
+            }
+        )
+
+
+def _picked_words(outcome: MicroOutcome | None) -> str | None:
+    picked = outcome.picked if outcome else None
+    if isinstance(picked, Tap):
+        return picked.label
+    if isinstance(picked, Macro):
+        return picked.name
+    return None
+
+
+def wire_content(content: "str | list[ContentBlock] | Any") -> Any:
+    """A message's content in the wire record's shape: text as is, a
+    block list as typed dicts — the provider codec's dispatch with the
+    base64 `image` part the wire scrubber reads back
+    (`contract.wire.scrub_block` / `image_ref`), so a micro record's
+    frames are filed and shown exactly like a turn's."""
+    return encode_content(
+        content, image_part=anthropic_image_part, empty="", label="micro"
+    )
+
+
+async def _chat(
+    provider: ChatProvider, messages: list[Message], req: DecisionRequest
+) -> AssistantMessage:
+    """One provider call with ONE transient retry (the providers' own
+    taxonomy: timeout / 429 / 5xx — permanent 4xx and real bugs fail
+    fast): a blip on the cheap tier is common and permanent escalation
+    is too big a price for it. Raises whatever the second try raises."""
+    # How much the model may think is the step's `think:` (the vendor
+    # translates it, see `BaseProvider.thinking_params`); the reply's
+    # `reason` field is the chain of thought the contract always gets.
+    try:
+        return await provider.chat(
+            messages, [], purpose=USAGE_CALL_MICRO, thinking=req.thinking
+        )
+    except ProviderTransientError:
+        log.info(
+            "micro %s (%s): transient provider error — one retry",
+            req.call,
+            req.node_id,
+        )
+        await asyncio.sleep(CONFIG.engine.retry_backoff_seconds)
+        return await provider.chat(
+            messages, [], purpose=USAGE_CALL_MICRO, thinking=req.thinking
+        )

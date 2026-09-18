@@ -27,15 +27,16 @@ channel means a channel-less registry. Construction itself is
 `build.py`'s.
 """
 
-import json
 import logging
 
-from physiclaw.common.text import read_text
-from physiclaw.conductor.drive.activation import activation_from, discover
-from physiclaw.conductor.drive.build import build_program, load_spec
-from physiclaw.conductor.spec import scaffold
-from physiclaw.conductor.spec.channel import Channel, load_channel
-from physiclaw.conductor.spec.model import PlaybookError
+from physiclaw.conductor.drive.activation import activation_for, activation_from
+from physiclaw.conductor.drive.build import build_program
+from physiclaw.conductor.drive.hooks import Emit
+from physiclaw.conductor.load import scaffold
+from physiclaw.conductor.load.channel import load_channel
+from physiclaw.conductor.load.pack import discover, load_spec
+from physiclaw.conductor.route import lints
+from physiclaw.conductor.spec.model import Channel, require_live, resolve_inputs
 from physiclaw.conductor.walk import suspension
 from physiclaw.conductor.walk.program import Program
 from physiclaw.contract.plugin import EventSink
@@ -57,12 +58,11 @@ def load_suspended(
     if not p.exists():
         return None
     try:
-        data = json.loads(read_text(p))
-        if data.get("schema") != suspension.SUSPENDED_SCHEMA:
-            raise PlaybookError(f"unknown suspended schema {data.get('schema')!r}")
+        data = suspension.read_suspended()
         app = str(data["app"])
         name = str(data["playbook"])
         spec, pack = load_spec(app, name)
+        require_live(spec, pack)
         program = build_program(
             spec,
             pack,
@@ -161,3 +161,35 @@ def session_setup(
     hidden.update(boot.pack_macros)  # a hand embedded in the boot route
     log.info("conductor: boot drives — offering %s", ", ".join(found.entries))
     return boot, hidden
+
+
+def arm(
+    app: str, name: str, values: dict[str, str], emit_warn: Emit, *, dry: bool = False
+) -> "tuple[Program, dict[str, Macro]]":
+    """Load, validate, and build the walk — no connection, no gesture.
+    Raises PlaybookError/MacroError on a bad spec or bad inputs.
+    Returns (program, registry) ready for `walk`; `dry` builds the
+    walk the offline replay drives (it writes nothing)."""
+    from physiclaw.conductor.drive import setup as conductor_setup
+    from physiclaw.conductor.load import channel as channel_mod
+
+    spec, pack = load_spec(app, name)
+    values = resolve_inputs(spec, values)
+    if not spec.enabled:
+        emit_warn(f"{app}/{name} is disabled — rehearsing it anyway")
+    for line in lints.readiness_warnings(spec, pack):
+        emit_warn(line)
+    channel = channel_mod.load_channel()
+    program = build_program(
+        spec,
+        pack,
+        values,
+        channel,
+        dry=dry,
+        activation=activation_for(channel) if spec.activates else None,
+    )
+    # The dispatch registry a real wake would arm — one spelling, shared
+    # with `session_setup` (a gate's ask dispatches `channel/send`,
+    # which is not this pack's macro).
+    registry = conductor_setup.walk_registry(program, channel)
+    return program, registry

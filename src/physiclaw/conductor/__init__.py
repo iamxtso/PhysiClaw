@@ -58,31 +58,55 @@ The seam:
     plugin.py           the composition point the engine names: wake setup,
                         micro wiring, one Conductor per session
 
-spec/ — what a pack declares (imports nothing from walk or drive):
+The packages, in the order a reader meets them — each imports only the
+ones above it:
+
+spec/ — the grammar and the page model, as data:
     conventions.py      the fixed names: channel, ios, thread, boot, lock
-    model.py            the playbook grammar as dataclasses, the Pack
-    refs.py             the `{inputs.x}` / `{move.field}` ref grammar
-    pack.py             the pack door: load, scan, qualified names, live rule
-    route.py            the route compiler
-    lints.py            the whole-route checks and the check-time advisories
-    pages.py            declared and learned page fingerprints
-    match.py            the open-set page matcher (the lock screen by shape)
-    channel.py          the user-channel pack: thread, send, open, boot
-    reply.py            deterministic confirm/deny reply reading
-    context.py          what an agent step's `context:` loads beside it
-    calls.py            the episode vocabulary the parser and walk share
     limits.py           every bound a walk runs under, in one place
     specfile.py         shared YAML substrate
-    scaffold.py         pack templates and playbooks/README.md
+    model.py            the playbook grammar as dataclasses, the Pack
+    refs.py             the `{inputs.x}` / `{move.field}` / `{name}` grammar
+    calls.py            the episode vocabulary the parser and walk share
+    memory.py           the `context.memory:` vocabulary
+    manifest.py         the manifest's top-level grammar: sections and meta
+    fence.py            the never_tap fence, judged on a live screen
+    reply.py            deterministic confirm/deny reply reading
+    pages.py            declared page fingerprints, landmarks, learned geometry
+    match.py            the open-set page matcher (the lock screen by shape)
 
-walk/ — one playbook executing (imports spec, never drive):
+route/ — the route compiler, pure over spec (reads no file):
+    compile.py          the door: `route:` → moves, start page, hands
+    scope.py            what one compile threads through every parser
+    fields.py           the field rules every move shares
+    resolve.py          macros, prompt files and landmarks by reference
+    do.py, agent.py, ask.py, select.py, run.py   one parser per move
+    recover.py          declared recovery: pages' hands, layered
+    playbook.py         a playbook file → its `Playbook`, the route compiled
+    lints.py            the whole-route checks and the check-time advisories
+
+load/ — reading packs off the disk into the grammar, and writing new ones:
+    files.py            a pack's YAML files, read: manifest and playbooks
+    pack.py             the pack door: load, scan, discover, load_spec
+    prints.py           declared pages off the disk, and the learned store
+    channel.py          the user-channel pack: thread, send, open, boot
+    scaffold.py         pack init and the format README, on disk
+    stubs.py            the texts the scaffold writes
+
+micro/ — asking the model: the scoped calls, one subsystem:
+    decision.py         the shapes: request, outcome, the call names
+    blocks.py           the blocks a user turn is built from, data-stamped
+    moves.py            a move as (action, args): read, keyed, said
+    calltable.py        one row per call: legend, answer space, outcome
+    compose.py          the request as messages; the settled exchange
+    answers.py          reading a reply against what its call declares
+    prompts.py          what the calls say — the prompt texts
+    channel.py          the channel: the provider call, retries, the logs
+
+walk/ — one playbook executing:
     program.py          the walk: cursor and phase, verdicts, recovery, ends
-    step.py             the step executor contract + the Walk surface
-    step_do.py          `do`/`start`: enter check, the macro, verify
-    step_agent.py       `agent`: the pure-text call, or the episode
-    step_ask.py         `ask`: send, hold, judge the reply, bind consent
-    step_tell.py        `tell`: send, then move on
-    step_activate.py    the boot's `select`: parse_task, the baton
+    surface.py          the seam with the steps: `Step`, `Walk`, `Steps`
+    rounds.py           the route as slots, and a run's rounds
     speak.py            the walk's voice: send, land, read replies
     gate.py             the ask-and-hold state, one suspension projection
     money.py            the declared total and the payment predicates
@@ -93,24 +117,35 @@ walk/ — one playbook executing (imports spec, never drive):
     ledger.py           the walk's one account: what was asked, decided,
                         said, answered, paid — every step writes it
     thread.py           the session's one conversation with the model
-    step_close.py       a completed walk's last step: the record, DONE
     suspension.py       suspended.json, the one cross-wake file
-    micro.py            the scoped model calls (agent, activation, and
-                        the thread's three)
-    prompts.py          what those calls say — the prompt texts
     record.py           the walk's writes: the runs row, the daily log
-    walklog.py          runs.jsonl — per-walk outcomes, the escalation KPI
+    walklog.py          runs.jsonl — the per-walk row, written
 
-drive/ — the doors and tools that drive a walk (imports walk and spec):
+steps/ — one executor per route line kind, on the walk's surface:
+    table.py            the one table of executors the walk is handed
+    do.py               `do`/`start`: enter check, the macro, verify
+    agent.py            `agent`: the pure-text call, or the episode
+    memory.py           reading the memory parts an agent step declared
+    ask.py              `ask`: send, hold, judge the reply, bind consent
+    tell.py             `tell`: send, then move on
+    select.py           the boot's `select`: parse_task, the baton
+    close.py            a completed walk's last step: the record, DONE
+
+drive/ — the live doors that drive a walk:
     conductor.py        the per-turn arbiter; None means "the LLM speaks"
-    setup.py            the wake's doors: a resumed suspension, or the boot
-    build.py            the one Program constructor call, load_spec, inputs
+    setup.py            the doors: a resumed suspension, the boot, `arm` for a ref
+    build.py            the one Program constructor call
     activation.py       the boot's menu, parse_task, the program it builds
     rehearsal.py        the engine's loop without the session: run, step
+    exchange.py         what a rehearsal reports: the model round-trips, as lines
+    hooks.py            the typed callable seams a driver takes
+
+bench/ — off the phone, over what sessions recorded:
     replay.py           the real walk over recorded screens, writing nothing
+    decisions.py        recorded micro calls re-asked and measured
     capture.py          mining fingerprints from recorded observations
     corpus.py           recorded-session listings for offline matching
-    hooks.py            the typed callable seams a driver takes
+    runs.py             runs.jsonl read back: stats, escalation sites
 """
 
 # No re-exports: consumers import their module directly, so parse-only

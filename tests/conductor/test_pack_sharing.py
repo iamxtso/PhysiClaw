@@ -12,10 +12,10 @@ from physiclaw.common import paths
 from physiclaw.common.placeholders import write_placeholder_values
 from physiclaw.conductor.drive import activation, build
 from physiclaw.conductor.drive import setup as conductor_setup
-from physiclaw.conductor.spec import pack as pb
-from physiclaw.conductor.spec.model import PlaybookError, RecoverHand
-from physiclaw.conductor.spec.pack import qualified_all
-from physiclaw.conductor.spec.pages import prints_for_app
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load.pack import discover, load_spec, qualified_all
+from physiclaw.conductor.load.prints import prints_for_app
+from physiclaw.conductor.spec.model import PlaybookError, RecoverHand, resolve_inputs
 
 MANIFEST = """\
 kind: manifest
@@ -178,11 +178,11 @@ def test_the_matcher_sees_the_shared_pages_and_a_walk_builds(shop) -> None:
         "results",
     }
     for name in ("buy", "track"):
-        spec, _ = build.load_spec("shop", name, require_live=False)
+        spec, _ = load_spec("shop", name)
         program = build.build_program(
             spec,
             pack,
-            build.resolve_inputs(spec, {"keyword": "x"} if name == "buy" else {}),
+            resolve_inputs(spec, {"keyword": "x"} if name == "buy" else {}),
             None,
             dry=True,
         )
@@ -380,14 +380,14 @@ def test_an_input_with_a_default_is_optional_and_the_menu_says_so() -> None:
     )
     _write_pack("shop", MANIFEST, buy=optional)
     write_local_macro(paths.playbooks_dir() / "shop", "buy", "search-own")
-    entries = activation.discover().entries
+    entries = discover().entries
     spec, pack = entries["shop/buy"]
 
     menu = activation.Activation(entries=entries, channel=None)._menu()
 
     assert "qty (how many; optional, default '1')" in menu
     assert "keyword (what to buy)" in menu
-    assert build.resolve_inputs(spec, {"keyword": "water"}) == {
+    assert resolve_inputs(spec, {"keyword": "water"}) == {
         "keyword": "water",
         "qty": "1",
     }
@@ -404,7 +404,7 @@ def _pages_pack(pages_yaml: str):
 
 
 def test_check_warns_when_one_page_reads_whole_on_anothers_screen() -> None:
-    from physiclaw.conductor.spec import lints
+    from physiclaw.conductor.route import lints
 
     pack = _pages_pack(
         "  sheet:\n    description: the pay sheet\n"
@@ -421,7 +421,7 @@ def test_check_warns_when_one_page_reads_whole_on_anothers_screen() -> None:
 
 
 def test_ambiguity_is_judged_by_the_matcher_not_by_text_sets() -> None:
-    from physiclaw.conductor.spec import lints
+    from physiclaw.conductor.route import lints
 
     # A band tells the pages apart (the same text pinned to the bottom is
     # not the mid-screen row), and a forbid term does too.

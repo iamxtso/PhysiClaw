@@ -22,7 +22,7 @@ CHANNEL_APP = paths.CHANNEL_DIRNAME
 # The OS-state pack. Same shape as any other pack — a scaffolded
 # `playbooks/ios/` the user owns and edits — but the conductor knows its
 # name, because telling "locked" from "a screen I don't recognize" is
-# its own job, not a playbook's. `scaffold.IOS_PAGES_STUB` is the
+# its own job, not a playbook's. `stubs.IOS_PACK_STUB` is the
 # starting text; absent (never scaffolded) simply means the conductor
 # cannot name those states, and every one of them reads as unknown.
 IOS_APP = "ios"
@@ -33,7 +33,7 @@ RESERVED_APPS = frozenset({CHANNEL_APP, IOS_APP})
 
 # The channel pack's conventions — the three names the conductor knows.
 # Declared HERE (beside CHANNEL_APP) because both channel.py and
-# scaffold.py need them and scaffold must not import channel: the stubs
+# stubs.py need them and the stubs must not import channel: they
 # interpolate these, never hand-copy them.
 THREAD_PAGE = "thread"  # the channel pack's `pages:` must declare this
 SEND_MACRO = "send"  # nav to the user's thread + paste + send {message}
@@ -42,11 +42,11 @@ SEND_MACRO = "send"  # nav to the user's thread + paste + send {message}
 OPEN_MACRO = "open"
 # The channel pack's one playbook: the boot — the walk every wake plays
 # before any app playbook (reach the thread, read the request there).
-# `route.py` admits its `select` step in this one file only.
+# `route/` admits its `select` step in this one file only.
 BOOT_PLAYBOOK = "boot"
 
 # The ios pack's one convention, here for the same reason: the boot
-# matches this page and `scaffold.IOS_PAGES_STUB` declares it, so the two
+# matches this page and `stubs.IOS_PACK_STUB` declares it, so the two
 # interpolate one constant instead of both spelling "locked".
 LOCKED_PAGE = "locked"
 

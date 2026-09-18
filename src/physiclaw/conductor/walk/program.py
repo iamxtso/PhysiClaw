@@ -12,8 +12,8 @@ flight (`turns.py`), the page verdict every step judges against, the
 declared recovery toward a page (`recover.py`), the money state an ask
 binds and a payment move spends, the terminal moments, and the record
 they write (`record.py`). What each STEP does is its executor's
-(`step.py` is the contract), one per route line kind: `step_do`,
-`step_agent`, `step_ask`, `step_tell`, `step_activate`.
+(`walk/surface.py` is the contract), one per route line kind: `steps.do`,
+`steps.agent`, `steps.ask`, `steps.tell`, `steps.select`.
 
 What the playbook declares is what runs: the walk opens with one peek,
 starts at the route's first unsettled node (never below a resumed
@@ -25,26 +25,21 @@ Money never recovers.
 import logging
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass
 from enum import StrEnum
 from functools import partial
 
 from physiclaw.common import gesture_vocab
 from physiclaw.common.listing import Screen
-from physiclaw.common.logger import write_json_atomic
 from physiclaw.common.text import clip
-from physiclaw.conductor.spec.channel import Channel
+from physiclaw.conductor.micro.decision import MicroOutcome
 from physiclaw.conductor.spec.conventions import LOCKED_ID, owned_by, page_id, page_name
-from physiclaw.conductor.spec.match import Reading, Verdict, match_screen
+from physiclaw.conductor.spec.match import Verdict, match_screen
 from physiclaw.conductor.spec.model import (
     ON_FAIL_SKIP,
     ON_FAIL_STOP,
-    READING_COVERED,
-    READING_ELSEWHERE,
-    READING_LOCKED,
-    ActivateNode,
     AgentNode,
     AskNode,
+    Channel,
     Checked,
     DoNode,
     Node,
@@ -52,27 +47,22 @@ from physiclaw.conductor.spec.model import (
     PlaybookError,
     Recovery,
     RunNode,
-    TellNode,
+    SelectNode,
+    qualified_macro,
+    resolve_inputs,
 )
-from physiclaw.conductor.spec.pack import qualified_macro, resolve_inputs
 from physiclaw.conductor.spec.pages import Landmark, PagePrint
-from physiclaw.conductor.spec.refs import fill_args, fill_refs
+from physiclaw.conductor.spec.refs import fill_args, fill_refs, own_fields
 from physiclaw.conductor.walk import brief, money, recover, speak, views
 from physiclaw.conductor.walk.gate import Gate
 from physiclaw.conductor.walk.ledger import Ledger, round_prefix
-from physiclaw.conductor.walk.micro import MicroOutcome
 from physiclaw.conductor.walk.record import Record
-from physiclaw.conductor.walk.step import Activator, Paused, Step, Turn
-from physiclaw.conductor.walk.step_activate import ActivateStep
-from physiclaw.conductor.walk.step_agent import AgentStep
-from physiclaw.conductor.walk.step_ask import AskStep
-from physiclaw.conductor.walk.step_close import CloseStep
-from physiclaw.conductor.walk.step_do import DoStep
-from physiclaw.conductor.walk.step_tell import TellStep
+from physiclaw.conductor.walk.rounds import Round, Slot, run_keys
+from physiclaw.conductor.walk.surface import Activator, Paused, Step, Steps, Turn
 from physiclaw.conductor.walk.suspension import (
     SUSPENDED_SCHEMA,
     clear_suspended,
-    suspended_path,
+    write_suspended,
 )
 from physiclaw.conductor.walk.thread import Thread
 from physiclaw.conductor.walk.turns import Turnsmith
@@ -111,73 +101,12 @@ class Phase(StrEnum):
     DONE = "done"  # the last word is minted: brief, or crash — quiet from here
 
 
-# The executor for each route line kind (`Node` is a closed union).
-_STEP_FOR: dict[type, type[Step]] = {
-    DoNode: DoStep,
-    AgentNode: AgentStep,
-    AskNode: AskStep,
-    TellNode: TellStep,
-    ActivateNode: ActivateStep,
-}
-
-
 # How a checked node names itself in a handover reason.
 _CHECKED_KIND: dict[type, str] = {
     DoNode: "move",
     AgentNode: "agent",
-    ActivateNode: "select",
+    SelectNode: "select",
 }
-
-
-@dataclass(frozen=True)
-class Round:
-    """One round of a `run`: the playbook's nodes walked once, with its
-    own inputs and its own record in the ledger (`ledger.rounds`, under
-    `ledger.round_prefix`), so a re-plan can tell a finished round from
-    one still to do, and a round's own refs read only its own record."""
-
-    run: RunNode
-    key: str
-    inputs: dict[str, str]  # `inputs.<name>` → value, this round's
-
-    @property
-    def prefix(self) -> str:
-        return round_prefix(self.run.id, self.key)
-
-
-@dataclass(frozen=True)
-class Slot:
-    """One place on the route the cursor walks: the node, the spec index
-    it came from (what a suspension stores), and the round it belongs
-    to — None for the route's own nodes."""
-
-    node: Node
-    origin: int
-    round: Round | None = None
-
-
-def _own_slots(node: "Node | None") -> dict[str, str]:
-    """The CURSOR step's own return fields, empty — what it reads of its
-    own last answer before it has given one (the parser lets a prompt
-    quote earlier steps' fields and its own).
-
-    Its own only. Blanking every step's fields would make `fill_refs`
-    unable to fail: a ref to a step that has not answered is the
-    fail-closed guard behind a stepping jump and behind a suspension
-    that outlived an edit to an agent's `returns:`, and the message it
-    raises is what a handover reports."""
-    if not isinstance(node, AgentNode):
-        return {}
-    return {f"{node.id}.{f}": "" for f in node.return_fields}
-
-
-def _run_keys(run: RunNode, vals: dict[str, str]) -> list[str]:
-    """The rounds a run has now: one, or one per distinct line of its
-    list (the list's CURRENT value — a re-plan changes it)."""
-    if run.each is None:
-        return [""]
-    lines = vals.get(run.each[1], "").splitlines()
-    return list(dict.fromkeys(k for line in lines if (k := line.strip())))
 
 
 class Program:
@@ -201,8 +130,12 @@ class Program:
         activation: "Activator | None" = None,
         events: "EventSink | None" = None,
         thread: "Thread | None" = None,
+        steps: Steps,
     ) -> None:
         self.app = spec.app
+        # The executors (`walk/surface.py` says the shape, `steps/table.py`
+        # fills it): handed in so the walk never imports one.
+        self._steps = steps
         # A dry walk (`replay.py`) leaves no trace: no runs.jsonl line,
         # no daily-log entry, no suspension file. Everything else runs
         # exactly as live.
@@ -446,7 +379,7 @@ class Program:
         # rides to the next wake, the line saying it fired stays here.
         self.log_purchase()
         if not self.dry:
-            write_json_atomic(suspended_path(), self.state())
+            write_suspended(self.state())
         recap = self.ledger.recap(
             f"waiting for the user's reply on {self.ref}", consented=self.gate.consented
         )
@@ -646,7 +579,7 @@ class Program:
                 return self.handover(
                     "suspended awaiting a reply, but no ask at the cursor"
                 )
-            self._step = AskStep(self, node)
+            self._step = self._steps.for_node[AskNode](self, node)
             return self._step.open()
         # Observe before acting: the first page check needs a screen.
         return self.peek()
@@ -673,9 +606,9 @@ class Program:
             # reported to the user and its record wrote the runs row, so
             # the walk closes the session DONE itself (handing the model a
             # "wrap up" bought four turns of note-taking over a full
-            # context). The close is a step (`step_close.py`): one call in
+            # context). The close is a step (`steps/close.py`): one call in
             # the session's thread for the record, then `close_done`.
-            self._step = CloseStep(self)
+            self._step = self._steps.close(self)
             return self._step.open()
         if self.step_one:
             here = self.position()
@@ -695,7 +628,7 @@ class Program:
                 self.phase = Phase.PAUSED
                 return Paused()
         node = nodes[self.idx]
-        self._step = _STEP_FOR[type(node)](self, node)
+        self._step = self._steps.for_node[type(node)](self, node)
         return self._step.open()
 
     def advance_cursor(self) -> Turn:
@@ -757,13 +690,13 @@ class Program:
         if rd is not None:
             return self._round_values(rd)
         vals = {
-            **_own_slots(self.node),
+            **own_fields(self.node),
             **self.ledger.previous,
             **self._input_vals,
             **self.outputs,
         }
         for run in self.spec.runs:
-            keys = _run_keys(run, vals)
+            keys = run_keys(run, vals)
             for fld in run.sub.returns:
                 vals[f"{run.id}.{fld}"] = self._run_return(run, fld, keys)
         vals["ask.replies"] = "\n".join(self.gate.replies)
@@ -772,7 +705,7 @@ class Program:
     def _round_values(self, rd: Round) -> dict[str, str]:
         """A round's refs: its inputs, its own record, the replies."""
         return {
-            **_own_slots(self.node),
+            **own_fields(self.node),
             **rd.inputs,
             **self.ledger.round_values(rd.prefix),
             "ask.replies": "\n".join(self.gate.replies),
@@ -794,7 +727,7 @@ class Program:
         run = self.slots[i].node
         assert isinstance(run, RunNode)
         values = self.ref_values()
-        keys = _run_keys(run, values)
+        keys = run_keys(run, values)
         # `rounds:` bounds the WORK, not one reading of the list: a
         # revision re-plans and the run expands again, so counting only
         # today's items would hand each re-plan a fresh budget. Rounds
@@ -915,40 +848,6 @@ class Program:
             },
         )
 
-    def mismatch(self, verdict: Verdict, expected_id: str) -> str | None:
-        """None when the verdict is a match on the full `expected_id`
-        (`app.page`); else a short reason — pack pages and the channel
-        thread judged by one spelling."""
-        if verdict.matches(expected_id):
-            return None
-        gap = verdict.gaps.get(expected_id)
-        if gap is not None:
-            # The one clause that matters: what the EXPECTED page lacked,
-            # not every candidate's gap.
-            return f"screen reads as unknown — {page_name(expected_id)} {gap}"
-        return f"screen reads as {verdict.describe()}"
-
-    def money_page_block(self, what: str) -> str | None:
-        """A payment fires only off a VERIFIED own-pack page — the move
-        once, a payment episode before each of its taps: the ask left
-        the phone on the IM thread, and an unverified screen could
-        satisfy the predicates with the conductor's own ask bubble, or
-        with whatever a screen the pack never declared happens to print.
-        None when the current verdict is such a page; else the handover
-        reason. (The ask itself reads its total off the exact waypoint
-        before it — `AskNode.enter`.)"""
-        v = self.verdict
-        if (
-            v is not None
-            and v.kind is Reading.MATCH
-            and owned_by(v.page_id or "", self.app)
-        ):
-            return None
-        return (
-            f"{what}: current screen is not a verified {self.app} page — "
-            "money never reads or fires blind"
-        )
-
     def spend_consent(self) -> None:
         """A payment move fires: consent is consumed, the amount survives
         into the history line and the purchase log. A later action of
@@ -982,7 +881,7 @@ class Program:
             return None
         assert self.verdict is not None
         expected = page_id(self.app, node.enter)
-        wrong = self.mismatch(self.verdict, expected)
+        wrong = self.verdict.mismatch(expected)
         if wrong is None:
             return None
         kind = _CHECKED_KIND[type(node)]
@@ -1077,20 +976,8 @@ class Program:
         suspension is written, so the next wake reads the thread again
         and walks the route from the top. The recap says whether money
         moved: after a fired payment a stop leaves what it paid for unverified."""
-        node = self._node_id() or "(end)"
-        spent = (
-            f"a payment of {money.plain(self.ledger.paid)} fired, unverified"
-            if self.ledger.paid is not None
-            else "nothing paid"
-        )
-        # A stop's money clause is a WARNING, not a tally: it says the
-        # order is unverified, so it is worded here, not by `recap`.
-        recap = "; ".join(
-            [
-                f"{self.ref} stopped at {node} — {reason}",
-                *self.ledger.account(),
-                spent,
-            ]
+        recap = brief.stop_recap(
+            reason, ref=self.ref, node=self._node_id() or "(end)", ledger=self.ledger
         )
         log.warning("conductor: %s", recap)
         self._end(Outcome.HANDOVER, reason)
@@ -1127,15 +1014,7 @@ class Program:
             # channel target has no hand to declare.
             return fail(reason)
         st = recover.State(node=node, target=expected_id, mode=mode, reason=reason)
-        v = self.verdict
-        # The reading the page declared its hands for: the lock screen
-        # (taps do not land there — the matcher reads it by shape), the
-        # page itself under an overlay, or any other screen.
-        reading = READING_ELSEWHERE
-        if v is not None and v.matches(LOCKED_ID):
-            reading = READING_LOCKED
-        elif v is not None and v.occludes(expected_id):
-            reading = READING_COVERED
+        reading = recover.reading_of(self.verdict, expected_id)
         step = recover.plan(
             self._recoveries,
             recovery,

@@ -1,4 +1,5 @@
-"""Page declarations + learned geometry — the two halves of a fingerprint.
+"""The manifest's declared sections — pages, landmarks, thread — and the
+two halves of a page fingerprint, declared and learned.
 
 A page fingerprint is split by audience:
 
@@ -11,24 +12,19 @@ A page fingerprint is split by audience:
     and app versions make shipped geometry infeasible (the same reason
     first-run layout learning exists).
 
-``PagePrint`` merges the two at load; a declared page with no learned
-geometry yet still matches, text-only — every anchor must show, no
+``PagePrint`` merges the two (`load.prints` reads both off the disk); a
+declared page with no learned geometry yet still matches, text-only — every anchor must show, no
 forbid term may — which is what lets capture bootstrap from
 declarations alone. Geometry adds position checks, the scroll vote,
 the overlay reading, and mined OCR variants; it never adds a score.
 """
 
-import json
-import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from physiclaw.common import paths
-from physiclaw.common.bbox import Bbox, parse_box, parse_within
-from physiclaw.common.logger import write_json_atomic
-from physiclaw.common.text import read_text
+from physiclaw.common.bbox import Bbox, format_bbox, parse_box, parse_within
 from physiclaw.conductor.spec import specfile
 from physiclaw.conductor.spec.conventions import page_id
 from physiclaw.conductor.spec.limits import (
@@ -44,8 +40,6 @@ from physiclaw.macros.model import (
     app_ref,
     checked_readings,
 )
-
-log = logging.getLogger(__name__)
 
 # Acceptable readings of ONE anchor, canonical included (see `AnchorDecl`).
 # A handful covers the real cases — a bilingual label plus a known OCR
@@ -141,6 +135,13 @@ class Landmark:
     bbox: Bbox
     page: str | None = None
 
+    def describe(self) -> str:
+        """The landmark as a brief shows it: its readings (the text it
+        carries, or the author's description of the spot) and its
+        declared box, the listing's spelling."""
+        reads = " / ".join(f'"{r}"' for r in self.label) or '""'
+        return f"reads {reads}, box {format_bbox(self.bbox)}"
+
 
 @dataclass(frozen=True)
 class LearnedAnchor:
@@ -190,7 +191,7 @@ def parse_pages(text: str, app: str) -> dict[str, PageDecl]:
 # reading of the screen, and that alone is what makes a route waypoint
 # a declaration rather than a reference (`route_decl`): a `description:`
 # says what an already-declared page is and declares nothing. The wider
-# set is what `_parse_page` validates and what route.py admits on a
+# set is what `_parse_page` validates and what `route/compile.py` admits on a
 # waypoint — a new page field lands there and reaches every door.
 PAGE_IDENTITY_FIELDS = ("anchors", "forbid", "scrollable")
 PAGE_DECL_FIELDS = ("description", *PAGE_IDENTITY_FIELDS)
@@ -221,7 +222,7 @@ def collect_page_recovers(doc: dict) -> dict[str, dict]:
     """The RAW recovery the manifest's `pages:` declare, by page name —
     `{recover: hand(s), tries: n, on_fail: word}`, whichever keys the
     page carries —
-    resolved by the route compiler (`route._route_defaults`) against
+    resolved by the route compiler (`route.recover.route_defaults`) against
     the pack's macros and landmarks, so the grammar has one home. Shape
     errors surface at that parse; this only collects."""
     appendix = doc.get("pages")
@@ -266,18 +267,6 @@ def collect_page_decls(doc: dict, playbook_docs: dict | None = None) -> dict:
     """The pack's RAW page declarations, wherever they were written —
     `page_sites` without the sites."""
     return {name: spec for name, (spec, _) in page_sites(doc, playbook_docs).items()}
-
-
-def route_declared_pages(doc: dict, playbook_docs: dict | None) -> dict[str, str]:
-    """Page name → the route that declares it, in its `pages:` block or
-    beside a waypoint. A route's page is its own (`route._waypoint_id`
-    refuses it from another route); this is how the refusal knows whose
-    it is."""
-    return {
-        name: route
-        for name, (_, route) in page_sites(doc, playbook_docs).items()
-        if route is not None
-    }
 
 
 def page_sites(
@@ -563,116 +552,3 @@ def _anchor_text(value: Any, where: str) -> str:
     if "".join(text.splitlines()) != text:
         raise PagesError(f"{where}: text must be single-line: {text!r}")
     return text
-
-
-# ---------- discovery ----------
-
-
-def scan_app_decls(app: str) -> dict[str, PageDecl]:
-    """The declared pages of one app pack — the `pages:` appendix PLUS
-    every route-declared waypoint (`collect_page_decls`); {} when the
-    pack doesn't exist or declares none. Raises PagesError on a
-    malformed file (the CLI surfaces it; runtime callers catch and
-    treat the app as undeclared). The name is validated BEFORE any path
-    is built from it. Every pack reads the same way, `ios` included —
-    declarations live on disk, under the user's hand, never in the
-    wheel."""
-    _check_name(app, "app name")
-    doc = specfile.load_pack_doc(app, PagesError)
-    if doc is None:
-        return {}
-    docs, _errors = specfile.load_playbook_docs(app, PagesError)
-    return parse_pages_data(collect_page_decls(doc, docs), app)
-
-
-# ---------- learned store ----------
-
-_LEARNED_SCHEMA = 1
-
-
-def learned_file(app: str) -> Path:
-    """`learned/pages/<app>.json` — keyed by the folder too when a pack
-    loads from one named differently (the channel's IM folder:
-    `channel-wechat.json`), so one IM's calibrated thread never stands
-    in for another's."""
-    folder = paths.pack_root(app).name
-    stem = app if folder == app else f"{app}-{folder}"
-    return paths.learned_pages_dir() / f"{stem}.json"
-
-
-def load_learned(app: str) -> dict[str, LearnedPage]:
-    """The captured geometry for one app — {} on missing/unreadable/stale
-    file (fail-open: a bad learned file degrades to declaration-only
-    matching, never takes a session down)."""
-    p = learned_file(app)
-    if not p.exists():
-        return {}
-    try:
-        data = json.loads(read_text(p))
-        if data.get("schema") != _LEARNED_SCHEMA:
-            log.warning("learned pages %s: unknown schema; ignoring", p)
-            return {}
-        out: dict[str, LearnedPage] = {}
-        for name, lp in data["pages"].items():
-            anchors = {
-                a["text"]: LearnedAnchor(
-                    text=a["text"],
-                    cx=float(a["cx"]),
-                    cy=float(a["cy"]),
-                    pos_tol=float(a["pos_tol"]),
-                    freq=float(a["freq"]),
-                    variants=tuple(a.get("variants", ())),
-                )
-                for a in lp["anchors"]
-            }
-            # A file written before scores were retired carries
-            # `threshold` and per-anchor `weight`; both are ignored.
-            out[name] = LearnedPage(
-                anchors=anchors, observations=int(lp["observations"])
-            )
-        return out
-    except Exception:
-        log.warning("learned pages %s unreadable; ignoring", p, exc_info=True)
-        return {}
-
-
-def save_learned(app: str, pages: dict[str, LearnedPage]) -> None:
-    paths.learned_pages_dir().mkdir(parents=True, exist_ok=True)
-    obj = {
-        "schema": _LEARNED_SCHEMA,
-        "app": app,
-        "pages": {
-            name: {
-                "observations": lp.observations,
-                "anchors": [
-                    {
-                        "text": a.text,
-                        "cx": a.cx,
-                        "cy": a.cy,
-                        "pos_tol": a.pos_tol,
-                        "freq": a.freq,
-                        "variants": list(a.variants),
-                    }
-                    for a in lp.anchors.values()
-                ],
-            }
-            for name, lp in pages.items()
-        },
-    }
-    write_json_atomic(learned_file(app), obj)
-
-
-def prints_for_app(
-    app: str, decls: dict[str, PageDecl] | None = None
-) -> list[PagePrint]:
-    """Declarations merged with learned geometry — the matcher's candidate
-    set for one app. Callers already holding the Pack pass
-    `decls=pack.pages` so the spec file is not re-read (the
-    `scan_playbooks` rule)."""
-    if decls is None:
-        decls = scan_app_decls(app)
-    learned = load_learned(app)
-    return [
-        PagePrint(app=app, decl=d, learned=learned.get(name))
-        for name, d in decls.items()
-    ]

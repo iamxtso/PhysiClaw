@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 from conductor_fakes import CHANNEL_OPEN
 
+from physiclaw.conductor.bench import runs
 from physiclaw.conductor.drive.conductor import Conductor
 from physiclaw.contract.dto import (
     SystemMessage,
@@ -37,6 +38,7 @@ def _one_node_program():
     advance hand over — enough to pin the conductor's arbitration without
     a pack on disk."""
     from physiclaw.conductor.spec.model import Playbook, TellNode
+    from physiclaw.conductor.steps.table import STEPS
     from physiclaw.conductor.walk.program import Program
 
     spec = Playbook(
@@ -47,7 +49,7 @@ def _one_node_program():
         inputs=(),
         nodes=(TellNode(id="c", message="ok done"),),
     )
-    return Program(spec=spec, values={}, pack_macros={}, prints=[])
+    return Program(spec=spec, values={}, pack_macros={}, prints=[], steps=STEPS)
 
 
 @pytest.mark.asyncio
@@ -76,7 +78,7 @@ class FakeMicro:
         self.requests = []
 
     async def run(self, req):
-        from physiclaw.conductor.walk.micro import MicroResult
+        from physiclaw.conductor.micro.decision import MicroResult
 
         self.requests.append(req)
         outcome = self._factory(req)
@@ -92,6 +94,7 @@ def _agent_program():
     """A Program opening with one pure-text agent step — the shared
     scaffolding of the broker tests."""
     from physiclaw.conductor.spec.model import AgentNode, Playbook
+    from physiclaw.conductor.steps.table import STEPS
     from physiclaw.conductor.walk.program import Program
 
     nodes: tuple = (
@@ -114,7 +117,7 @@ def _agent_program():
         inputs=(),
         nodes=nodes,
     )
-    return Program(spec=spec, values={}, pack_macros={}, prints=[])
+    return Program(spec=spec, values={}, pack_macros={}, prints=[], steps=STEPS)
 
 
 async def _walk_to_decision(conductor, history) -> None:
@@ -136,7 +139,7 @@ async def _walk_to_decision(conductor, history) -> None:
 
 @pytest.mark.asyncio
 async def test_advance_brokers_decision_requests_through_the_micro_caller() -> None:
-    from physiclaw.conductor.walk.micro import AGENT_FIELDS, SUMMARIZE, MicroOutcome
+    from physiclaw.conductor.micro.decision import AGENT_FIELDS, SUMMARIZE, MicroOutcome
 
     prog = _agent_program()
     micro = FakeMicro(
@@ -183,7 +186,7 @@ async def test_advance_activates_a_playbook_off_the_thread_screen() -> None:
     from conductor_fakes import FLOW, thread_screen, write_channel, write_pack
 
     from physiclaw.conductor.drive import setup
-    from physiclaw.conductor.walk.micro import PARSE_TASK, MicroOutcome
+    from physiclaw.conductor.micro.decision import PARSE_TASK, MicroOutcome
     from physiclaw.contract.dto import ToolResultMessage
 
     write_channel(CHANNEL_OPEN)
@@ -237,8 +240,7 @@ async def test_abandon_covers_an_untaken_baton() -> None:
     )
 
     from physiclaw.conductor.drive import setup
-    from physiclaw.conductor.walk import walklog
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"flow": FLOW})
@@ -258,7 +260,7 @@ async def test_abandon_covers_an_untaken_baton() -> None:
 
     Conductor(program=boot).abandon()
 
-    rows = walklog.load()
+    rows = runs.load()
     assert [(r["playbook"], r["outcome"]) for r in rows] == [("flow", "abandoned")]
 
 

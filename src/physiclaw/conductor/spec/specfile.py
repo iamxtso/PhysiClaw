@@ -11,19 +11,11 @@ distinct catch surfaces without re-spelling the validation:
     _require_str, _prose, _opt_prose, _check_name = specfile.bind(PagesError)
 """
 
-from pathlib import Path
 from typing import Any, Callable
 
 from ruamel.yaml import YAML
 
-from physiclaw.common import paths
-from physiclaw.common.paths import (
-    PACK_FILENAME,
-    PLAYBOOK_FILENAME,
-    RESERVED_PACK_DIRS,
-)
-from physiclaw.common.placeholders import placeholder_values, resolve_placeholders
-from physiclaw.common.text import read_text
+from physiclaw.common.placeholders import resolve_placeholders
 from physiclaw.macros.model import (
     INPUT_NAME_RE as INPUT_NAME_RE,
 )
@@ -49,18 +41,9 @@ class SpecError(ValueError):
 
 # YAML 1.2 safe loader, pure-python, load-only — the same construction as
 # `macros/parse.py`. `load_yaml` below is the resolved-spec door; the
-# install flow's raw template read (`scaffold.read_template_manifest`)
+# install flow's raw template read (`load.files.read_template_manifest`)
 # shares the instance.
 yaml_loader = YAML(typ="safe", pure=True)
-
-
-# The manifest's sections — what the app IS and what its routes share.
-# Never a route: each playbook is its own `<name>/PLAYBOOK.yml` beside the
-# manifest (`load_playbook_docs`), so `playbooks:` is refused with the
-# reason.
-_PACK_TOP_KEYS = frozenset(
-    {"schema", "kind", "app", "description", "placeholders", "pages", "landmarks"}
-)
 
 
 def load_yaml(
@@ -88,130 +71,6 @@ def load_yaml(
     except MacroError as e:
         raise error_cls(f"{prefix}{e}") from e
     return data
-
-
-def load_pack_doc(app: str, error_cls: type[Exception]) -> dict | None:
-    """`playbooks/<app>/APP.yml`, the manifest, loaded and
-    top-checked: a mapping with only the known sections, no unpopulated
-    template placeholders — or empty, which is a valid manifest (the
-    file is the pack marker; every section is optional). None when the
-    file doesn't exist (not a pack). Section contents are validated by
-    their owners (`pages.py`, `model.py`) — this is just the shared
-    front door."""
-    path = paths.pack_root(app) / PACK_FILENAME
-    if not path.exists():
-        return None
-    data = load_yaml(read_text(path), error_cls, where=f"{app}/{PACK_FILENAME}")
-    if data is None:
-        return {}
-    if not isinstance(data, dict):
-        raise error_cls(f"{app}/{PACK_FILENAME} must be a YAML mapping")
-    if "playbooks" in data:
-        raise error_cls(
-            f"{app}/{PACK_FILENAME}: `playbooks` does not live in the manifest "
-            "— write each playbook as its own <name>/PLAYBOOK.yml folder beside "
-            "it (the file body is the playbook: name, description, enabled, "
-            "inputs, route)"
-        )
-    gap = paths.header_gap(data, paths.KIND_MANIFEST)
-    if gap is not None:
-        raise error_cls(f"{app}/{PACK_FILENAME}: {gap}")
-    # `thread:` (how the user's thread is read) is the channel's section.
-    keys = _PACK_TOP_KEYS | ({"thread"} if app == paths.CHANNEL_DIRNAME else set())
-    unknown = sorted(set(map(str, data.keys())) - keys)
-    if unknown:
-        raise error_cls(
-            f"{app}/{PACK_FILENAME}: unknown key(s): {', '.join(unknown)} "
-            f"(sections: {', '.join(sorted(keys))})"
-        )
-    return data
-
-
-def load_playbook_docs(
-    app: str,
-    error_cls: type[ValueError],
-    root: Path | None = None,
-    values: dict[str, str] | None = None,
-) -> tuple[dict[str, Any], dict[str, str]]:
-    """Every playbook of a pack as raw documents, plus what would not
-    load, by id with the reason. An ENTRY is `<app>/<name>/PLAYBOOK.yml`,
-    one folder per entry beside the manifest, keyed by the folder name
-    (referenced as `<app>/<name>`); any other `<name>.yml` in that
-    folder is a playbook the entry runs, keyed `<entry>.<name>`
-    (referenced as `<app>/<entry>.<name>`) and listed right after it. A
-    bad file excludes itself, never the pack: `scan_playbooks` reports
-    it as an invalid entry. Folder and file names follow the move-name
-    grammar, so one the grammar refuses is an error entry too; a `_` or
-    `.` prefix is the one skip convention every artifact lister shares
-    (a draft the author parks beside the pack). Strays are error entries
-    so they never vanish silently: a `*.yml` at pack level that is not
-    the manifest (a route that belongs in a folder, keyed by its file
-    name so it can never shadow the folder it should be), a folder with
-    no PLAYBOOK.yml that is not `macros/` or `prompts/`, and a folder
-    inside an entry that is not one of those two (what an entry runs is
-    a file). `root` is the pack's directory when the caller already
-    resolved it; `values` the placeholder values when the caller read
-    them (one read per pack load)."""
-    root = paths.pack_root(app) if root is None else root
-    name_check = bind(error_cls)[3]
-    if values is None:
-        try:
-            values = placeholder_values()
-        except ValueError as e:
-            raise error_cls(str(e)) from e
-    docs: dict[str, Any] = {}
-    errors: dict[str, str] = {}
-
-    def read(playbook: str, path: Path, role: str) -> None:
-        """One file into `docs` under its id, or into `errors` with the
-        reason — the id's own name checked against the move-name
-        grammar (the folder's for an entry, the file stem for a playbook
-        it runs)."""
-        where = f"{app}/{paths.playbook_file(playbook)}"
-        try:
-            name_check(paths.own_name(playbook), f"{where}: {role}")
-            data = load_yaml(read_text(path), error_cls, where=where, values=values)
-            if not isinstance(data, dict):
-                raise error_cls(
-                    f"{where} must be a YAML mapping (name, description, enabled, "
-                    "inputs, route)"
-                )
-        except Exception as e:  # broad: exclude the file, never the pack
-            errors[playbook] = str(e) or type(e).__name__
-            return
-        docs[playbook] = data
-
-    for stray in paths.leaf_files(root, paths.PLAYBOOK_SUFFIX):
-        if stray.name != PACK_FILENAME:
-            errors[stray.name] = (
-                f"{app}/{stray.name}: a playbook is a folder — move it to "
-                f"{stray.stem}/{PLAYBOOK_FILENAME}"
-            )
-    for folder in paths.leaf_dirs(root):
-        name = folder.name
-        if name in RESERVED_PACK_DIRS:
-            continue
-        path = folder / PLAYBOOK_FILENAME
-        if not path.is_file():
-            errors[name] = (
-                f"{app}/{name}/: a folder with no {PLAYBOOK_FILENAME} is not a playbook"
-            )
-            continue
-        read(name, path, "entry folder name")
-        for sibling in paths.leaf_files(folder, paths.PLAYBOOK_SUFFIX):
-            if sibling.name != PLAYBOOK_FILENAME:
-                read(f"{name}.{sibling.stem}", sibling, "playbook file name")
-        for sub in paths.leaf_dirs(folder):
-            if sub.name not in RESERVED_PACK_DIRS:
-                # Keyed by the offending PATH, as the pack-level stray is:
-                # a playbook of the same name may be valid beside it, and
-                # must not be reported invalid in its place.
-                errors[f"{name}/{sub.name}/"] = (
-                    f"{app}/{name}/{sub.name}/: what an entry runs is a file "
-                    f"beside its {PLAYBOOK_FILENAME} — "
-                    f"{paths.playbook_file(f'{name}.{sub.name}')}"
-                )
-    return docs, errors
 
 
 def bind(

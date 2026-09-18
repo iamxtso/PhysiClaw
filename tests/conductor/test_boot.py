@@ -1,5 +1,5 @@
 """Tests for the boot — `channel/boot/PLAYBOOK.yml` walked by the ordinary
-`Program`, with `step_activate` as its last node: routing, the
+`Program`, with `steps.select` as its last node: routing, the
 declared bounds, and the rules the field data forced (act on an
 unknown screen; spend nothing on a blocked call; recognize a sleeping
 phone by shape, since it has no text to anchor)."""
@@ -23,9 +23,9 @@ from conductor_fakes import history as _history
 
 from physiclaw.common import gesture_vocab, paths
 from physiclaw.common.listing import LISTING_HEADER
+from physiclaw.conductor.bench import runs
 from physiclaw.conductor.drive import setup
-from physiclaw.conductor.walk import walklog
-from physiclaw.conductor.walk.micro import SCROLL_UP, DecisionRequest, MicroOutcome
+from physiclaw.conductor.micro.decision import SCROLL_UP, DecisionRequest, MicroOutcome
 from physiclaw.conductor.walk.program import Program
 from physiclaw.conductor.walk.walklog import Outcome
 
@@ -170,7 +170,7 @@ def test_a_matched_playbook_becomes_the_baton_and_leaves_no_trace() -> None:
     assert o.baton.values == {"keyword": "milk"}
     assert o.outputs == {"parse.playbook": "demo/flow"}
     assert o.advance(h) is None  # quiet for good
-    assert walklog.load() == []  # dry: the boot records no row
+    assert runs.load() == []  # dry: the boot records no row
 
 
 @pytest.mark.parametrize(

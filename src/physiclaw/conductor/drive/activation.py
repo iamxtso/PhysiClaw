@@ -7,7 +7,7 @@ may offer (enabled and live), the whole dispatch table, and the roster
 session never leaves "why no playbook?" to guesswork. `Activation`
 turns a THREAD screen into the scoped parse_task request and its
 outcome into a `Program` — the baton the boot's `select` step
-(`step_activate.py`) hands the conductor. Reaching the thread is the
+(`steps/select.py`) hands the conductor. Reaching the thread is the
 boot route's job; this owns only the menu, the call, and the build.
 """
 
@@ -16,36 +16,28 @@ from dataclasses import dataclass
 
 from physiclaw.common import daylog
 from physiclaw.common.config import CONFIG
-from physiclaw.conductor.drive.build import build_program, resolve_inputs
-from physiclaw.conductor.spec.channel import Channel
-from physiclaw.conductor.spec.conventions import RESERVED_APPS
-from physiclaw.conductor.spec.model import (
-    Pack,
-    Playbook,
-    PlaybookEntry,
-    PlaybookError,
-)
-from physiclaw.conductor.spec.pack import (
-    list_apps,
-    live_gap,
-    load_pack,
-    qualified_inline,
-    qualified_pack,
-    scan_playbooks,
-)
-from physiclaw.conductor.walk.micro import (
+from physiclaw.conductor.drive.build import build_program
+from physiclaw.conductor.load.pack import discover
+from physiclaw.conductor.micro.decision import (
     MENU,
     NOT_A_TASK,
     PARSE_TASK,
     DecisionRequest,
     MicroOutcome,
 )
+from physiclaw.conductor.spec.model import (
+    Channel,
+    Pack,
+    Playbook,
+    PlaybookError,
+    resolve_inputs,
+)
 from physiclaw.conductor.walk.program import Program
-from physiclaw.conductor.walk.step import Walk
+from physiclaw.conductor.walk.surface import Walk
 from physiclaw.conductor.walk.thread import Thread
 from physiclaw.contract.dto import Thinking
 from physiclaw.contract.plugin import EventSink
-from physiclaw.macros.model import Macro, MacroInput
+from physiclaw.macros.model import MacroInput
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +60,7 @@ class Activation:
     scoped ask, and its answer into a Program. Reaching a thread screen
     is the boot route's job (`channel/boot/PLAYBOOK.yml`, walked like any
     playbook); this owns only the menu, the call, and the build, and
-    rides the boot program for its `select` step (`step_activate.py`).
+    rides the boot program for its `select` step (`steps/select.py`).
     `entries` is the single source — the answer space is its keys, the
     menu a render of it, each value the parsed spec+pack so a positive
     answer activates without re-reading disk."""
@@ -85,7 +77,7 @@ class Activation:
         self, walk: "Walk", node_id: str, thinking: "Thinking | None" = None
     ) -> DecisionRequest:
         """The parse_task request over the walk's current screen — the
-        thread: the CALLER establishes that (the boot's activate step
+        thread: the CALLER establishes that (the boot's select step
         knows, its enter check just read it). It opens the session's
         thread (`walk.thread`), which the activated walk's later calls
         extend, at the think level the boot's step declares. `entries`
@@ -135,65 +127,6 @@ class Activation:
         return build_program(
             spec, pack, values, self.channel, events=self.events, thread=thread
         )
-
-
-@dataclass(frozen=True)
-class Discovery:
-    """Every pack on disk, read once at wake.
-
-    `entries`: ref → (spec, pack) for the live playbooks only — what the
-    boot may offer. `macros`: the whole dispatch table, disabled
-    playbooks included (gating is the entries filter, never the table).
-    `roster`: one line per playbook (and per unusable pack) with its
-    state — `app/name (live)`, `(disabled)`, `(disabled macro: x)`,
-    `(invalid: …)` — the wake log's answer to "why no playbook?"."""
-
-    entries: dict[str, tuple[Playbook, Pack]]
-    macros: dict[str, Macro]
-    roster: list[str]
-
-
-def playbook_gap(entry: PlaybookEntry, pack: Pack) -> str | None:
-    """Why the boot cannot offer this playbook — None when it can: the
-    file did not parse, or `pack.live_gap` names the readiness gap."""
-    if entry.spec is None:
-        return f"invalid: {entry.error or 'unreadable'}"
-    return live_gap(entry.spec, pack)
-
-
-def discover() -> Discovery:
-    """Every pack on disk, once — see `Discovery`. Fail-open per pack: a
-    pack that will not load is a roster line, never a failed wake."""
-    entries: dict[str, tuple[Playbook, Pack]] = {}
-    macros: dict[str, Macro] = {}
-    roster: list[str] = []
-    for app in list_apps():
-        if app in RESERVED_APPS:
-            # Infrastructure namespaces, not task packs: `channel` is the
-            # conductor's own hands, and a user override of a built-in
-            # (`ios`) is page declarations only — neither holds app
-            # playbooks.
-            continue
-        try:
-            pack = load_pack(app)
-        except Exception as e:
-            log.warning("pack %s unusable at wake (%s) — skipped", app, e)
-            roster.append(f"{app} (pack unusable: {e})")
-            continue
-        # One scan per pack: the dispatch table (every playbook's inline
-        # bodies, disabled ones included) and the roster off the same
-        # entries.
-        macros.update(qualified_pack(app, pack))
-        for entry in scan_playbooks(app, pack):
-            ref = f"{app}/{entry.name}"
-            gap = playbook_gap(entry, pack)
-            roster.append(f"{ref} ({gap or 'live'})")
-            if entry.spec is None:
-                continue
-            macros.update(qualified_inline(app, entry.spec))
-            if gap is None:
-                entries[ref] = (entry.spec, pack)
-    return Discovery(entries=entries, macros=macros, roster=roster)
 
 
 def activation_for(channel: Channel | None) -> Activation | None:

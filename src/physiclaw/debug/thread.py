@@ -177,7 +177,7 @@ def channel_view() -> tuple[PagePrint | None, Bbox]:
     render) and its `thread: incoming` box (the fallback when the pack
     is unreadable or declares none) — one load; per-session callers
     cache the pair, the pack cannot change mid-session."""
-    from physiclaw.conductor.spec.pack import load_pack
+    from physiclaw.conductor.load.pack import load_pack
 
     try:
         pack = load_pack(CHANNEL_APP)

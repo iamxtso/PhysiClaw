@@ -15,7 +15,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from physiclaw.conductor.spec import specfile
-from physiclaw.conductor.spec.model import INPUTS_ROOT, PlaybookError
+from physiclaw.conductor.spec.model import INPUTS_ROOT, AgentNode, Node, PlaybookError
 
 # The playbook's brace grammar, one tokenizer for its two spellings:
 # `{root.name}` — a ref, always dotted (`inputs.` / an earlier agent
@@ -182,3 +182,18 @@ def fill_refs(value: Any, values: dict[str, str], where: str) -> Any:
     if not isinstance(value, str):
         return value
     return _fill(value, values, REF, where)
+
+
+def own_fields(node: "Node | None") -> dict[str, str]:
+    """The CURSOR step's own return fields, empty — what it reads of its
+    own last answer before it has given one (the parser lets a prompt
+    quote earlier steps' fields and its own).
+
+    Its own only. Blanking every step's fields would make `fill_refs`
+    unable to fail: a ref to a step that has not answered is the
+    fail-closed guard behind a stepping jump and behind a suspension
+    that outlived an edit to an agent's `returns:`, and the message it
+    raises is what a handover reports."""
+    if not isinstance(node, AgentNode):
+        return {}
+    return {f"{node.id}.{f}": "" for f in node.return_fields}

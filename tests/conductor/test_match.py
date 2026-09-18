@@ -8,12 +8,7 @@ from conductor_fakes import make_learned, make_print, make_screen
 from physiclaw.common.bbox import BANDS
 from physiclaw.common.listing import LISTING_HEADER, Screen
 from physiclaw.conductor.spec import match as m
-from physiclaw.conductor.spec.pages import (
-    AnchorDecl,
-    PageDecl,
-    PagePrint,
-    parse_pages,
-)
+from physiclaw.conductor.spec.pages import AnchorDecl, PageDecl, PagePrint, parse_pages
 
 _learned = make_learned
 _print = make_print

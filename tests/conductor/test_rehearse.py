@@ -18,7 +18,8 @@ from conductor_fakes import PACK_MACRO, make_screen, write_pack
 
 from physiclaw.cli import playbooks as cli
 from physiclaw.common import gesture_vocab
-from physiclaw.conductor.drive import rehearsal
+from physiclaw.conductor.drive import exchange, rehearsal
+from physiclaw.conductor.load.pack import load_spec
 from physiclaw.conductor.walk import suspension
 from physiclaw.contract.dto import ToolCall
 
@@ -70,7 +71,8 @@ def _registry():
     """The qualified dispatch registry a rehearsal builds — the pack's
     macros under `app/name` keys, exactly like the engine's hidden set."""
     write_pack(playbooks={"flow": FLOW}, macros=("open-app", "add-cart"))
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     return qualified_pack("demo", load_pack("demo"))
 
@@ -235,7 +237,8 @@ async def test_walk_pauses_when_the_stepping_cursor_moves(mocker) -> None:
     )
     program = build_program(dry=True, keyword="milk")
     program.step_one = True
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     registry = qualified_pack("demo", load_pack("demo"))
 
@@ -270,7 +273,8 @@ async def test_a_completed_walk_reports_completion_and_keeps_a_real_suspension(
     # walk left mid-purchase, sending that wake back to the top.
     from conductor_fakes import build_program
 
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     write_pack(playbooks={"flow": ONE_MOVE}, macros=("open-app",))
     mocker.patch(
@@ -305,7 +309,8 @@ async def test_a_stopped_walk_reports_a_stop_and_drops_nothing(mocker) -> None:
     # — the loop reports the stop, and there is no suspension to drop.
     from conductor_fakes import build_program
 
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     write_pack(
         playbooks={
@@ -365,7 +370,8 @@ async def test_a_suspended_walk_reports_the_suspension_and_drops_its_file(
     # drops that file, and only that one.
     from conductor_fakes import build_program, write_channel
 
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     mocker.patch(
         "physiclaw.conductor.drive.rehearsal.asyncio.sleep", new=mocker.AsyncMock()
@@ -442,7 +448,6 @@ async def test_rehearse_rejects_bad_inputs_before_touching_the_phone() -> None:
 async def test_rehearse_runs_a_disabled_playbook() -> None:
     # `macros run` rehearses disabled macros for the same reason: you
     # rehearse BEFORE you enable. A disabled playbook must not be refused.
-    from physiclaw.conductor.drive import build
 
     write_pack(
         playbooks={
@@ -453,7 +458,7 @@ async def test_rehearse_runs_a_disabled_playbook() -> None:
         macros=("open-app", "add-cart"),
     )
 
-    spec, _ = build.load_spec("demo", "flow", require_live=False)
+    spec, _ = load_spec("demo", "flow")
 
     assert spec.enabled is False  # and load_spec did not raise
 
@@ -494,8 +499,8 @@ OPENAI_REPLY = {
 def _fake_micro(monkeypatch):
     """`micro_caller` → a caller that logs one round-trip to the sink the
     walk wired, then answers `done` with the return field."""
+    from physiclaw.conductor.micro.decision import MicroOutcome, MicroResult
     from physiclaw.conductor.spec.calls import AGENT_DONE
-    from physiclaw.conductor.walk.micro import MicroOutcome, MicroResult
     from physiclaw.contract.dto import MicroRecord
 
     class Caller:
@@ -553,7 +558,8 @@ async def test_walk_captures_each_model_round_trip(monkeypatch, mocker) -> None:
         ),
     )
     _fake_micro(monkeypatch)
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     program = build_program(dry=True, keyword="milk")
     registry = qualified_pack("demo", load_pack("demo"))
@@ -601,7 +607,8 @@ async def test_walk_without_raw_still_hands_exchanges_to_the_hook(
         ),
     )
     _fake_micro(monkeypatch)
-    from physiclaw.conductor.spec.pack import load_pack, qualified_pack
+    from physiclaw.conductor.load.pack import load_pack
+    from physiclaw.conductor.spec.model import qualified_pack
 
     lines: list[str] = []
     seen: list[dict] = []
@@ -638,7 +645,7 @@ def test_exchange_lines_folds_the_replayed_turns_and_reads_both_shapes() -> None
         "outcome": "act → 'row'",
     }
 
-    lines = rehearsal.exchange_lines(record)
+    lines = exchange.exchange_lines(record)
 
     assert (
         lines[0] == "── model agent_act (pick) attempt 2/2 · 1 replayed turn(s) folded"
@@ -646,4 +653,4 @@ def test_exchange_lines_folds_the_replayed_turns_and_reads_both_shapes() -> None
     assert lines[1:5] == ["[system]", "contract", "[user]", "block"]
     assert lines[5:7] == ["── reply", "hi"]
     assert lines[-1] == "── decision: act → 'row'"
-    assert rehearsal.reply_text({"odd": 1}) == '{"odd": 1}'
+    assert exchange.reply_text({"odd": 1}) == '{"odd": 1}'

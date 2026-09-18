@@ -13,8 +13,12 @@ from conductor_fakes import CHANNEL_OPEN, FLOW, PACK_MACRO, write_channel, write
 
 from physiclaw.common import paths
 from physiclaw.conductor.drive import setup
-from physiclaw.conductor.drive.activation import discover, playbook_gap
-from physiclaw.conductor.spec.pack import load_pack, scan_playbooks
+from physiclaw.conductor.load.pack import (
+    discover,
+    load_pack,
+    playbook_gap,
+    scan_playbooks,
+)
 
 DISABLED_MACRO = "enabled: false\n" + PACK_MACRO.format(name="open-app")
 
@@ -75,7 +79,7 @@ def test_roster_carries_an_unusable_pack_as_a_line(wake_log) -> None:
 
 
 def test_playbook_gap_reads_the_one_live_rule() -> None:
-    # `pack.live_gap` is the rule `require_live` raises off — the roster
+    # `spec.model.live_gap` is the rule `require_live` raises off — the roster
     # and the boot's own gate can never disagree about "live".
     write_pack(
         playbooks={

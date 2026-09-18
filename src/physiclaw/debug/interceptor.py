@@ -48,7 +48,7 @@ from physiclaw.common.bbox import Bbox
 from physiclaw.common.listing import Screen
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, SEND_MACRO
 from physiclaw.conductor.spec.match import match_screen
-from physiclaw.conductor.spec.pack import macro_app, qualified_macro
+from physiclaw.conductor.spec.model import macro_app, qualified_macro
 from physiclaw.conductor.spec.pages import PagePrint
 from physiclaw.contract.dto import ToolCall
 from physiclaw.debug import thread as vthread

@@ -8,9 +8,10 @@ from __future__ import annotations
 import pytest
 from conductor_fakes import PACK_MACRO, write_local_macro, write_pack
 
-from physiclaw.conductor.spec import channel, scaffold
-from physiclaw.conductor.spec import pack as pb
-from physiclaw.conductor.spec.model import PlaybookError
+from physiclaw.conductor.load import channel, scaffold
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.route import playbook
+from physiclaw.conductor.spec.model import PlaybookError, disabled_macros
 
 SEND = """\
 kind: macro
@@ -62,7 +63,7 @@ def test_the_readiness_lint_names_a_hand_whose_callee_is_disabled() -> None:
 
     assert buy is not None
     assert pack.macros["send"].enabled and not pack.macros["send"].live
-    assert pb.disabled_macros(buy, pack) == ["send"]
+    assert disabled_macros(buy, pack) == ["send"]
 
 
 def test_a_playbook_folder_macro_runs_the_packs_shared_hand() -> None:
@@ -139,7 +140,7 @@ def test_never_tap_judges_a_callees_taps_too() -> None:
     )
 
     with pytest.raises(PlaybookError, match="grants macro 'send', which presses"):
-        pb.parse_playbook(text, "buy", pack)
+        playbook.parse_playbook(text, "buy", pack)
 
 
 def test_the_channels_send_is_live_only_with_its_open() -> None:

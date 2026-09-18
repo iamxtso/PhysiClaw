@@ -45,7 +45,7 @@ from physiclaw.agent.trace.store import recent_sessions, resolve_session
 from physiclaw.common import gesture_vocab, paths
 from physiclaw.common.ready import START_HINT
 from physiclaw.common.text import read_text
-from physiclaw.conductor.spec.pack import split_ref
+from physiclaw.conductor.spec.model import split_ref
 from physiclaw.conductor.spec.specfile import SpecError
 from physiclaw.debug import stepping
 from physiclaw.macros.model import MacroError
@@ -136,7 +136,7 @@ class Job:
         self.ref: str | None = None
         self.task: asyncio.Task | None = None
         self.lines: list[str] = []
-        # Every model round-trip of a stepped node (`rehearsal.exchanges`
+        # Every model round-trip of a stepped node (`exchange.exchanges`
         # records): what went to the provider and what came back.
         self.exchanges: list[dict] = []
         self.result: dict | None = None

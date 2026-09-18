@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from conductor_fakes import PAGES, write_pack
 
-from physiclaw.conductor.spec import pack as pb
+from physiclaw.conductor.load import pack as pb
 from physiclaw.conductor.spec.model import PlaybookError
 
 ROUTE = """\
