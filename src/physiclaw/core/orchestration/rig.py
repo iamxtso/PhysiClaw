@@ -890,22 +890,23 @@ class HardwareRig:
     # the hardware lock.
 
     def take_screenshot(self, timeout: float = 60.0) -> bytes | None:
-        """Trigger the iOS screenshot + upload Shortcuts via AssistiveTouch;
-        return the uploaded image bytes, or None on upload timeout.
+        """Phone screenshot, routed by ACTIVE eye — the AT pipeline below is
+        iOS-only (AssistiveTouch button + Shortcut upload) and must never
+        run against an Android screen.
 
-        Without a bridge page (scrcpy-only rig) the video frame IS the
-        screenshot — same phone-screen pixels, no upload roundtrip. A USB
-        eye without bridge still raises: its frame includes the desk, so it
-        is not a phone screenshot."""
+        Scrcpy eye: the video frame IS the screenshot — same phone-screen
+        pixels, no upload roundtrip, bridge or not. Physical (USB) eye: the
+        iOS bridge+AT upload; without a bridge page it raises, since a USB
+        frame includes the desk and is not a phone screenshot."""
         self.assert_locked()
-        if self._bridge is None:
-            cam = self.require_cam()
-            if not isinstance(cam, ScrcpyCamera):
-                raise RuntimeError("Screenshot needs the bridge page or the scrcpy eye")
+        cam = self.require_cam()
+        if isinstance(cam, ScrcpyCamera):
             frame = cam.snapshot()
             if frame is None:
                 return None
             return encode_jpeg(frame)
+        if self._bridge is None:
+            raise RuntimeError("Screenshot needs the bridge page or the scrcpy eye")
         at = self.require_assistive_touch()
         return at.take_screenshot(
             self.require_arm(),
@@ -921,9 +922,16 @@ class HardwareRig:
         at.long_press(self.require_arm(), self.require_transforms().pct_to_grbl)
 
     def sync_clipboard(self, text: str, timeout: float) -> bool:
-        """Queue `text` on the bridge, long-press AT (fires the clipboard
-        Shortcut), wait for the phone's fetch confirmation. Returns True
-        on confirm. On timeout the text is retired via
+        """Phone clipboard, routed by ACTIVE hand — the bridge+AT path below
+        is iOS-only (AssistiveTouch long-press fires the Shortcut fetch)
+        and must never run against an Android screen.
+
+        Scrcpy hand: straight through the control socket, bridge or not —
+        the server acks after ClipboardManager commits, so the ack IS the
+        confirmation. Arm failures propagate, feeding hand failover.
+
+        Physical hand: queue on the bridge, AT long-press, Shortcut fetch.
+        Returns True on confirm. On timeout the text is retired via
         ``BridgeState.expire_text()``, which is atomic with the Shortcut's
         fetch: a late run either already got the text (counted here as a
         late success) or can never get it afterwards — a plain
@@ -931,21 +939,14 @@ class HardwareRig:
         while we returned False, so callers' "the phone clipboard still
         holds the previous content" stays true, not racy. Caller must
         hold the lock; the retry/miss policy lives in the orchestrator's
-        hold the lock; the retry/miss policy lives in the orchestrator's
-        ClipboardSyncState.
-
-        Without a bridge page (scrcpy-only rig) the text goes straight
-        through the control socket: the server acks after ClipboardManager
-        commits, so the ack IS the confirmation — no fetch race, no residue
-        window, and `timeout` only bounds the socket exchange. Arm failures
-        propagate like the bridge path's, feeding hand failover."""
+        ClipboardSyncState."""
         self.assert_locked()
-        if self._bridge is None:
-            arm = self.require_arm()
-            if not isinstance(arm, ScrcpyArm):
-                raise RuntimeError("Clipboard needs the bridge page or the scrcpy hand")
+        arm = self.require_arm()
+        if isinstance(arm, ScrcpyArm):
             arm.set_clipboard(text)
             return True
+        if self._bridge is None:
+            raise RuntimeError("Clipboard needs the bridge page or the scrcpy hand")
         bridge = self.require_bridge()
         bridge.send_text(text)
         try:

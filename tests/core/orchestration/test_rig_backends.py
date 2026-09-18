@@ -202,9 +202,11 @@ def test_sync_clipboard_grbl_without_bridge_raises(arm_double, cam_double):
         rig.release()
 
 
-def test_sync_clipboard_prefers_bridge(
-    arm_double, cam_double, bridge_double, at_double
+def test_sync_clipboard_scrcpy_hand_ignores_bridge(
+    arm_double, cam_double, bridge_double
 ):
+    """Active scrcpy hand + attached bridge: direct control path wins — the
+    iOS bridge+AT pipeline must never run against an Android screen."""
     from unittest.mock import MagicMock
 
     from physiclaw.core.hardware.scrcpy import ScrcpyArm
@@ -213,13 +215,27 @@ def test_sync_clipboard_prefers_bridge(
     rig._arm = MagicMock(spec=ScrcpyArm)
     rig._hand = SCRCPY_BACKEND
     rig.attach_bridge(bridge_double())
+    rig.acquire()
+    try:
+        assert rig.sync_clipboard("hi", timeout=5) is True
+        rig._arm.set_clipboard.assert_called_once_with("hi")
+        rig._bridge.send_text.assert_not_called()
+    finally:
+        rig.release()
+
+
+def test_sync_clipboard_physical_hand_uses_bridge(
+    arm_double, cam_double, bridge_double, at_double
+):
+    """Physical hand keeps the iOS bridge+AT path (bridge present)."""
+    rig = _live_rig(arm_double, cam_double)
+    rig.attach_bridge(bridge_double())
     rig._bridge.wait_clipboard.return_value = True
     rig._assistive_touch = at_double()
     rig.acquire()
     try:
         assert rig.sync_clipboard("hi", timeout=5) is True
         rig._bridge.send_text.assert_called_once_with("hi")
-        rig._arm.set_clipboard.assert_not_called()
     finally:
         rig.release()
 
@@ -348,3 +364,20 @@ def test_revive_hand_bounce_then_probe_true():
     rig._backends[SCRCPY_BACKEND].session = _HealingSession()
     assert rig.probe_hand(SCRCPY_BACKEND) is False
     assert rig.revive_hand(SCRCPY_BACKEND) is True
+
+
+def test_take_screenshot_scrcpy_eye_ignores_bridge(
+    arm_double, cam_double, bridge_double
+):
+    """Active scrcpy eye + attached bridge: video frame direct, no AT tap,
+    no Shortcut upload wait."""
+    rig = _scrcpy_only_rig(arm_double, cam_double)
+    rig._cam.snapshot.return_value = np.zeros((8, 8, 3), dtype=np.uint8)
+    rig.attach_bridge(bridge_double())
+    rig.acquire()
+    try:
+        data = rig.take_screenshot()
+        assert data[:2] == b"\xff\xd8"  # JPEG magic
+        rig._bridge.clear_screenshot.assert_not_called()
+    finally:
+        rig.release()

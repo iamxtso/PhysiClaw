@@ -1002,7 +1002,9 @@ class ScrcpyArm:
                 raise ProtocolError("clipboard ack sequence mismatch")
 
     def get_clipboard(self) -> str:
-        """Read the device clipboard (the setup() probe — no side effects)."""
+        """Read the device clipboard. Build-dependent: the server stays silent
+        (recv times out) on empty clipboard or background-read restrictions —
+        diagnostic only, production never GETs (the SET ack is the confirm)."""
         with self._session.control() as (send, recv):
             send(bytes((TYPE_GET_CLIPBOARD, COPY_KEY_NONE)))
             if recv(1) != bytes((DEVICE_MSG_CLIPBOARD,)):
