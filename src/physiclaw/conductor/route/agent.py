@@ -17,7 +17,7 @@ from physiclaw.conductor.route.fields import (
     unique_list,
 )
 from physiclaw.conductor.route.resolve import argless_macro, landmark_name, prompt_text
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Line, Scope
 from physiclaw.conductor.spec import match, memory
 from physiclaw.conductor.spec.calls import (
     AGENT_TOOLS,
@@ -62,7 +62,7 @@ _AGENT_LIMIT_KEYS = {"calls", "scrolls"}
 
 
 def _guard_grants(
-    ctx: Ctx,
+    scope: Scope,
     where: str,
     never_tap: tuple[NeverTap, ...],
     spots: tuple[str, ...],
@@ -100,7 +100,7 @@ def _guard_grants(
         return None
 
     for name in spots:
-        hit = _named(ctx.pack.landmarks[name].label)
+        hit = _named(scope.pack.landmarks[name].label)
         if hit is not None:
             raise PlaybookError(
                 f"{where}: `context.given` names landmark {name!r}, which this step "
@@ -178,7 +178,7 @@ class _Context:
 
 
 def _parse_context(
-    ctx: Ctx, where: str, entry: dict, payloads: dict[str, tuple[str, ...]]
+    scope: Scope, where: str, entry: dict, payloads: dict[str, tuple[str, ...]]
 ) -> _Context:
     """An agent's `context:` — everything the call is built from, in one
     block: `prompt:` the APP brief, `given:` what it may name (`<name>:
@@ -249,7 +249,7 @@ def _parse_context(
                     f"(`inputs.x`, `node.field`) or a landmark "
                     f"(`{app_ref(LANDMARKS_KIND, '<name>')}`)"
                 )
-            landmarks[name] = landmark_name(ctx, value, one)
+            landmarks[name] = landmark_name(scope, value, one)
             continue
         # A value the walk fills, checked like any other move's `with:`
         # and filled the same way when the step opens — written as the
@@ -265,7 +265,7 @@ def _parse_context(
                 "fills (`{{inputs.x}}`, `{{node.field}}`); text that never "
                 "changes belongs in the prompt"
             )
-        check_refs(refs, ctx.input_names, payloads, one)
+        check_refs(refs, scope.input_names, payloads, one)
         given[name] = text
     if len(block) + len(parts) > MAX_CONTEXT:
         raise PlaybookError(
@@ -283,7 +283,7 @@ def _parse_context(
         )
     # The brief, read against the block it may name.
     at = f"{where}: `context.prompt`"
-    prompt = prompt_text(ctx, require_str(raw.get("prompt"), at), where)
+    prompt = prompt_text(scope, require_str(raw.get("prompt"), at), where)
     if len(prompt) > MAX_PROMPT_LEN:
         raise PlaybookError(f"{at} is {len(prompt)} characters (max {MAX_PROMPT_LEN})")
     # `given:` is the whole of what a prompt may name — each way round.
@@ -306,7 +306,7 @@ def _parse_context(
     return _Context(prompt=prompt, given=given, memory=dict(parts), landmarks=landmarks)
 
 
-def grant(ctx: Ctx, value: Any, where: str, nid: str) -> Macro:
+def grant(scope: Scope, value: Any, where: str, nid: str) -> Macro:
     """One macro in a `tools:` list: `macros.<name>` for this route's own
     hand, `app.macros.<name>` for the pack's — argument-less, like every
     helper hand, and never spelled like a fixed answer (`done`,
@@ -327,18 +327,11 @@ def grant(ctx: Ctx, value: Any, where: str, nid: str) -> Macro:
             "macro cannot be spelled like one"
         )
     return argless_macro(
-        value if r.shared else r.name, "tools", where, nid, ctx.resolve
+        value if r.shared else r.name, "tools", where, nid, scope.resolve
     )
 
 
-def parse_agent(
-    ctx: Ctx,
-    where: str,
-    nid: str,
-    entry: dict,
-    current_page: str | None,
-    next_wp: str | None,
-) -> AgentNode:
+def parse_agent(scope: Scope, line: Line) -> AgentNode:
     """An `agent` move. No `tools` = a pure-text call (needs `returns`,
     no pages); tools = an acting episode framed by the adjacent
     waypoints exactly like a `do`.
@@ -348,6 +341,8 @@ def parse_agent(
     given may quote the step's own returns (its last answer, empty the
     first time — what a revision re-reads), so they are declared before
     it."""
+    where, nid, entry = line.where, line.name, line.entry
+    before, after = line.before, line.after
 
     # One menu, as the model reads it: the gesture words and the macros
     # it may run, both answered in the same envelope (`_act_legend`).
@@ -359,7 +354,7 @@ def parse_agent(
     def _one_tool(t: Any) -> str:
         if isinstance(t, str) and t in AGENT_TOOLS:
             return t
-        macro = grant(ctx, t, f"{where}: `tools` entry", nid)
+        macro = grant(scope, t, f"{where}: `tools` entry", nid)
         by_name[macro.name] = macro
         return macro.name
 
@@ -403,7 +398,7 @@ def parse_agent(
                     " — rename it"
                 )
             returns.append((fname, prose(desc, f"{where}: `returns.{fname}`")))
-    ctx.payloads[nid] = tuple(f for f, _ in returns)
+    scope.payloads[nid] = tuple(f for f, _ in returns)
     if not acts and not returns:
         raise PlaybookError(
             f"{where}: an agent with neither `tools` nor `returns` can do "
@@ -413,22 +408,22 @@ def parse_agent(
 
     enter = verify = ""
     if acts:
-        if current_page is None:
+        if before is None:
             raise PlaybookError(
                 f"{where}: an acting agent needs the page it starts on — "
                 "put a page waypoint before it"
             )
-        if next_wp is None:
+        if after is None:
             raise PlaybookError(
                 f"{where}: an acting agent must be followed by the page it "
                 "finishes on — the landing check is its exit contract"
             )
-        if "." in current_page or "." in next_wp:
+        if "." in before or "." in after:
             raise PlaybookError(
                 f"{where}: an agent episode runs on this pack's own pages — "
                 "reserved built-ins cannot frame it"
             )
-        enter, verify = current_page, next_wp
+        enter, verify = before, after
 
     raw_limit = limit_mapping(entry, where, _AGENT_LIMIT_KEYS)
     max_calls = limit_int(
@@ -452,9 +447,9 @@ def parse_agent(
         )
 
     g_payloads = (
-        ctx.payloads_with_total() if irreversible == "payment" else ctx.payloads
+        scope.payloads_with_total() if irreversible == "payment" else scope.payloads
     )
-    reads = _parse_context(ctx, where, entry, g_payloads)
+    reads = _parse_context(scope, where, entry, g_payloads)
     # The hands, the fence and the frame, held to each other — every
     # rule of "what this step may press" in one place.
     if reads.landmarks and TOOL_TAP not in tools:
@@ -469,11 +464,11 @@ def parse_agent(
         # decided once with the rest of the context — a scope that
         # cannot hold is the author's mistake, named at load, never a
         # spot that silently fails to appear.
-        scope = ctx.pack.landmarks[spot].page
-        if scope is not None and scope != enter:
+        held_to = scope.pack.landmarks[spot].page
+        if held_to is not None and held_to != enter:
             raise PlaybookError(
                 f"{where}: `context.given.{name}`: landmark {spot!r} is scoped "
-                f"to page {scope!r}, but this episode opens on {enter!r} — a "
+                f"to page {held_to!r}, but this episode opens on {enter!r} — a "
                 "grant is decided once, when the step opens"
             )
     # A granted macro presses its own recorded boxes without ever
@@ -486,7 +481,7 @@ def parse_agent(
             "neither a `tap` tool nor a granted macro — grant one or drop the "
             "targets"
         )
-    _guard_grants(ctx, where, never_tap, tuple(reads.landmarks.values()), granted)
+    _guard_grants(scope, where, never_tap, tuple(reads.landmarks.values()), granted)
 
     return AgentNode(
         id=nid,

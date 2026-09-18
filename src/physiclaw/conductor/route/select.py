@@ -1,7 +1,7 @@
 """The boot's `select` move — parse_task over the enabled playbooks."""
 
 from physiclaw.conductor.route.fields import limit_int, limit_mapping, think_level
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Line, Scope
 from physiclaw.conductor.spec.conventions import (
     BOOT_PLAYBOOK,
     CHANNEL_APP,
@@ -17,20 +17,19 @@ from physiclaw.conductor.spec.model import (
 )
 
 
-def parse_select(
-    ctx: Ctx, where: str, nid: str, entry: dict, current_page: str | None
-) -> SelectNode:
+def parse_select(scope: Scope, line: Line) -> SelectNode:
     """The `select` step — the channel boot's own: read the thread and
     select the playbook it asks for. It reads the user's thread, so the
     thread page must sit immediately before it (its place at the route's
     end is `lints.check_boot`'s rule). `limit: {scrolls}` bounds
     parse_task's scroll-for-history escape."""
-    if not is_boot(ctx):
+    where, nid, entry, before = line.where, line.name, line.entry, line.before
+    if not is_boot(scope):
         raise PlaybookError(
             f"{where}: `select` is the channel boot's own step — it belongs "
             f"in {CHANNEL_APP}/{BOOT_PLAYBOOK}/PLAYBOOK.yml only"
         )
-    if current_page != THREAD_PAGE:
+    if before != THREAD_PAGE:
         raise PlaybookError(
             f"{where}: `select` reads the user's thread — put the "
             f"`{THREAD_PAGE}` page waypoint immediately before it"
@@ -44,13 +43,13 @@ def parse_select(
     )
     return SelectNode(
         id=nid,
-        enter=current_page,
+        enter=before,
         max_scrolls=max_scrolls,
         think=think_level(entry, where),
     )
 
 
-def is_boot(ctx: Ctx) -> bool:
+def is_boot(scope: Scope) -> bool:
     """Whether this route is the channel pack's boot playbook — the one
     file the `select` step is admitted in."""
-    return ctx.pack.app == CHANNEL_APP and ctx.playbook == BOOT_PLAYBOOK
+    return scope.pack.app == CHANNEL_APP and scope.playbook == BOOT_PLAYBOOK

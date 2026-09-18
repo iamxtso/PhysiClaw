@@ -1,7 +1,8 @@
 """The route compiler — `route:` → the compiled moves, the start page,
 and each page's declared recovery hand; the whole-route lints are
-`lints.py`, and each move's own parser sits beside this file
-(`do`, `agent`, `ask`, `select`, `run`, `recover`).
+`lints.py`, and each move's own parser sits beside this file, one per
+kind (`MOVES`: its field vocabulary, its parser, whether it may sit
+above the first page), every one reading the same `Line`.
 
 Waypoints do not become nodes — they become the adjacent moves' checks:
 a `do`'s (and an acting `agent`'s) enter is the nearest preceding page,
@@ -24,8 +25,7 @@ from physiclaw.common.paths import (
 from physiclaw.conductor.route import lints
 from physiclaw.conductor.route.agent import parse_agent
 from physiclaw.conductor.route.ask import parse_ask
-from physiclaw.conductor.route.do import parse_do
-from physiclaw.conductor.route.fields import entry_message, on_fail_mode
+from physiclaw.conductor.route.do import parse_do, parse_start
 from physiclaw.conductor.route.recover import (
     declared_once,
     overlay,
@@ -34,8 +34,9 @@ from physiclaw.conductor.route.recover import (
 )
 from physiclaw.conductor.route.resolve import local_registry, pack_hint, route_resolver
 from physiclaw.conductor.route.run import parse_run, sub_playbook
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Line, Scope, Waypoint
 from physiclaw.conductor.route.select import is_boot, parse_select
+from physiclaw.conductor.route.tell import parse_tell
 from physiclaw.conductor.spec.conventions import (
     RESERVED_APPS,
 )
@@ -44,13 +45,11 @@ from physiclaw.conductor.spec.limits import (
 )
 from physiclaw.conductor.spec.model import (
     INPUTS_ROOT,
-    DoNode,
     Node,
     Pack,
     Playbook,
     PlaybookError,
     Recovery,
-    TellNode,
     check_name,
     require_str,
 )
@@ -64,9 +63,6 @@ from physiclaw.conductor.spec.pages import (
     recovery_fields,
     route_decl,
 )
-from physiclaw.conductor.spec.refs import (
-    check_arg_refs,
-)
 from physiclaw.macros.model import (
     PAGES_KIND,
     Macro,
@@ -74,46 +70,76 @@ from physiclaw.macros.model import (
     parse_ref,
 )
 
-# Route entry vocabularies. An entry's KIND is its leading key and the
-# value is the entry's name — the map-key-is-the-name doctrine, applied
-# to the route. Page-declaration fields come from `pages.py`'s ONE
-# spelling (PAGE_DECL_FIELDS) — their content is validated there; they
-# appear here only so the unknown-key check names them as legal.
-LINE_KINDS = ("page", "start", "do", "agent", "ask", "tell", "run", "select")
 
-_ENTRY_KEYS = {
-    "page": {"page", *PAGE_RECOVERY_FIELDS, *PAGE_DECL_FIELDS},
-    "start": {"start", "macro", "on_fail"},
-    "do": {"do", "with", "macro", "irreversible", "on_fail"},
-    "agent": {
-        "agent",
-        "context",
-        "tools",
-        "never_tap",
-        "returns",
-        "limit",
-        "irreversible",
-        "think",
-        "on_fail",
-    },
-    "ask": {
-        "ask",
-        "approve",
-        "message",
-        "yes",
-        "no",
-        "denied",
-        "total_label",
-        "wait",
-        "rounds",
-        "resume",
-        "think",
-        "on_fail",
-    },
-    "tell": {"tell", "message", "on_fail"},
-    "run": {"run", "with", "each", "miss", "revise", "limit", "on_fail"},
-    "select": {"select", "limit", "think"},
+@dataclass(frozen=True)
+class Move:
+    """One move kind of the route: the field vocabulary beside its
+    leading key, its parser, and whether it may sit above the first
+    page (`cold`: it needs no screen the route has reached — a
+    pure-text agent, the start, a tell over the channel, a
+    self-starting run; the parser refuses the ones that do)."""
+
+    keys: frozenset[str]
+    parse: Callable[[Scope, Line], Node]
+    cold: bool = False
+
+
+# An entry's KIND is its leading key and the value is the entry's name
+# — the map-key-is-the-name doctrine, applied to the route. One record
+# per move kind: adding a kind is one line here and one parser file.
+MOVES: dict[str, Move] = {
+    "start": Move(frozenset({"start", "macro", "on_fail"}), parse_start, cold=True),
+    "do": Move(frozenset({"do", "with", "macro", "irreversible", "on_fail"}), parse_do),
+    "agent": Move(
+        frozenset(
+            {
+                "agent",
+                "context",
+                "tools",
+                "never_tap",
+                "returns",
+                "limit",
+                "irreversible",
+                "think",
+                "on_fail",
+            }
+        ),
+        parse_agent,
+        cold=True,
+    ),
+    "ask": Move(
+        frozenset(
+            {
+                "ask",
+                "approve",
+                "message",
+                "yes",
+                "no",
+                "denied",
+                "total_label",
+                "wait",
+                "rounds",
+                "resume",
+                "think",
+                "on_fail",
+            }
+        ),
+        parse_ask,
+    ),
+    "tell": Move(frozenset({"tell", "message", "on_fail"}), parse_tell, cold=True),
+    "run": Move(
+        frozenset({"run", "with", "each", "miss", "revise", "limit", "on_fail"}),
+        parse_run,
+        cold=True,
+    ),
+    "select": Move(frozenset({"select", "limit", "think"}), parse_select),
 }
+# A page is a waypoint, not a move. Its declaration fields come from
+# `pages.py`'s ONE spelling (PAGE_DECL_FIELDS) — their content is
+# validated there; they appear here only so the unknown-key check names
+# them as legal.
+_PAGE_KEYS = frozenset({"page", *PAGE_RECOVERY_FIELDS, *PAGE_DECL_FIELDS})
+LINE_KINDS = ("page", *MOVES)
 
 
 @dataclass(frozen=True)
@@ -148,14 +174,14 @@ def compile_route(
     forward pass compiling the moves against the waypoints around them,
     then the lints that need the whole route."""
     own = _own_pages(pages, pack)
-    entries, wp_ids, start, page_names = _shape(raw, pack, set(own))
+    lines, start = _shape(raw, pack, set(own))
     local = pack.local_for(playbook)
     # The entry's recorded hands enter the dispatch table here, once,
     # under their `<entry>.<name>` spelling (the playbooks it runs read
     # the same folder) — the inline bodies the route embeds join them as
     # the compile pass meets them.
     inline = local_registry(entry_of(playbook), pack, local.macros)
-    ctx = Ctx(
+    scope = Scope(
         playbook,
         pack,
         input_names,
@@ -168,126 +194,63 @@ def compile_route(
     # ABOVE the run may quote them (empty until its rounds end — the
     # one forward ref, for a plan that re-reads what a run already
     # did). Resolved here, once, and the bodies kept for the parse.
-    subs: dict[int, Playbook] = {}
-    for i, (kind, name, _entry) in enumerate(entries):
-        if kind == "run":
-            subs[i] = sub_playbook(ctx, f"route line {i + 1}", name)
-            ctx.payloads[name] = tuple(subs[i].returns)
-    moves: list[Node] = []
-    seen: dict[str, int] = {}
+    for line in lines:
+        if isinstance(line, Line) and line.kind == "run":
+            sub = sub_playbook(scope, f"route line {line.pos}", line.name)
+            scope.subs[line.name] = sub
+            scope.payloads[line.name] = tuple(sub.returns)
     recovers: dict[str, Recovery] = {}  # this route's own hands, by page
-    current_page: str | None = None
-    for i, (kind, name, entry) in enumerate(entries):
-        pos = i + 1
-        if kind == "page":
-            current_page = wp_ids[i]
-            fields = recovery_fields(entry)
-            if fields:
-                rpage = current_page
-                assert rpage is not None
-                if "." in rpage:
-                    raise PlaybookError(
-                        f"route line {pos}: {rpage!r} is a reserved built-in "
-                        "— packs declare recovery for their own pages only"
-                    )
-                declared = parse_recover(ctx, fields, f"route line {pos}", rpage)
-                recovers[rpage] = declared_once(
-                    recovers.get(rpage), declared, f"route line {pos}", rpage
-                )
-            continue
-        where = f"route line {pos}"
-        check_name(name, f"{where}: `{kind}`")
-        if name == INPUTS_ROOT:
-            raise PlaybookError(
-                f"{where}: name {name!r} is a reserved ref root — "
-                "{inputs.*} always reads the declared inputs"
-            )
-        if name in page_names:
-            raise PlaybookError(
-                f"{where}: {name!r} is also a page on this route — moves "
-                "and pages share one namespace, so the names must not collide"
-            )
-        if name in seen:
-            raise PlaybookError(
-                f"{where}: duplicate move name {name!r} (line {seen[name]} "
-                "already uses it) — refs address moves by name, so they "
-                "must be unique"
-            )
-        seen[name] = pos
-        where = f"move {name!r}"
-        args = entry.get("with", {})
-        if not isinstance(args, dict):
-            raise PlaybookError(f"{where}: `with` must be a mapping of arguments")
-        check_arg_refs(args, input_names, ctx.payloads, where)
-        nxt = wp_ids[i + 1] if i + 1 < len(entries) else None
-        if kind == "do":
-            if nxt is None:
-                raise PlaybookError(
-                    f"{where}: a `do` must be followed by the page it lands "
-                    "on — the landing check is what proves the move ran"
-                )
-            assert current_page is not None  # checked by the prefix rule
-            moves.append(parse_do(ctx, where, name, entry, args, current_page, nxt))
-        elif kind == "start":
-            assert nxt is not None  # `start` sits immediately before a page
-            spec = ctx.resolve(entry.get("macro"), where, name)
-            moves.append(
-                DoNode(
-                    id=name,
-                    macro=spec.name,
-                    args={},
-                    enter="",  # unconditional: the start runs from anywhere
-                    verify=nxt,
-                    on_fail=on_fail_mode(entry, where),
-                )
-            )
-        elif kind == "agent":
-            moves.append(parse_agent(ctx, where, name, entry, current_page, nxt))
-        elif kind == "ask":
-            moves.append(parse_ask(ctx, where, name, entry, current_page))
-        elif kind == "select":
-            moves.append(parse_select(ctx, where, name, entry, current_page))
-        elif kind == "run":
-            moves.append(
-                parse_run(
-                    ctx, where, name, entry, args, current_page, nxt, subs[i], moves
-                )
-            )
-        else:  # tell
-            message, _ = entry_message(ctx, where, entry, ctx.payloads)
-            moves.append(
-                TellNode(id=name, message=message, on_fail=on_fail_mode(entry, where))
-            )
+    for line in lines:
+        if isinstance(line, Waypoint):
+            _declare_hand(scope, line, recovers)
+        else:
+            scope.compiled.append(MOVES[line.kind].parse(scope, line))
+    moves = scope.compiled
     if len(moves) > MAX_NODES:
         raise PlaybookError(f"too many moves ({len(moves)} > {MAX_NODES})")
     flat = lints.flatten(moves)
     lints.check_money(flat)
     lints.check_resume(flat)
-    if is_boot(ctx):
+    if is_boot(scope):
         lints.check_boot(moves)
     # The route's defaults beneath its waypoints' hands: a waypoint that
     # declares a page's hand replaces the default whole.
     return CompiledRoute(
         nodes=moves,
         start=start,
-        recovers=overlay(route_defaults(ctx, own), recovers),
+        recovers=overlay(route_defaults(scope, own), recovers),
         inline=inline,
-        prompts_used=frozenset(ctx.prompts_used),
-        end=wp_ids[-1] or "",  # "" when the route ends on a move
-        payloads=dict(ctx.payloads),
+        prompts_used=frozenset(scope.prompts_used),
+        end=lines[-1].id if isinstance(lines[-1], Waypoint) else "",
+        payloads=dict(scope.payloads),
     )
+
+
+def _declare_hand(scope: Scope, wp: Waypoint, recovers: dict[str, Recovery]) -> None:
+    """A waypoint's `recover:` block, if it carries one — this route's
+    own hand for that page, declared once."""
+    fields = recovery_fields(wp.entry)
+    if not fields:
+        return
+    if "." in wp.id:
+        raise PlaybookError(
+            f"{wp.where}: {wp.id!r} is a reserved built-in "
+            "— packs declare recovery for their own pages only"
+        )
+    declared = parse_recover(scope, fields, wp.where, wp.id)
+    recovers[wp.id] = declared_once(recovers.get(wp.id), declared, wp.where, wp.id)
 
 
 def _shape(
     raw: Any, pack: Pack, own_names: set[str]
-) -> tuple[list[tuple[str, str, dict]], list[str | None], str, set[str]]:
+) -> tuple[list[Line | Waypoint], str]:
     """The route's shape, proved before any move is compiled: a
     non-empty list whose first page is the start contract, at most one
-    `start` sitting right before it, only pure-text agents above it,
-    and every waypoint's id resolved (`_waypoint_id`, one grammar at
-    every door) so a move can read the page after it in one look.
-    Returns (classified entries, the waypoint id per entry or None,
-    the start page id, the set of page ids on the route)."""
+    `start` sitting right before it, only cold moves above it, every
+    waypoint's id resolved (`_waypoint_id`, one grammar at every door)
+    and every move's name legal and unique. Returns the lines — each
+    move a `Line` that already knows the waypoints around it, each page
+    a `Waypoint` — and the start page id."""
     if not isinstance(raw, list) or not raw:
         raise PlaybookError("`route` must be a non-empty list")
     entries = [_classify_line(i, e) for i, e in enumerate(raw, start=1)]
@@ -309,7 +272,7 @@ def _shape(
         # A tell speaks over the channel from any screen; a run up here
         # must open with its playbook's own start (`parse_run`); an
         # acting agent fails in `parse_agent`, having no page to start on.
-        if kind not in ("agent", "start", "tell", "run"):
+        if not MOVES[kind].cold:
             raise PlaybookError(
                 f"route line {i + 1}: only pure-text `agent` steps (no "
                 "tools), `start`, a `tell` and a self-starting `run` may "
@@ -331,18 +294,55 @@ def _shape(
         for kind, name, entry in entries
         if kind == "page" and route_decl(entry) is not None
     }
-    wp_ids: list[str | None] = []
-    page_names: set[str] = set()
+    wp_ids: list[str | None] = [
+        _waypoint_id(i + 1, name, entry, pack, declared_here)
+        if kind == "page"
+        else None
+        for i, (kind, name, entry) in enumerate(entries)
+    ]
+    page_names = {pid for pid in wp_ids if pid is not None}
+    lines: list[Line | Waypoint] = []
+    seen: dict[str, int] = {}
+    before: str | None = None
     for i, (kind, name, entry) in enumerate(entries):
-        if kind != "page":
-            wp_ids.append(None)
+        pos, pid = i + 1, wp_ids[i]
+        if pid is not None:
+            before = pid
+            lines.append(Waypoint(pos, pid, entry))
             continue
-        pid = _waypoint_id(i + 1, name, entry, pack, declared_here)
-        wp_ids.append(pid)
-        page_names.add(pid)
+        _check_move_name(pos, kind, name, page_names, seen)
+        after = wp_ids[i + 1] if i + 1 < len(entries) else None
+        lines.append(Line(pos, kind, name, entry, before=before, after=after))
     start = wp_ids[first_page]
     assert start is not None  # first_page indexes a page entry
-    return entries, wp_ids, start, page_names
+    return lines, start
+
+
+def _check_move_name(
+    pos: int, kind: str, name: str, page_names: set[str], seen: dict[str, int]
+) -> None:
+    """A move's name: legal, not the reserved ref root, not a page of
+    this route (moves and pages share one namespace), not used twice
+    (refs address moves by name)."""
+    where = f"route line {pos}"
+    check_name(name, f"{where}: `{kind}`")
+    if name == INPUTS_ROOT:
+        raise PlaybookError(
+            f"{where}: name {name!r} is a reserved ref root — "
+            "{inputs.*} always reads the declared inputs"
+        )
+    if name in page_names:
+        raise PlaybookError(
+            f"{where}: {name!r} is also a page on this route — moves "
+            "and pages share one namespace, so the names must not collide"
+        )
+    if name in seen:
+        raise PlaybookError(
+            f"{where}: duplicate move name {name!r} (line {seen[name]} "
+            "already uses it) — refs address moves by name, so they "
+            "must be unique"
+        )
+    seen[name] = pos
 
 
 def _classify_line(i: int, entry: Any) -> tuple[str, str, dict]:
@@ -359,7 +359,8 @@ def _classify_line(i: int, entry: Any) -> tuple[str, str, dict]:
             f"(got: {', '.join(map(str, sorted(entry))) or '(empty)'})"
         )
     kind = kinds[0]
-    unknown = sorted(set(map(str, entry.keys())) - _ENTRY_KEYS[kind])
+    keys = _PAGE_KEYS if kind == "page" else MOVES[kind].keys
+    unknown = sorted(set(map(str, entry.keys())) - keys)
     if unknown:
         raise PlaybookError(
             f"{where}: unknown key(s) for `{kind}`: {', '.join(unknown)}"

@@ -19,7 +19,7 @@ from physiclaw.common.paths import (
     PROMPT_SUFFIX,
     entry_of,
 )
-from physiclaw.conductor.route.scope import Ctx, MacroResolve
+from physiclaw.conductor.route.scope import Scope, SlotResolve
 from physiclaw.conductor.spec.match import page_resolver
 from physiclaw.conductor.spec.model import (
     Pack,
@@ -42,7 +42,7 @@ from physiclaw.macros.model import (
 from physiclaw.macros.parse import MacroResolver, parse_inline_macro
 
 
-def landmark_name(ctx: Ctx, value: Any, where: str) -> str:
+def landmark_name(scope: Scope, value: Any, where: str) -> str:
     """An `app.landmarks.<name>` reference resolved to its bare name —
     ONE spelling for a landmark `given:` and a recover hand's
     `tap:`. The name
@@ -55,8 +55,8 @@ def landmark_name(ctx: Ctx, value: Any, where: str) -> str:
         )
     name = r.name
     check_name(name, where)
-    if name not in ctx.pack.landmarks:
-        known = ", ".join(sorted(ctx.pack.landmarks)) or "(none)"
+    if name not in scope.pack.landmarks:
+        known = ", ".join(sorted(scope.pack.landmarks)) or "(none)"
         raise PlaybookError(
             f"{where}: names landmark {name!r} — not declared under "
             f"`landmarks`. Declared: {known}"
@@ -89,7 +89,7 @@ def local_registry(entry: str, pack: Pack, local: Scanned[Macro]) -> dict[str, M
 
 def route_resolver(
     playbook: str, pack: Pack, inline: dict[str, Macro], local: Scanned[Macro]
-) -> MacroResolve:
+) -> SlotResolve:
     """The name-or-inline resolution every macro-carrying slot shares —
     a do's `macro:`, an ask's `resume:`, a page's `recover:`. ONE home
     for the whole idiom: the synthesized-name rule
@@ -171,7 +171,7 @@ def pack_hint(kind: str, name: str, exists: bool) -> str:
     return f" — the pack's is `{app_ref(kind, name)}`" if exists else ""
 
 
-def prompt_text(ctx: Ctx, raw: str, where: str) -> str:
+def prompt_text(scope: Scope, raw: str, where: str) -> str:
     """An agent's `prompt:` — the prose itself, `prompts.<name>` for this
     route's `prompts/<name>.md`, or `app.prompts.<name>` for the
     pack's. Resolved here, at parse, so the node carries text either
@@ -181,9 +181,11 @@ def prompt_text(ctx: Ctx, raw: str, where: str) -> str:
     if r is None or r.kind != PROMPTS_KIND:
         return raw
     local = not r.shared
-    files = ctx.prompts_local if local else ctx.prompts_pack
+    files = scope.prompts_local if local else scope.prompts_pack
     folder = (
-        f"{ctx.entry}/{PACK_PROMPTS_DIRNAME}/" if local else f"{PACK_PROMPTS_DIRNAME}/"
+        f"{scope.entry}/{PACK_PROMPTS_DIRNAME}/"
+        if local
+        else f"{PACK_PROMPTS_DIRNAME}/"
     )
     name = r.name
     check_name(name, f"{where}: `prompt` ({ref})")
@@ -196,14 +198,14 @@ def prompt_text(ctx: Ctx, raw: str, where: str) -> str:
         raise PlaybookError(
             f"{where}: `prompt` names {ref}, but "
             + _not_here("file", f"{name}{PROMPT_SUFFIX}", folder, files.ok)
-            + pack_hint(PROMPTS_KIND, name, local and name in ctx.prompts_pack.ok)
+            + pack_hint(PROMPTS_KIND, name, local and name in scope.prompts_pack.ok)
         )
-    ctx.prompts_used.add(f"{folder}{name}{PROMPT_SUFFIX}")
+    scope.prompts_used.add(f"{folder}{name}{PROMPT_SUFFIX}")
     return files.ok[name]
 
 
 def argless_macro(
-    raw: Any, key: str, where: str, nid: str, resolve: MacroResolve
+    raw: Any, key: str, where: str, nid: str, resolve: SlotResolve
 ) -> Macro:
     """Resolve one argument-less pack macro for a helper-hand slot
     (`resume:`, `recover:`, an agent's `tools:`). The slot may wrap its

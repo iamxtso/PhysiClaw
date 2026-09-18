@@ -10,7 +10,7 @@ from physiclaw.conductor.route.fields import (
     unique_list,
 )
 from physiclaw.conductor.route.resolve import argless_macro
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Line, Scope
 from physiclaw.conductor.spec import reply
 from physiclaw.conductor.spec.limits import (
     DEFAULT_ASK_ROUNDS,
@@ -44,13 +44,14 @@ def reply_words(entry: dict, key: str, where: str) -> list[str]:
     return out
 
 
-def parse_ask(
-    ctx: Ctx, where: str, nid: str, entry: dict, current_page: str | None
-) -> AskNode:
+def parse_ask(scope: Scope, line: Line) -> AskNode:
+    """An `ask`: a question over the channel whose reply words gate the
+    walk. A payment ask reads its total off the page before it."""
+    where, nid, entry, before = line.where, line.name, line.entry, line.before
     approve = require_str(entry.get("approve"), f"{where}: `approve`")
     check_name(approve, f"{where}: `approve`")
     if approve == "payment":
-        if current_page is None or "." in current_page:
+        if before is None or "." in before:
             raise PlaybookError(
                 f"{where}: a payment ask reads its total off the page before "
                 "it — put the sheet's page waypoint immediately before the ask"
@@ -58,8 +59,8 @@ def parse_ask(
     # A payment ask may quote the consent slot (a move literally named
     # `ask` is shadowed in this message — the money slot wins, both at
     # parse and at fill).
-    g_payloads = ctx.payloads_with_total() if approve == "payment" else ctx.payloads
-    message, msg_refs = entry_message(ctx, where, entry, g_payloads)
+    g_payloads = scope.payloads_with_total() if approve == "payment" else scope.payloads
+    message, msg_refs = entry_message(scope, where, entry, g_payloads)
     total: tuple[str, ...] = ()
     if approve == "payment":
         if "ask.total" not in msg_refs:
@@ -80,11 +81,13 @@ def parse_ask(
     # The answer to a no quotes what the ask could (the total included).
     denied = None
     if entry.get("denied") is not None:
-        denied, _ = entry_message(ctx, where, entry, g_payloads, key="denied")
+        denied, _ = entry_message(scope, where, entry, g_payloads, key="denied")
     wait_seconds, rounds = _ask_wait(entry, where)
     resume = None
     if entry.get("resume") is not None:
-        resume = argless_macro(entry["resume"], "resume", where, nid, ctx.resolve).name
+        resume = argless_macro(
+            entry["resume"], "resume", where, nid, scope.resolve
+        ).name
     return AskNode(
         id=nid,
         approve=approve,
@@ -93,7 +96,7 @@ def parse_ask(
         no=tuple(reply_words(entry, "no", where)),
         denied=denied,
         resume=resume,
-        enter=current_page or "",
+        enter=before or "",
         total_label=total,
         wait_seconds=wait_seconds,
         silence_rounds=rounds,

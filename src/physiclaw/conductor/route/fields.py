@@ -6,7 +6,7 @@ rule has one home and one wording.
 from collections.abc import Callable
 from typing import Any, TypeVar
 
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Line, Scope
 from physiclaw.conductor.spec.limits import (
     MAX_MESSAGE_LINES,
 )
@@ -17,6 +17,7 @@ from physiclaw.conductor.spec.model import (
     prose,
 )
 from physiclaw.conductor.spec.refs import (
+    check_arg_refs,
     check_refs,
     refs_in,
 )
@@ -84,7 +85,7 @@ def limit_int(value: Any, where: str, lo: int, hi: int) -> int:
 
 
 def entry_message(
-    ctx: Ctx,
+    scope: Scope,
     where: str,
     entry: dict,
     payloads: dict[str, tuple[str, ...]],
@@ -97,7 +98,7 @@ def entry_message(
     values; returned with them so the ask lints can inspect."""
     text = prose(entry.get(key), f"{where}: `{key}`", lines=MAX_MESSAGE_LINES)
     refs = refs_in(text, f"{where}: `{key}`")
-    check_refs(refs, ctx.input_names, payloads, f"{where}: `{key}`")
+    check_refs(refs, scope.input_names, payloads, f"{where}: `{key}`")
     return text, refs
 
 
@@ -142,3 +143,14 @@ def limit_mapping(entry: dict, where: str, keys: set[str]) -> dict:
     if unknown:
         raise PlaybookError(f"{where}: `limit`: unknown key(s): {', '.join(unknown)}")
     return raw
+
+
+def with_args(scope: Scope, line: Line) -> dict:
+    """A move's `with:` block — the mapping of arguments it hands what it
+    runs, every ref held to the defined-before-use rule (`check_arg_refs`).
+    {} when the line carries none."""
+    args = line.entry.get("with", {})
+    if not isinstance(args, dict):
+        raise PlaybookError(f"{line.where}: `with` must be a mapping of arguments")
+    check_arg_refs(args, scope.input_names, scope.payloads, line.where)
+    return args

@@ -77,10 +77,10 @@ spec/ — the grammar and the page model, as data:
 
 route/ — the route compiler, pure over spec (reads no file):
     compile.py          the door: `route:` → moves, start page, hands
-    scope.py            what one compile threads through every parser
+    scope.py            the `Scope` one compile threads through, the `Line` each parser reads
     fields.py           the field rules every move shares
     resolve.py          macros, prompt files and landmarks by reference
-    do.py, agent.py, ask.py, select.py, run.py   one parser per move
+    do.py, agent.py, ask.py, tell.py, select.py, run.py   one parser per move kind
     recover.py          declared recovery: pages' hands, layered
     playbook.py         a playbook file → its `Playbook`, the route compiled
     lints.py            the whole-route checks and the check-time advisories

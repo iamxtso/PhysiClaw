@@ -14,7 +14,7 @@ from physiclaw.conductor.route.resolve import (
     landmark_name,
     macro_resolver,
 )
-from physiclaw.conductor.route.scope import Ctx
+from physiclaw.conductor.route.scope import Scope
 from physiclaw.conductor.spec.limits import (
     DEFAULT_RECOVER_LIMIT,
     MAX_RECOVER_ACTIONS,
@@ -98,19 +98,19 @@ def overlay(
     return out
 
 
-def route_defaults(ctx: Ctx, own: dict[str, dict]) -> dict[str, Recovery]:
+def route_defaults(scope: Scope, own: dict[str, dict]) -> dict[str, Recovery]:
     """What the route's waypoints start from: the manifest's hands every
     route inherits (resolved once, at pack load — `manifest_recovers`)
     under the hands its own `pages:` block declares, parsed with the
     route's own resolver."""
-    return overlay(dict(ctx.pack.recovers), _page_hands(ctx, own, "route"))
+    return overlay(dict(scope.pack.recovers), _page_hands(scope, own, "route"))
 
 
-def _page_hands(ctx: Ctx, raw: dict[str, dict], site: str) -> dict[str, Recovery]:
+def _page_hands(scope: Scope, raw: dict[str, dict], site: str) -> dict[str, Recovery]:
     """The hands a `pages:` mapping declares, by page — the
     `recovery_fields` slice of each, the pages declaring none skipped."""
     return {
-        name: parse_recover(ctx, fields, f"{site} page {name!r}", name)
+        name: parse_recover(scope, fields, f"{site} page {name!r}", name)
         for name, fields in raw.items()
         if fields
     }
@@ -125,15 +125,15 @@ def manifest_recovers(pack: Pack, raw: dict[str, dict]) -> dict[str, Recovery]:
     refused. Raises PlaybookError naming the page."""
     pack_macro = macro_resolver(pack.macros, pack.macro_errors)
 
-    def resolve(value: Any, where: str, nid: str, role: str | None = None) -> Macro:
+    def resolve(raw: Any, where: str, nid: str, role: str | None = None) -> Macro:
         try:
-            return pack_macro(require_str(value, f"{where}: `{role or 'macro'}`"))
+            return pack_macro(require_str(raw, f"{where}: `{role or 'macro'}`"))
         except MacroError as e:
             raise PlaybookError(f"{where}: {role or 'macro'} {e}") from e
 
     for name, spec in raw.items():
         _refuse_bodies(spec.get("recover"), f"manifest page {name!r}")
-    return _page_hands(Ctx("", pack, set(), resolve), raw, "manifest")
+    return _page_hands(Scope("", pack, set(), resolve), raw, "manifest")
 
 
 def _refuse_bodies(raw: Any, where: str) -> None:
@@ -149,7 +149,7 @@ def _refuse_bodies(raw: Any, where: str) -> None:
         _refuse_bodies(raw.get(reading), where)
 
 
-def parse_recover(ctx: Ctx, fields: dict, where: str, page: str) -> Recovery:
+def parse_recover(scope: Scope, fields: dict, where: str, page: str) -> Recovery:
     """A page's `recover:`, `tries:` and `on_fail:` (the
     `PAGE_RECOVERY_FIELDS` slice of its mapping, in a route waypoint or
     the manifest alike). `recover:` is one hand for any deviation (a
@@ -192,7 +192,7 @@ def parse_recover(ctx: Ctx, fields: dict, where: str, page: str) -> Recovery:
                     f"({', '.join(RECOVER_READINGS)}), not both"
                 )
             hands = {
-                k: _parse_hand(ctx, raw[k], f"{where}: `recover.{k}`", page)
+                k: _parse_hand(scope, raw[k], f"{where}: `recover.{k}`", page)
                 for k in keyed
             }
             return Recovery(
@@ -204,13 +204,13 @@ def parse_recover(ctx: Ctx, fields: dict, where: str, page: str) -> Recovery:
             )
     # A bare gesture, `{tap: ...}` / `{macro: ...}`, or a non-hand — the
     # one hand parser judges the shape and names the alternatives.
-    hand = _parse_hand(ctx, raw, f"{where}: `recover`", page)
+    hand = _parse_hand(scope, raw, f"{where}: `recover`", page)
     return Recovery(
         covered=hand, elsewhere=hand, locked=hand, tries=tries, on_fail=on_fail
     )
 
 
-def _parse_hand(ctx: Ctx, raw: Any, where: str, page: str) -> RecoverHand:
+def _parse_hand(scope: Scope, raw: Any, where: str, page: str) -> RecoverHand:
     """One recovery hand, in a step's shape: a bare gesture that takes no
     object (`go_back`), `{tap: app.landmarks.<name>}` (the declared spot,
     as declared), or `{macro: app.macros.<name>}` (argument-less)."""
@@ -232,8 +232,10 @@ def _parse_hand(ctx: Ctx, raw: Any, where: str, page: str) -> RecoverHand:
         )
     if "macro" in raw:
         return RecoverHand(
-            macro=argless_macro(raw["macro"], "recover", where, page, ctx.resolve).name
+            macro=argless_macro(
+                raw["macro"], "recover", where, page, scope.resolve
+            ).name
         )
     return RecoverHand(
-        tool="tap", landmark=landmark_name(ctx, raw["tap"], f"{where}: `tap`")
+        tool="tap", landmark=landmark_name(scope, raw["tap"], f"{where}: `tap`")
     )
