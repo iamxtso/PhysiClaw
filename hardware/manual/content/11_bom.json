@@ -122,8 +122,8 @@
         },
         "qty": "11",
         "desc": {
-          "en": "Idler mount (4 pc), XY joint (left), XY joint (right), Belt clamp, Solenoid mount, Phone bed, Control board holder, Tube holder",
-          "zh": "惰轮支座（4个）、XY 连接件（左）、XY 连接件（右）、同步带夹具、电磁铁支架、手机托架、控制板支架、导管支架"
+          "en": "Idler mount (2 front, 2 rear), XY joint (left), XY joint (right), Belt clamp, Solenoid mount, Phone bed, Control board holder, Tube holder",
+          "zh": "惰轮支座（前后各两个）、XY 连接件（左）、XY 连接件（右）、同步带夹具、电磁铁支架、手机托架、控制板支架、导管支架"
         }
       },
       {
