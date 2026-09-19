@@ -94,8 +94,9 @@ def refusal(
         if target.within is not None and not _accounted(box, rows, target.within):
             return (
                 f"that box is in the band {' / '.join(target.label)} sits in, and "
-                "no row of the screen reads as what it would press — scroll it "
-                "into view and aim at a listed element."
+                "no row of the screen reads as what it would press — scroll the "
+                "row it is on higher up the screen, out of that band, or aim at "
+                "a listed element."
             )
     return None
 

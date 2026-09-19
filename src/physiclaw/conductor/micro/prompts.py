@@ -102,9 +102,9 @@ SCREEN_ROWS_NOTE = (
 # read_reply — an ask's reply the declared words did not cover.
 READ_REPLY_LEGEND = (
     '"answer" is "confirm" when the user\'s newest reply agrees to the ask '
-    'exactly as put (a bare yes, an ok, a go-ahead), "deny" when they refuse '
-    'or want something different, and "other" for anything you cannot read '
-    "as one of those — a question, a hold, a change to what was asked. "
+    'exactly as put (a bare yes, an ok, a go-ahead), "deny" when they want '
+    'the task dropped, and "other" when they want it to go on in any changed '
+    "or delayed form — a question, a hold, a change to what was asked. "
     'When unsure, "other": the move fires on confirm and cannot be undone.'
 )
 

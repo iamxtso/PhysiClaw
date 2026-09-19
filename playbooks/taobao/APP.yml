@@ -132,11 +132,11 @@ pages:
     recover:
       elsewhere: go_back
     tries: 2
-  shangou-store:                  # a restaurant's or shop's menu: 外送/自取 up top
-    description: a 闪购 store's menu, 外送 / 自取 up top
-    anchors:
-      - {text: "外送", within: top}
-      - {text: "自取", within: top}
+  shangou-store:                  # a store's menu: 点餐/评价 tabs up top (外送/自取 above them only at a restaurant)
+    description: a 闪购 store's menu, its 点餐 / 评价 tab row up top
+    anchors:                      # the header slot 闪购 pages share; no 商家 anchor — a brand store puts its slogan there
+      - {text: "点餐", within: [0.0, 0.10, 0.6, 0.16]}
+      - {text: "评价", within: [0.0, 0.10, 0.6, 0.16]}
     scrollable: true
     recover:
       covered: {tap: app.landmarks.dismiss}

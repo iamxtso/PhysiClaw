@@ -5,13 +5,14 @@ Search keyword: {keyword}
 1. PICK — compare the result rows you can read (title, spec, price,
    sales): prefer the item whose name matches the buyer's wording,
    then the cheapest of those. A unit word in the item (一包 / 一箱 /
-   一袋) is how the buyer counts, never a spec: a storefront sells only
-   its own pack sizes, so a title's pack count never disqualifies it.
-   A bundle of several different products (组合装, 套餐) only when the
-   buyer asked for one. Scroll once if the first screen shows fewer
-   than two fitting items. Tap the chosen item's title ONCE to open
-   its page; opening a page cannot be undone here, so choose from the
-   rows, not by opening pages.
+   两袋) is how the buyer COUNTS, never a spec: a storefront sells only
+   its own pack sizes, so a title's unit (枚 / 盒 / kg) never
+   disqualifies it; the count is set at ADD. A bundle of several
+   different products (组合装, 套餐) only when the buyer asked for one.
+   Scroll at most ONCE, only if the first screen shows fewer than two
+   fitting items. Tap the chosen item's title ONCE to open its page;
+   opening a page cannot be undone here, so choose from the rows, not
+   by opening pages.
 2. ADD — on the item page, READ the title and the unit price first,
    then tap 加入购物车 (the bottom-right button) ONCE: a second tap adds
    a second unit, however unchanged the page looks — the cart

@@ -8,11 +8,12 @@ alone reads 已选2件 — so it never proves which lines are ticked: judge
 by each line's circle and the footer sum. Cart prices differ from the
 item pages (the cart's own discounts): ignore them, the ticked SET is
 the choice.
-A line's checkbox is a circle at the far left (x 0.03–0.09), level
-with the MIDDLE of the line's image, about 0.04 below its title row —
-never a listed element, box it off the screenshot; 全选's circle is
-at the same x, level with its label, and tapping the label's text
-does nothing. This phone floats a round button over the left edge at
+A line's checkbox is a circle at the far left, never a listed
+element: with t the TOP of the line's title row, box it EXACTLY as
+[0.03, t+0.02, 0.09, t+0.05], level with the middle of the line's
+image — a box level with the title itself misses. 全选's circle is at
+the same x, level with its label; tapping the label's text does
+nothing. This phone floats a round button over the left edge at
 about y 0.31–0.37, and a tap there is REFUSED: the walk nudged the
 list once before you start; run the `store-nudge` macro ONLY when
 全选's row lies inside that band (a finger's width up; it does nothing
