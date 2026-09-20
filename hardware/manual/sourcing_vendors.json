@@ -82,8 +82,8 @@
       }
     ],
     "note": {
-      "en": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/download/physiclaw-hardware-v0.1/physiclaw_custom_parts.zip\">Download the STEP files</a> and send them to the shop's customer service.",
-      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/download/physiclaw-hardware-v0.1/physiclaw_custom_parts.zip\">下载 step 文件</a>，发送给店铺客服"
+      "en": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> (print guide included) and send them to the shop's customer service.",
+      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">下载 STEP 文件</a>（内含打印说明），发送给店铺客服"
     }
   },
   {
