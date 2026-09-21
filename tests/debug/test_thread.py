@@ -12,11 +12,13 @@ import json
 from conftest import write_channel_pages
 
 from physiclaw.common import paths
+from physiclaw.common.bbox import center_of
 from physiclaw.common.listing import Screen
 from physiclaw.conductor.load.prints import prints_for_app
 from physiclaw.conductor.spec import reply
 from physiclaw.conductor.spec.conventions import THREAD_ID
 from physiclaw.conductor.spec.match import match_screen
+from physiclaw.conductor.spec.reply import INCOMING_LEFT
 from physiclaw.debug import thread as vthread
 
 
@@ -151,9 +153,9 @@ def test_user_bubble_reads_as_incoming_and_agent_ask_is_excluded() -> None:
     )
 
     yes, no = frozenset({"ok", "好的"}), frozenset({"不用"})
-    new = reply.read_incoming(
-        after_reply.rows, baseline, ask, incoming=(0.0, 0.0, 0.45, 1.0)
-    )[0]
+    new = reply.read_incoming(after_reply.rows, baseline, ask, incoming=INCOMING_LEFT)[
+        0
+    ]
 
     assert new == ["ok"]
     assert reply.classify_all(new, yes, no) == "confirm"
@@ -166,6 +168,27 @@ def test_multiline_bubble_renders_as_wrapped_rows() -> None:
 
     labels = [r.label for r in screen.rows]
     assert "buy milk" in labels and "two boxes" in labels
+
+
+def test_a_long_reply_line_reads_as_the_reply() -> None:
+    # A line that fills the bubble is rendered as wide as a real one, so
+    # its center drifts past the incoming box — and the reader must still
+    # read it as the reply, by its place under the ask.
+    write_channel_pages()
+    ask = "已为您选好红心猕猴桃12枚，实付¥26.7。回复 好的 确认支付，或 不用 取消。"
+    long_reply = "再买巨峰葡萄500g，一袋芝士片，然后一起结算"
+    screen = _render(
+        [
+            vthread.Bubble(vthread.USER, "buy fruit"),
+            vthread.Bubble(vthread.AGENT, ask),
+            vthread.Bubble(vthread.USER, long_reply),
+        ]
+    )
+    row = next(r for r in screen.rows if r.label == long_reply)
+    assert center_of(row.bbox)[0] > 0.45  # past the box's edge
+
+    new = reply.read_incoming(screen.rows, set(), ask, incoming=INCOMING_LEFT)
+    assert new == ([long_reply], True)
 
 
 def test_render_survives_a_missing_channel_pack() -> None:

@@ -39,18 +39,21 @@ def agent_reply(action: str, confidence: float = 0.9, **args) -> str:
 
 
 def make_screen(*rows: tuple) -> Screen:
-    """Rows are (label, cx, cy) or (label, cx, cy, conf); an empty label
-    is an icon (the listing grammar's label-less kind)."""
+    """Rows are (label, cx, cy), (label, cx, cy, conf) or (label, cx, cy,
+    conf, half_w) — a row as wide as a real line, when its width
+    matters; an empty label is an icon (the listing grammar's
+    label-less kind)."""
     els = []
     for i, row in enumerate(rows):
         label, cx, cy = row[0], row[1], row[2]
         conf = row[3] if len(row) > 3 else 0.9
+        half_w = row[4] if len(row) > 4 else BOX_W
         els.append(
             Element(
                 id=i,
                 kind="text" if label else "icon",
                 label=label,
-                bbox=(cx - BOX_W, cy - BOX_H, cx + BOX_W, cy + BOX_H),
+                bbox=(cx - half_w, cy - BOX_H, cx + half_w, cy + BOX_H),
                 conf=conf,
             )
         )
@@ -351,8 +354,7 @@ def write_channel(open_macro: str | None = None, im: str = "wechat") -> None:
     (root / "macros").mkdir(parents=True, exist_ok=True)
     (root / "boot").mkdir(exist_ok=True)  # a test may write its own boot
     (root / "APP.yml").write_text(
-        compose_pack_doc(im, CHANNEL_PAGES)
-        + "thread:\n  incoming: [0.0, 0.0, 0.45, 1.0]\n",
+        compose_pack_doc(im, CHANNEL_PAGES),
         encoding="utf-8",
     )
     (root / "macros" / "send.yml").write_text(CHANNEL_SEND, encoding="utf-8")

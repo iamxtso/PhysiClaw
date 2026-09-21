@@ -8,12 +8,13 @@ import pytest
 from conductor_fakes import make_screen
 
 from physiclaw.conductor.spec import reply
+from physiclaw.conductor.spec.reply import INCOMING_LEFT
 
 YES = frozenset(map(reply.normalize, ["好的", "嗯", "ok", "go ahead", "confirm"]))
 NO = frozenset(map(reply.normalize, ["不用", "不要", "算了", "no thanks", "cancel"]))
 
 
-LEFT = (0.0, 0.0, 0.45, 1.0)  # the shipped channel pack's `incoming:`
+LEFT = INCOMING_LEFT  # every IM we know: the user's bubbles on the left
 
 
 def _new(rows, baseline, own, **kw):
@@ -57,13 +58,13 @@ def test_only_the_declared_words_count() -> None:
     assert reply.classify("sure", frozenset({"sure"}), NO) == "confirm"
 
 
-def test_new_incoming_filters_side_baseline_and_own_ask() -> None:
+def test_new_incoming_filters_baseline_and_own_ask() -> None:
     ask = "「买牛奶」已到付款页，合计 ¥45。回复 好的 确认支付，或 不用 取消。"
     screen = make_screen(
         ("MyChat", 0.5, 0.05),  # header (baseline)
+        ("已发送", 0.75, 0.2),  # our own earlier bubble, above the ask
         (ask[:20], 0.75, 0.3),  # our ask bubble, wrapped line (right side)
         ("好的", 0.25, 0.5),  # the NEW user reply (left side)
-        ("已发送", 0.75, 0.6),  # our own new bubble — right side, excluded
     )
 
     new = _new(screen.rows, {"MyChat"}, ask)
@@ -71,10 +72,53 @@ def test_new_incoming_filters_side_baseline_and_own_ask() -> None:
     assert new == ["好的"]
 
 
+def test_a_long_reply_line_counts_wherever_its_center_sits() -> None:
+    # A line that fills the bubble reaches the same edges on either side
+    # of the thread, so its center says nothing about who wrote it: the
+    # user's 再买… line centered at x 0.467 fell outside the incoming box
+    # (x < 0.45) and two polls read silence — then an OCR fragment off
+    # the avatar, inside the box, read as the reply "C". Below the ask,
+    # position decides; a lone letter is never thread text.
+    ask = (
+        "已为您选好：正宗四川浦江红心猕猴桃，【大果】12枚单果90-110g，1件，"
+        "实付¥26.7（含运费¥3）。请确认是否购买？（实付以屏幕读数为准：¥26.7）"
+        "回复 好的 确认支付，或 不用 取消。"
+    )
+    wide = 0.32  # half-width of a full bubble line, either side
+    screen = make_screen(
+        ("已为您选好：正宗四川浦江红心猕猴", 0.507, 0.358, 0.95, wide),
+        ("桃，【大果】12枚单果90-110g，1", 0.493, 0.381, 0.95, wide),
+        ("件，实付￥26.7（含运费￥3）。请确", 0.501, 0.403, 0.95, wide),
+        ("认是否购买？（实付以屏幕读数为", 0.485, 0.426, 0.95, 0.29),
+        ("准：￥26.7）回复好的确认支付，或", 0.507, 0.448, 0.95, wide),
+        ("不用取消。", 0.285, 0.472, 0.95, 0.095),  # the wrapped tail
+        ("再买巨峰葡萄500g，一袋芝士片", 0.467, 0.534, 0.95, 0.29),
+        ("C", 0.056, 0.547, 0.95, 0.015),  # the avatar doodle
+    )
+
+    assert reply.ask_band(screen.rows, ask, incoming=LEFT) == (0.358, 0.472)
+    assert _new(screen.rows, {"不用取消。"}, ask) == ["再买巨峰葡萄500g，一袋芝士片"]
+
+
+def test_a_time_stamp_under_the_ask_is_the_threads_not_a_reply() -> None:
+    # Minutes later the thread prints a centered time stamp above the
+    # reply bubble, below our ask: narrow and centered, it is the
+    # thread's own row, and the reply under it is the message.
+    ask = "现在下单吗？回复 好的 或 不用"
+    screen = make_screen(
+        (ask, 0.75, 0.3),
+        ("20:04", 0.5, 0.45),
+        ("好的", 0.25, 0.55),
+    )
+
+    assert _new(screen.rows, set(), ask) == ["好的"]
+
+
 def test_quoted_reply_words_are_never_swallowed_as_own_lines() -> None:
-    # The ask quotes "confirm"/"cancel" (≥ _OWN_FRAGMENT_MIN chars); a
-    # verbatim reply must still register — a swallowed yes reads as
-    # silence and the gate suspend-loops past explicit consent.
+    # The ask quotes "confirm"/"cancel", so a verbatim reply reads as a
+    # piece of the ask; on the user's side it is still the reply — a
+    # swallowed yes reads as silence and the gate suspend-loops past
+    # explicit consent.
     ask = 'Total ¥45. Reply "confirm" to pay, or "cancel" to stop.'
     screen = make_screen(
         ("MyChat", 0.5, 0.05),
@@ -223,13 +267,13 @@ def test_a_bubbles_rows_are_one_message() -> None:
 
 
 def test_no_keyboard_without_a_spread_of_keys() -> None:
-    # Two lone letters are no keyboard; they read as bubbles like any
-    # other, in screen order whatever order the listing had — and at
-    # one height they are one line, so one message.
-    screen = make_screen(("A", 0.2, 0.9), ("B", 0.4, 0.9), ("好的", 0.2, 0.5))
+    # Two lone letters are no keyboard, so nothing below them is cut
+    # off — and lone letters are never thread text themselves (an
+    # avatar doodle reads as one): the message is read, they are not.
+    screen = make_screen(("A", 0.2, 0.9), ("B", 0.4, 0.9), ("好的", 0.2, 0.95))
 
     assert reply.keyboard_top(screen.rows) is None
-    assert _new(screen.rows, set(), "ask") == ["好的", "A B"]
+    assert _new(screen.rows, set(), "ask") == ["好的"]
 
 
 def test_the_asks_own_wrapped_tail_is_not_a_reply() -> None:
@@ -252,6 +296,112 @@ def test_the_asks_own_wrapped_tail_is_not_a_reply() -> None:
     # A tail as short as the ask's own no word is still the ask's.
     short = make_screen(*rows[:2], ("取消。", 0.3, 0.43))
     assert _new(short.rows, {"QiaoQian"}, ask) == []
+
+
+def test_a_garbled_tail_is_still_the_asks_until_its_last_words_are_read() -> None:
+    # OCR misreads the wrapped last line ("不用取消。" as "不甪取消。"): it is
+    # no longer a suffix of the ask, but the ask's last words have not
+    # been read from any line above it, so the row right under the band
+    # is still ours. Read as the user's it would be a deny.
+    ask = "实付13.68元。回复 好的 确认支付，或 不用 取消。"
+    rows = [
+        ("QiaoQian", 0.5, 0.08),
+        (ask[:12], 0.6, 0.40),
+        ("不甪取消。", 0.3, 0.43),  # the tail, one letter wrong
+    ]
+
+    assert reply.ask_band(make_screen(*rows).rows, ask, incoming=LEFT) == (0.40, 0.43)
+    assert _new(make_screen(*rows).rows, {"QiaoQian"}, ask) == []
+    assert _new(make_screen(*rows, ("好的", 0.2, 0.53)).rows, {"QiaoQian"}, ask) == [
+        "好的"
+    ]
+
+
+def test_a_one_line_ask_with_a_stray_ocr_char_is_still_complete() -> None:
+    # OCR tacks a character onto the ask's only line: the row holds the
+    # whole ask, so the ask is complete and the reply right under it is
+    # the user's — not a tail to claim.
+    ask = "现在下单吗？回复 好的 或 不用"
+    screen = make_screen(
+        ("QiaoQian", 0.5, 0.08),
+        (ask + "x", 0.6, 0.40),
+        ("不用", 0.2, 0.43),
+    )
+
+    assert _new(screen.rows, {"QiaoQian"}, ask) == ["不用"]
+
+
+def test_a_misread_character_in_an_ask_line_still_anchors_it() -> None:
+    # OCR misreads one character in the middle of each ask line: no
+    # line is a substring of the ask any more, but five consecutive
+    # characters of each still are — the ask is placed, its garbled
+    # last line still reads as its end, and the reply under it counts.
+    ask = (
+        "已为您选好：金沙河新疆雪花粉1kg，实付9.9元。回复 好的 确认支付，或 不用 取消。"
+    )
+    screen = make_screen(
+        ("QiaoQian", 0.5, 0.08),
+        ("已为您选好：金沙河甪疆雪花粉1kg，", 0.6, 0.40, 0.95, 0.3),
+        ("实付9.9元。回复 好的 确甪支付，或 不用 取消。", 0.6, 0.43, 0.95, 0.3),
+        ("好的", 0.2, 0.53),
+    )
+
+    assert reply.ask_band(screen.rows, ask, incoming=LEFT) == (0.40, 0.43)
+    assert _new(screen.rows, {"QiaoQian"}, ask) == ["好的"]
+
+
+def test_a_reply_right_under_a_complete_ask_is_never_absorbed() -> None:
+    # The ask's last words were read on its own line: the band is
+    # complete, and a reply one wrap gap under it — even one repeating
+    # the ask's no word — is the user's.
+    ask = "实付13.68元。回复 好的 确认支付，或 不用 取消。"
+    screen = make_screen(
+        ("QiaoQian", 0.5, 0.08),
+        (ask, 0.6, 0.40),
+        ("不用", 0.2, 0.43),
+    )
+
+    assert _new(screen.rows, {"QiaoQian"}, ask) == ["不用"]
+
+
+def test_the_same_ask_sent_twice_is_read_at_its_latest_send() -> None:
+    # An earlier run asked the same words and they are still on screen
+    # above: two runs of anchors, and the ask is the lower one — the
+    # latest send. Read at the upper, the new ask's own lines would be
+    # the "reply" (three live sessions of 2026-09-13 showed exactly this).
+    ask = "收到，正在盒马为你挑选：\n鲜牛奶 950ml ×1 ¥7.8\n合计 ¥16.6。回复 好的 确认支付，或 不用 取消。"
+    screen = make_screen(
+        (
+            "合计 ¥16.6。回复 好的 确认支付，或 不用 取消。",
+            0.6,
+            0.20,
+        ),  # the earlier ask
+        ("不用", 0.25, 0.30),  # its reply, then
+        ("收到，正在盒马为你挑选：", 0.3, 0.50),
+        ("鲜牛奶 950ml ×1 ¥7.8", 0.3, 0.53),
+        ("合计 ¥16.6。回复 好的 确认支付，或 不用 取消。", 0.6, 0.56),  # the new ask
+        ("好的", 0.25, 0.66),
+    )
+
+    assert reply.ask_band(screen.rows, ask, incoming=LEFT) == pytest.approx(
+        (0.50, 0.56)
+    )
+    assert _new(screen.rows, set(), ask) == ["好的"]
+
+
+def test_a_narrow_row_on_our_side_under_the_ask_is_not_a_reply() -> None:
+    # With no key row read, the keyboard floor is unset and the word
+    # bar's "I'm" sits under the ask on the right: narrow, it shows its
+    # side, and that side is ours (a live poll of 2026-09-13 read it).
+    ask = "现在下单吗？回复 好的 或 不用"
+    screen = make_screen(
+        (ask, 0.75, 0.3),
+        ("好的", 0.25, 0.5),
+        ("The", 0.5, 0.65),
+        ("I'm", 0.83, 0.65),
+    )
+
+    assert _new(screen.rows, set(), ask) == ["好的"]
 
 
 def test_any_deny_is_the_sweeps_rule() -> None:
@@ -303,10 +453,10 @@ def test_the_band_is_none_when_our_message_is_not_on_the_thread() -> None:
     assert _new(screen.rows, set(), ASK) == ["好的"]  # the baseline still decides
 
 
-def test_the_incoming_box_is_the_channels_to_declare() -> None:
-    # The pack says where the user's bubbles sit. The default reads a
-    # left-incoming thread; a right-incoming thread is the same rows
-    # mirrored, read with the box the pack declares.
+def test_the_incoming_box_is_the_ims() -> None:
+    # The IM says where the user's bubbles sit (`incoming_box`). The
+    # default reads a left-incoming thread; a right-incoming thread is
+    # the same rows mirrored, read with that IM's box.
     left = make_screen(("our ask text", 0.75, 0.3), ("好的", 0.25, 0.4))
     assert _new(left.rows, set(), "our ask text") == ["好的"]
 

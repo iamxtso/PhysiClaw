@@ -17,6 +17,8 @@ or re-exports into its own error surface (`agent.engine.validator`
 converts to ValidationError; `core.vision.util` re-exports as-is).
 """
 
+from collections.abc import Sequence
+
 # The canonical 4-tuple spelling of the same box — element rows
 # (`common.listing.Element`) and macro region clauses share it.
 Bbox = tuple[float, float, float, float]
@@ -105,7 +107,9 @@ def same_line(a: Bbox, b: Bbox) -> bool:
     return a[1] < b[3] and b[1] < a[3]
 
 
-def inside(center: tuple[float, float], bbox: list, *, margin: float) -> bool:
+def inside(
+    center: tuple[float, float], bbox: Sequence[float], *, margin: float
+) -> bool:
     """True if `center` lies within `bbox` expanded by `margin` per side
     (0.0 = exact containment). Like `near`'s tolerance, the margin is
     required: it is the caller's policy, never a hidden default."""
