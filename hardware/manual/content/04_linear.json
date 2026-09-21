@@ -41,7 +41,7 @@
         },
         "body": {
           "en": "Some carriages ship on a plastic dummy rail. Align it with the guide rail and slide the carriage across. Never remove the dummy rail first, or the balls will fall out and ruin the carriage.",
-          "zh": "有些厂家将滑块套在塑料假轨上，与导轨分开包装。安装时，将假轨与导轨端面对齐，把滑块直接推入导轨。切勿先抽出假轨，滑块一旦脱轨，滚珠便会脱落，导致滑块报废。"
+          "zh": "有些厂家将滑块套在塑料假轨上，与导轨分开包装。安装时，将假轨与导轨端面对齐，把滑块直接推入导轨。切勿先抽出假轨，滑块一旦脱轨，钢珠便会脱落，导致滑块报废。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:30mm; width:80mm;"
@@ -89,7 +89,7 @@
         },
         "body": {
           "en": "The carriage slides off the rail end with little effort, and a dropped one spills its ball bearings, ruining it. Keep it on the rail, and never swap carriages between rails.",
-          "zh": "滑块稍一用力就会从导轨端头滑出，一旦掉到地上，滚珠就会散落，整个滑块也就报废了。务必让它始终留在导轨上，且不同导轨的滑块绝不要互换。"
+          "zh": "滑块稍一用力就会从导轨端头滑出，一旦掉到地上，钢珠就会散落，整个滑块也就报废了。务必让它始终留在导轨上，且不同导轨的滑块绝不要互换。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:90mm; width:60mm; display:flex; gap:4mm; align-items:flex-start;",
