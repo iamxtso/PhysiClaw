@@ -36,15 +36,27 @@
     "notes": [
       {
         "h3": {
+          "en": "Install the carriage",
+          "zh": "安装滑块"
+        },
+        "body": {
+          "en": "Some carriages ship on a plastic dummy rail. Align it with the guide rail and slide the carriage across. Never remove the dummy rail first, or the balls will fall out and ruin the carriage.",
+          "zh": "有些厂家将滑块套在塑料假轨上，与导轨分开包装。安装时，将假轨与导轨端面对齐，把滑块直接推入导轨。切勿先抽出假轨，滑块一旦脱轨，滚珠便会脱落，导致滑块报废。"
+        },
+        "classes": "note overlay sm",
+        "style": "left:16mm; top:30mm; width:80mm;"
+      },
+      {
+        "h3": {
           "en": "Build two Y rails",
           "zh": "做两条 Y 导轨"
         },
         "body": {
-          "en": "The Y axis uses two identical rails. Assemble both the same way.",
-          "zh": "Y 轴用两条一模一样的导轨，做法完全相同。"
+          "en": "The Y axis uses two identical rails.",
+          "zh": "Y 轴用两条一模一样的导轨。"
         },
         "classes": "note overlay sm",
-        "style": "left:16mm; top:30mm; width:74mm;"
+        "style": "left:120mm; top:95mm; width:60mm;"
       },
       {
         "h3": {
@@ -52,8 +64,8 @@
           "zh": "把导轨擦干净、上好润滑脂"
         },
         "body": {
-          "en": "MGN9H rails arrive coated in shipping oil. Wipe it off and pack the carriage with fresh grease before mounting. That's what gives smooth, long-lasting motion. Prep every rail the same way.",
-          "zh": "MGN9H 导轨出厂时涂着一层防锈油。安装前先擦掉，再给滑块补上新的润滑脂，这样运动才顺滑、耐用。每条导轨都这么处理。"
+          "en": "MGN9H rails come coated in anti-rust oil. Wipe it off before installing, then add some fresh grease to the carriage so it runs smoothly and lasts longer. Keep it away from water the whole time.",
+          "zh": "MGN9H 导轨出厂时涂着一层防锈油。安装前先把它擦干净，再给滑块补点新的润滑脂，这样滑起来顺，也更耐用。整个过程注意别碰水。"
         },
         "classes": "note overlay sm",
         "style": "left:120mm; bottom:25mm; width:80mm;"
