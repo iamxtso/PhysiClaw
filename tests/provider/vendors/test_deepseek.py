@@ -1,10 +1,9 @@
-"""Tests for `physiclaw.provider.vendors.deepseek` — DeepSeek/V4
-declaration.
+"""Tests for `physiclaw.provider.vendors.deepseek` — DeepSeek (V4.1
+Flash) declaration.
 
-Pure pins plus one knob: cache markers are OFF (automatic prefix
-cache; string-only system content — see `vendors/deepseek.py`).
-Usage parsing rides the base `_parse_usage` fallback, exercised in
-`test_openai_compat.py`.
+Pure pins plus the declared knobs: cache markers OFF and the thinking
+table — rationale in `vendors/deepseek.py`. Usage parsing rides the
+base `_parse_usage` fallback, exercised in `test_openai_compat.py`.
 """
 
 from __future__ import annotations
@@ -35,24 +34,22 @@ def test_inherits_openai_compat() -> None:
     assert issubclass(DeepSeekProvider, OpenAICompatibleProvider)
 
 
-def test_constructs_with_key_set(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_constructs_with_key_set() -> None:
     """No longer a stub — with a credential present, construction
-    succeeds. The model id passes through verbatim; a text-only pick
-    fails on the first peek with the API's own error."""
+    succeeds. The model id passes through verbatim."""
 
-    p = DeepSeekProvider(model="deepseek-v4-flash-vision-exp")
+    p = DeepSeekProvider(model="deepseek-flash")
 
-    assert p.model == "deepseek-v4-flash-vision-exp"
+    assert p.model == "deepseek-flash"
 
 
 # ---------- declared knobs ----------
 
 
 def test_cache_markers_disabled() -> None:
-    """DeepSeek's prefix cache is automatic and marker-free, and its
-    docs specify string-only system content, which the `mark_system`
-    rewrap would violate — see `vendors/deepseek.py`. (The null-object
-    template path itself is pinned in `test_provider_base.py`.)"""
+    """DeepSeek's prefix cache is automatic and marker-free — see
+    `vendors/deepseek.py`. (The null-object template path itself is
+    pinned in `test_provider_base.py`.)"""
     assert DeepSeekProvider.CACHE_MARKERS is NO_CACHE_MARKERS
 
 
@@ -67,14 +64,29 @@ def test_no_parse_usage_override() -> None:
 # ---------- thinking table ----------
 
 
-def test_chat_and_v_series_have_one_switch() -> None:
-    assert DeepSeekProvider(model="deepseek-v4-flash").thinking_params("off") == {
+@pytest.mark.parametrize(
+    "level, effort", [("low", "low"), ("medium", "high"), ("high", "max")]
+)
+def test_the_levels_scale_reasoning_effort(level, effort) -> None:
+    assert DeepSeekProvider(model="deepseek-flash").thinking_params(level) == {
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": effort,
+    }
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        "deepseek-flash",
+        "deepseek-v4-pro",
+        "deepseek-v4-flash-vision-exp",
+        "deepseek-chat",
+    ],
+)
+def test_off_sends_the_switch_for_every_id(model) -> None:
+    """The model thinks by default, the retired ids are served by Flash
+    and Pro has the same switch: one table, no id left thinking at full
+    effort by omission."""
+    assert DeepSeekProvider(model=model).thinking_params("off") == {
         "thinking": {"type": "disabled"}
     }
-    assert DeepSeekProvider(model="deepseek-chat").thinking_params("medium") == {
-        "thinking": {"type": "enabled"}
-    }
-
-
-def test_the_reasoner_always_thinks_and_takes_no_field() -> None:
-    assert DeepSeekProvider(model="deepseek-reasoner").thinking_params("off") == {}
