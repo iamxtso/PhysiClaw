@@ -986,8 +986,8 @@
       }
     ],
     "note": {
-      "en": "Screws are inexpensive, but each size is sold in packs of 20/50/100 — even if you need only a few, you buy the whole pack.",
-      "zh": "螺丝单价低廉，但每种规格按 20/50/100 个整包出售——即使只需几颗，也需整包购买。"
+      "en": "Screws are inexpensive, but each size is sold in packs of 20/50/100. Even if you need only a few, you buy the whole pack.",
+      "zh": "螺栓单价低廉，但每种规格按 20/50/100 个整包出售。即使只需几颗，也需整包购买。"
     }
   },
   {
@@ -1242,8 +1242,8 @@
       }
     ],
     "note": {
-      "en": "6 pcs needed — if sold in 5-packs, order two packs.",
-      "zh": "共需 6 个——如按 5 个一包出售，记得购买两包。"
+      "en": "6 pcs needed. If sold in 5-packs, order two packs.",
+      "zh": "共需 6 个。如按 5 个一包出售，记得购买两包。"
     }
   },
   {
@@ -1644,8 +1644,8 @@
       }
     ],
     "note": {
-      "en": "Height must match the listed spec; the ID and OD can vary — any ID > 5 mm and OD < 20 mm works.",
-      "zh": "高度必须与所列规格一致；内径、外径可不同——内径 >5 mm、外径 <20 mm 均可。"
+      "en": "Height must match the listed spec. The ID and OD can vary: any ID > 5 mm and OD < 20 mm works.",
+      "zh": "高度必须与所列规格一致。内径、外径可不同，内径 >5 mm、外径 <20 mm 均可。"
     }
   },
   {
