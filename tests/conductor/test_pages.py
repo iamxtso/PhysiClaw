@@ -291,21 +291,6 @@ def test_collect_page_decls_skips_a_dotted_route_page() -> None:
     assert list(pages.collect_page_decls(doc, doc.get("playbooks"))) == ["home"]
 
 
-def test_the_channel_manifests_thread_section_says_where_incoming_sits() -> None:
-    from physiclaw.conductor.spec.pages import PagesError, parse_thread
-
-    assert parse_thread({"incoming": [0.0, 0.0, 0.45, 1.0]}) == (0.0, 0.0, 0.45, 1.0)
-    assert parse_thread({"incoming": "left"}) == BANDS["left"]
-    assert parse_thread(None) is None
-    with pytest.raises(PagesError, match="must be one of"):
-        parse_thread({"incoming": "sideways"})
-    with pytest.raises(PagesError, match="unknown key"):
-        parse_thread({"outgoing": "right"})
-    # A page declares no such thing any more.
-    with pytest.raises(PagesError, match="unknown key"):
-        parse_pages("thread:\n  anchors: ['ok']\n  incoming: left\n", "channel")
-
-
 def test_a_forbid_text_takes_the_anchor_shape() -> None:
     out = parse_pages(
         "thread:\n  description: the chat thread\n  anchors: ['Alice']\n"

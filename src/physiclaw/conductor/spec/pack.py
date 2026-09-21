@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
 from physiclaw.common import paths
-from physiclaw.common.bbox import Bbox
 from physiclaw.conductor.spec.model import Playbook, PlaybookError, Recovery
 from physiclaw.conductor.spec.pages import Landmark, PageDecl, PagePrint
 from physiclaw.macros.model import MACRO_SUFFIX, Macro
@@ -67,9 +66,6 @@ class Pack:
     # every route inherits them for a shared page unless it declares
     # its own.
     recovers: dict[str, Recovery] = field(default_factory=dict)
-    # The channel pack's `thread: {incoming}` — the box the user's
-    # bubbles' centers fall in; None for every other pack.
-    thread_incoming: Bbox | None = None
     # Pages a route declared itself (its `pages:` block or beside a
     # waypoint), by route — a route's page is its own: another route
     # may not name it.

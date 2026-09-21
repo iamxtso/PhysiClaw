@@ -101,9 +101,8 @@ def init(
     typer.echo("Next:")
     if root.parent.name == CHANNEL_APP:
         typer.echo(
-            f"  1. anchor the `{THREAD_PAGE}` page on YOUR chat header in {PACK_FILENAME},"
+            f"  1. anchor the `{THREAD_PAGE}` page on YOUR chat header in {PACK_FILENAME}"
         )
-        typer.echo("     and set `thread: incoming` to where the user's bubbles sit")
         typer.echo("  2. record the send/open gesture paths in macros/*.yml")
         typer.echo("  3. rehearse both, then enable (physiclaw macros run is")
         typer.echo("     per-user-macro; drive a pack's via physiclaw playbooks run);")

@@ -48,7 +48,6 @@ from physiclaw.conductor.spec.pages import (
     pack_landmarks,
     page_sites,
     parse_pages_data,
-    parse_thread,
 )
 from physiclaw.macros import parse as macro_parse
 from physiclaw.macros import store as macro_store
@@ -124,10 +123,6 @@ def load_pack(app: str) -> Pack:
         landmarks = pack_landmarks(doc)
     except PagesError as e:
         raise PlaybookError(f"{app}/{PACK_FILENAME}: {e}") from e
-    try:
-        thread_incoming = parse_thread(doc.get("thread"))
-    except PagesError as e:
-        raise PlaybookError(f"{app}/{PACK_FILENAME}: {e}") from e
     # One scanner per leaf kind, run on the pack's folders and on each
     # playbook's: traversal guard, skip convention, and the broad-except
     # lesson live in `store.scan` and `paths.leaf_files`. A macro's jump
@@ -154,7 +149,6 @@ def load_pack(app: str) -> Pack:
             for name in {paths.entry_of(n) for n in docs}  # an entry's serve its own
         },
         landmarks=landmarks,
-        thread_incoming=thread_incoming,
         route_pages={n: pb for n, (_, pb) in sites.items() if pb is not None},
     )
     # The manifest's hands, resolved once here with the pack's own

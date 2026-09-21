@@ -7,6 +7,7 @@ type against this.
 from dataclasses import dataclass
 
 from physiclaw.common.bbox import Bbox
+from physiclaw.conductor.spec import reply
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, OPEN_MACRO, SEND_MACRO
 from physiclaw.conductor.spec.model import Playbook
 from physiclaw.conductor.spec.pack import Pack, qualified_macro, qualified_pack
@@ -22,9 +23,11 @@ class Channel:
     it. `boot` is the boot playbook when it is live (on disk, valid,
     enabled, every hand it names enabled) — else None, the reason
     logged, and the wake is a plain model session; `pack` is what the
-    boot builds against."""
+    boot builds against; `im` is the IM app the pack automates (its
+    folder under `channel/`, which its manifest's `app:` names)."""
 
     pack: Pack
+    im: str
     boot: Playbook | None = None
 
     @property
@@ -41,10 +44,8 @@ class Channel:
 
     @property
     def incoming(self) -> Bbox:
-        """Where the user's bubbles sit: the manifest's `thread: incoming`
-        (`load_channel` refuses a pack without it)."""
-        assert self.pack.thread_incoming is not None  # load_channel's contract
-        return self.pack.thread_incoming
+        """Where the user's bubbles sit in this IM (`reply.incoming_box`)."""
+        return reply.incoming_box(self.im)
 
     def _live(self, name: str) -> str | None:
         m = self.pack.macros.get(name)

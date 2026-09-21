@@ -1,5 +1,5 @@
-"""The manifest's declared sections — pages, landmarks, thread — and the
-two halves of a page fingerprint, declared and learned.
+"""The manifest's declared sections — pages, landmarks — and the two
+halves of a page fingerprint, declared and learned.
 
 A page fingerprint is split by audience:
 
@@ -448,23 +448,6 @@ def _parse_page(name: str, spec: Any, file: str = "") -> PageDecl:
         forbid=forbid,
         scrollable=scrollable,
     )
-
-
-def parse_thread(raw: Any) -> "Bbox | None":
-    """The channel manifest's `thread:` section — how the user's thread
-    is read: `incoming`, the band or box the user's bubbles' centers
-    fall in (ours and centered system rows sit outside it;
-    `reply.read_incoming` keys on it). None when absent."""
-    if raw is None:
-        return None
-    if not isinstance(raw, dict):
-        raise PagesError(
-            "`thread` must be a mapping — `thread: {incoming: [l, t, r, b]}`"
-        )
-    unknown = sorted(set(map(str, raw.keys())) - {"incoming"})
-    if unknown:
-        raise PagesError(f"`thread`: unknown key(s): {', '.join(unknown)}")
-    return _parse_within(raw.get("incoming"), "`thread: incoming`")
 
 
 def _parse_anchors(raw: Any, where: str) -> tuple[AnchorDecl, ...]:

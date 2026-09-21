@@ -59,9 +59,9 @@ pack (the file is the pack marker):
   calibrate`. A page here may carry its
   `recover:` hand too — a gesture, a landmark tap, or a pack macro by
   name — which every route inherits unless it declares its own. The
-  channel's thread page may declare `incoming:`, a band or a box the
-  user's bubbles' centers fall in (the assistant's sit outside it),
-  which is how a reply is told from the walk's own ask.
+  channel's `app:` names the IM, which tells the conductor which side
+  the user's bubbles hang from; a reply is what sits under the walk's
+  own ask on the thread.
 
 `<name>/PLAYBOOK.yml` is the entry and `<name>/<n>.yml` a playbook it
 runs, both headed like a macro or a skill: `kind` (`entry` or
@@ -216,12 +216,11 @@ files.
 
 `channel/<im>/` is the conductor's own pack, one folder per IM app,
 `channel/ACTIVE.txt` naming the one in use: the thread page, the
-`thread: incoming` box its replies are read by, the send/open macros
-an `ask` runs, and `boot/` — the walk every wake plays before any
-playbook (reach the thread, read the request, hand the matching
-playbook the baton). Its `select` step is the one entry only that
-file may carry; the hands and limits around it are yours to edit,
-step, and replay like any route.
+send/open macros an `ask` runs, and `boot/` — the walk every wake
+plays before any playbook (reach the thread, read the request, hand
+the matching playbook the baton). Its `select` step is the one entry
+only that file may carry; the hands and limits around it are yours to
+edit, step, and replay like any route.
 
 ## Install
 

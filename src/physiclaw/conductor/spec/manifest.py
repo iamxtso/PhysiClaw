@@ -29,13 +29,11 @@ def check_manifest_keys(data: dict, app: str, error_cls: type[ValueError]) -> No
     gap = paths.header_gap(data, paths.KIND_MANIFEST)
     if gap is not None:
         raise error_cls(f"{app}/{paths.PACK_FILENAME}: {gap}")
-    # `thread:` (how the user's thread is read) is the channel's section.
-    keys = _PACK_TOP_KEYS | ({"thread"} if app == paths.CHANNEL_DIRNAME else set())
-    unknown = sorted(set(map(str, data.keys())) - keys)
+    unknown = sorted(set(map(str, data.keys())) - _PACK_TOP_KEYS)
     if unknown:
         raise error_cls(
             f"{app}/{paths.PACK_FILENAME}: unknown key(s): {', '.join(unknown)} "
-            f"(sections: {', '.join(sorted(keys))})"
+            f"(sections: {', '.join(sorted(_PACK_TOP_KEYS))})"
         )
 
 

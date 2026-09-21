@@ -2,17 +2,18 @@
 pack, a folder per IM app with `channel/ACTIVE.txt` naming the one in
 use (`paths.channel_root`).
 
-The IM thread's page fingerprint, the `thread: {incoming}` box the
-reply reader keys on, the rehearsed send/open macros, and the boot
-playbook (`boot/PLAYBOOK.yml` — the walk every wake plays before any
-app playbook), recorded and declared on-device like any pack — but
-app playbooks never name it: asks reach it through the conductor's
-node types, and the boot is the conductor's own to run. The
-convention names live in `conventions.py`.
+The IM thread's page fingerprint, the rehearsed send/open macros, and
+the boot playbook (`boot/PLAYBOOK.yml` — the walk every wake plays
+before any app playbook), recorded and declared on-device like any
+pack — but app playbooks never name it: asks reach it through the
+conductor's node types, and the boot is the conductor's own to run.
+The convention names live in `conventions.py`; which side of the
+thread the user's bubbles hang from is the IM's (`reply.incoming_box`).
 """
 
 import logging
 
+from physiclaw.common import paths
 from physiclaw.conductor.load.pack import load_pack, scan_playbooks
 from physiclaw.conductor.spec.channel import Channel
 from physiclaw.conductor.spec.conventions import (
@@ -36,14 +37,14 @@ def load_channel() -> Channel | None:
         log.warning("channel pack unusable (%s) — asks will hand over", e)
         return None
     thread = next((p.decl for p in pack.prints if p.decl.name == THREAD_PAGE), None)
-    if thread is None or pack.thread_incoming is None:
+    if thread is None:
         log.warning(
-            "channel pack declares no %r page or no `thread: {incoming}` box — "
-            "unusable, asks will hand over",
+            "channel pack declares no %r page — unusable, asks will hand over",
             THREAD_PAGE,
         )
         return None
-    return Channel(pack=pack, boot=_live_boot(pack))
+    im = paths.pack_root(CHANNEL_APP).name  # the IM folder under channel/
+    return Channel(pack=pack, im=im, boot=_live_boot(pack))
 
 
 def _live_boot(pack: Pack) -> Playbook | None:

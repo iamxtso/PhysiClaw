@@ -3,9 +3,9 @@
 The user channel: how the conductor reaches YOUR user's thread in the
 IM app and speaks there. One folder per IM app, each a complete pack
 whose `app:` names the IM and whose place here names the role: the
-thread page and its `thread: incoming` box, the `open` and `send`
-hands, and `boot/`, the walk every wake plays first. `ACTIVE.txt` holds
-one word, the folder in use; with a single folder it may be absent.
+thread page, the `open` and `send` hands, and `boot/`, the walk every
+wake plays first. `ACTIVE.txt` holds one word, the folder in use; with
+a single folder it may be absent.
 
     wechat/       WeChat, recorded on an English-system iPhone
 

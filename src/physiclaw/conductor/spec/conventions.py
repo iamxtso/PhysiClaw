@@ -36,6 +36,7 @@ RESERVED_APPS = frozenset({CHANNEL_APP, IOS_APP})
 # stubs.py need them and the stubs must not import channel: they
 # interpolate these, never hand-copy them.
 THREAD_PAGE = "thread"  # the channel pack's `pages:` must declare this
+
 SEND_MACRO = "send"  # nav to the user's thread + paste + send {message}
 # `open` is the channel's hand: nav to the user's thread — the boot's
 # route recovers through it and a resumed ask reads through it.

@@ -384,11 +384,6 @@ description: >-
   thread: the thread page, the send/open macros its asks run, and the
   boot ({boot}/PLAYBOOK.yml) every wake walks first.
 
-# How the user's thread is read: the box the user's bubbles' centers
-# fall in — ours, and centered system rows, sit outside it.
-thread:
-  incoming: [0.0, 0.0, 0.45, 1.0]  # EDIT ME on a right-to-left system: the right half
-
 # The ONE page the conductor must recognize: your own chat thread in
 # your IM app. Anchor on the chat header (your name / the contact
 # name) + stable chrome.

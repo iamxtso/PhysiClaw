@@ -13,7 +13,6 @@ def write_channel_pages(anchors: tuple[str, ...] = ("MyChat",)) -> None:
     lines = "".join(f'      - "{a}"\n' for a in anchors)
     (root / "APP.yml").write_text(
         "kind: manifest\nschema: 1\napp: wechat\ndescription: test channel\n"
-        "thread:\n  incoming: [0.0, 0.0, 0.45, 1.0]\n"
         f"pages:\n  thread:\n    description: the user's chat thread\n    anchors:\n{lines}",
         encoding="utf-8",
     )
