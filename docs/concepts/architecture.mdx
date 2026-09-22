@@ -1,6 +1,6 @@
 ---
 title: System architecture
-description: How a "tap that button" decision becomes a stylus on glass, bottom-up from the FluidNC board to the runtime loop, and how it keeps its context as cheap as possible.
+description: How a "tap that button" decision becomes a stylus on glass, bottom-up from the FluidNC board to the runtime loop and the conductor, and how it keeps its context as cheap as possible.
 ---
 
 ## Hardware
@@ -57,3 +57,7 @@ An agent usually needs many model calls to finish a single task, and every call 
 **Update progress.** The model is prompted to update its task progress at key steps, so it doesn't lose its way after the context is compressed. The progress sits at the end of the message list, guiding the model.
 
 **Keep cache hits stable.** Put your stable content — system prompt, tool descriptions, memory — right at the front, and keep it byte-for-byte identical. When you compress the context, touch as little of the earlier content as you can. Every edit invalidates the cache from that point on.
+
+## The conductor
+
+The conductor runs [playbooks](/en/custom/playbooks/). When a user's task matches an available playbook, the conductor executes it directly instead of having the agent work through it step by step. Playbooks encode prior knowledge of the app, so most steps run programmatically, which means fewer model calls and lower token cost.
