@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fixes for common snags, covering PhysiClaw quitting on its own, camera calibration failing despite a normal-looking preview, the agent suddenly performing worse, the solenoid tapping intermittently, and Shortcuts failing mid-run.
+description: Fixes for common snags, covering PhysiClaw quitting on its own, camera calibration failing despite a normal-looking preview, the agent suddenly performing worse, the solenoid tapping intermittently, a motor that stops moving while the stylus still taps, and Shortcuts failing mid-run.
 ---
 
 ## PhysiClaw exits on its own after a while
@@ -33,6 +33,14 @@ Usually this is flex fatigue in the solenoid cable, meaning the wire has broken.
 
 :::tip[Fix]
 Rewire it, keeping two things in mind: place the joint within 50 mm of the solenoid, clear of the section that flexes most; and secure the leads to the tube holder (the drag-chain bracket) with a zip tie, so the wiring at the control board terminals doesn't swing back and forth with the solenoid's movement and work the terminals loose over time.
+:::
+
+## A motor stops moving, but the stylus still taps
+
+A motor suddenly stops moving, yet the solenoid still taps and the software reports no error. Most likely a stepper driver module (TMC2209) on the control board has worked loose and a pin is no longer making contact.
+
+:::tip[Fix]
+Press the driver module firmly back into its socket, all the way down.
 :::
 
 ## Shortcuts suddenly stop working mid-run

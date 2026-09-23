@@ -14,12 +14,6 @@ placeholders:
     description: the IM contact name of YOUR user thread, exactly as the chat app shows it
     example: QiaoQian
 
-# How the thread is read: the box the user's bubbles' centers fall in.
-# WeChat puts theirs on the left; ours, and centered system rows (time
-# stamps), sit outside it. A right-to-left system mirrors it.
-thread:
-  incoming: [0.0, 0.0, 0.45, 1.0]
-
 # The ONE page the conductor must recognize: your chat thread.
 pages:
   thread:

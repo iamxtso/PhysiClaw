@@ -13,9 +13,11 @@ from typer.testing import CliRunner
 
 from physiclaw.cli import app
 from physiclaw.common import paths
-from physiclaw.conductor.spec import pack as pb
-from physiclaw.conductor.spec import pages, scaffold
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load import prints, scaffold
+from physiclaw.conductor.load.channel import load_channel
 from physiclaw.conductor.spec.model import PlaybookError
+from physiclaw.conductor.spec.reply import INCOMING_LEFT, incoming_box
 
 runner = CliRunner()
 
@@ -24,7 +26,7 @@ def test_one_im_folder_is_the_channel_with_no_active_file() -> None:
     write_channel()
 
     assert paths.pack_root("channel") == channel_root()
-    assert pb.load_pack("channel").thread_incoming == (0.0, 0.0, 0.45, 1.0)
+    assert load_channel().im == "wechat"  # the IM: `incoming_box` keys on it
 
 
 def test_active_txt_picks_among_several_folders() -> None:
@@ -33,7 +35,7 @@ def test_active_txt_picks_among_several_folders() -> None:
     write_active("whatsapp")
 
     assert paths.pack_root("channel").name == "whatsapp"
-    assert pages.learned_file("channel").name == "channel-whatsapp.json"
+    assert prints.learned_file("channel").name == "channel-whatsapp.json"
 
 
 def test_several_folders_without_active_txt_is_no_channel() -> None:
@@ -65,15 +67,26 @@ def test_the_channel_is_listed_and_the_gap_is_what_check_reports() -> None:
     assert "write channel/ACTIVE.txt naming one" in result.output
 
 
-def test_an_app_pack_may_not_declare_a_thread() -> None:
+def test_no_pack_declares_a_thread_section() -> None:
+    # The user's side of the thread is the IM's (`incoming_box`, by the
+    # channel folder its manifest's `app:` names), never a manifest
+    # field — a leftover `thread:` block is an unknown key, loudly, in
+    # the channel pack as in any other.
     from conductor_fakes import write_pack
 
-    root = write_pack("demo")
-    mp = root / "APP.yml"
-    mp.write_text(mp.read_text(encoding="utf-8") + "thread:\n  incoming: left\n")
-
+    write_channel()
+    for root in (write_pack("demo"), channel_root()):
+        mp = root / "APP.yml"
+        mp.write_text(mp.read_text(encoding="utf-8") + "thread:\n  incoming: left\n")
     with pytest.raises(PlaybookError, match="unknown key.*thread"):
         pb.load_pack("demo")
+    with pytest.raises(PlaybookError, match="unknown key.*thread"):
+        pb.load_pack("channel")
+
+
+def test_the_users_side_comes_from_the_im_name() -> None:
+    assert incoming_box("wechat") == INCOMING_LEFT
+    assert incoming_box("some-new-im") == INCOMING_LEFT  # left by default
 
 
 def test_init_channel_takes_the_im_name() -> None:
@@ -84,15 +97,14 @@ def test_init_channel_takes_the_im_name() -> None:
 
     assert root == paths.playbooks_dir() / "channel" / "telegram"
     assert (root / "APP.yml").exists() and (root / "boot" / "PLAYBOOK.yml").exists()
-    # The stub parses as a channel: the thread section is in it.
-    assert pb.load_pack("channel").thread_incoming == (0.0, 0.0, 0.45, 1.0)
+    assert load_channel().im == "telegram"  # the stub parses as a channel
 
 
 def test_install_keeps_an_im_folder_under_channel(tmp_path: Path) -> None:
     src = tmp_path / "playbooks" / "channel" / "whatsapp"
     (src / "macros").mkdir(parents=True)
     (src / "APP.yml").write_text(
-        "app: whatsapp\ndescription: WhatsApp channel\nthread:\n  incoming: left\n"
+        "app: whatsapp\ndescription: WhatsApp channel\n"
         "pages:\n  thread:\n    description: the thread\n    anchors: ['Alice']\n",
         encoding="utf-8",
     )

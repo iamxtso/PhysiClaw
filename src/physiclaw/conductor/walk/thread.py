@@ -18,14 +18,14 @@ in. The boot opens the thread and hands it to the walk it activates.
 from dataclasses import dataclass, field
 from typing import Any
 
-from physiclaw.conductor.walk.ledger import Ledger
-from physiclaw.conductor.walk.micro import (
+from physiclaw.conductor.micro.compose import settled
+from physiclaw.conductor.micro.decision import (
     SINCE,
     Content,
     DecisionRequest,
     MicroOutcome,
-    settled,
 )
+from physiclaw.conductor.walk.ledger import Ledger
 from physiclaw.contract.dto import THINKING_LEVELS, ImageBlock, Thinking
 
 

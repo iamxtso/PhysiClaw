@@ -1,16 +1,7 @@
-"""The playbook model — the grammar as dataclasses, and the pack it
-validates against. A leaf: the compiler (`route.py`), the loader
-(`pack.py`), the scaffold, and the walk all import it; it imports none
-of them.
-
-A pack is a folder: `APP.yml`, the MANIFEST (what the app is and
-what its routes share — meta, placeholders, landmarks, pages; every
-section optional, the file may be empty), one `<name>/PLAYBOOK.yml` per
-playbook beside it (the file body is the playbook: name, description,
-enabled, inputs, route; the stem is the name, referenced as
-`<app>/<name>`, and `name:` must agree with it), and
-`macros/<name>.yml` for the recorded hands
-routes share. The manifest never carries a route.
+"""The playbook model — the grammar as dataclasses. A leaf: the
+compiler (`route/`), the loader (`load/`), the scaffold, and the walk
+all import it; it imports none of them. What a playbook validates
+against is `spec/pack.py`; what a wake needs of one is `spec/live.py`.
 
 A playbook is one app task written as a ROUTE: a top-down alternation
 of waypoints (`page:` — where the walk must BE, checked every time) and
@@ -76,13 +67,12 @@ bare `{name}` is a load error. Dotted refs are playbook-level — resolved
 to plain strings before any macro sees them, so pack macros keep the
 stock single-name template grammar.
 
-The loader (`pack.py`) turns files into these; the compiler (`route.py`)
-and its lints turn a `route:` into the nodes.
+The loader (`load/pack.py`) turns files into these; the compiler
+(`route/`) and its lints turn a `route:` into the nodes.
 """
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Protocol
 
 from physiclaw.common import paths
 from physiclaw.common.bbox import Bbox
@@ -93,19 +83,10 @@ from physiclaw.conductor.spec.limits import (
     DEFAULT_RECOVER_LIMIT,
     DEFAULT_RUN_ROUNDS,
 )
-from physiclaw.conductor.spec.pages import AnchorDecl, Landmark, PageDecl, PagePrint
+from physiclaw.conductor.spec.pages import AnchorDecl
 from physiclaw.contract.dto import Thinking
-from physiclaw.macros.model import (
-    MACRO_SUFFIX,
-    MACROS_KIND,
-    Macro,
-    MacroError,
-    MacroInput,
-    app_ref,
-    app_refs,
-    parse_ref,
-)
-from physiclaw.macros.parse import MacroResolver
+from physiclaw.macros import inputs as macro_inputs
+from physiclaw.macros.model import Macro, MacroError, MacroInput
 
 # The three readings a page's `recover:` may key its hands by: the page
 # itself under an overlay, the phone's lock screen (where taps do not
@@ -139,7 +120,7 @@ class PlaybookError(specfile.SpecError):
 
 
 # The scalar terminals, bound once for the whole playbook grammar —
-# `route.py` (the compiler) reads them from here.
+# `route/` (the compiler) reads them from here.
 require_str, prose, opt_prose, check_name = specfile.bind(PlaybookError)
 
 
@@ -171,6 +152,40 @@ class DoNode:
 
 
 @dataclass(frozen=True)
+class NeverTap:
+    """One target an episode's taps must never land on: its readings,
+    and optionally the band it lives in. Written as a reading
+    (`"Pay Now"`), as alternate spellings of ONE target (`["Pay Now",
+    "Confirm Payment"]`), or as `{label: …, within: …}`.
+
+    A target found on the screen is refused across the CONTROL its
+    label sits on, not just the label's own box: sideways to the next
+    listed element on the same row, or to the band's or the screen's
+    edge (`spec.fence._control`). A word standing alone on its bar
+    refuses the whole bar; one beside another button ends where that
+    button's label begins.
+
+    `within` takes a band name or a box (`bbox.parse_within`, the one
+    reader of "where to look") and says where the TARGET sits, as it
+    does on a page anchor. SKETCH IT GENEROUSLY: it gates the tap's
+    centre and the row's centre alike, so a band drawn tight around its
+    target can miss a row sitting on the edge. Omitting it means
+    anywhere, which is always the safe reading — declare one only to
+    keep a word that ALSO reads somewhere harmless from standing in for
+    the real control."""
+
+    label: tuple[str, ...]
+    within: Bbox | None = None
+
+    @property
+    def anchor(self) -> AnchorDecl:
+        """The same shape the page grammar's anchors have — readings plus
+        the band they sit in — so the ONE row matcher
+        (`match.candidate_rows`) finds this target too."""
+        return AnchorDecl(text=self.label[0], alts=self.label[1:], within=self.within)
+
+
+@dataclass(frozen=True)
 class AgentNode:
     """An `agent` move — the model's step, inside the author's fence.
     No `tools` = one pure-text call (`prompt` in, `returns` out); tools =
@@ -187,16 +202,16 @@ class AgentNode:
     max_scrolls: int
     irreversible: str | None = None
     # `never_tap:` — the targets this episode's taps may never press,
-    # the opposite of a grant. Enforced by `step_agent.refusal`, which
+    # the opposite of a grant. Enforced by `spec.fence.refusal`, which
     # owns the rule and says why they stay unnamed to the model.
-    never_tap: tuple["NeverTap", ...] = ()
+    never_tap: tuple[NeverTap, ...] = ()
     # `context.given:` — the values the prompt may name, name to ref
     # template: each `{name}` in the prompt is filled from it once when
     # the step opens, and the parser holds the two to each other. A
     # landmark given lives in `landmarks` below, same block, same rule.
     given: dict[str, str] = field(default_factory=dict)
     # `context.memory:` — which parts of the agent's own memory travel
-    # (`context.memory_gap` owns the vocabulary).
+    # (`spec.memory.memory_gap` owns the vocabulary).
     memory: dict[str, Any] = field(default_factory=dict)
     # The landmark givens (`<name>: app.landmarks.<n>`), name to
     # declared landmark: the fixed spots this step may aim a tap at,
@@ -222,40 +237,6 @@ class AgentNode:
     @property
     def return_fields(self) -> tuple[str, ...]:
         return tuple(f for f, _ in self.returns)
-
-
-@dataclass(frozen=True)
-class NeverTap:
-    """One target an episode's taps must never land on: its readings,
-    and optionally the band it lives in. Written as a reading
-    (`"Pay Now"`), as alternate spellings of ONE target (`["Pay Now",
-    "Confirm Payment"]`), or as `{label: …, within: …}`.
-
-    A target found on the screen is refused across the CONTROL its
-    label sits on, not just the label's own box: sideways to the next
-    listed element on the same row, or to the band's or the screen's
-    edge (`step_agent._control`). A word standing alone on its bar
-    refuses the whole bar; one beside another button ends where that
-    button's label begins.
-
-    `within` takes a band name or a box (`bbox.parse_within`, the one
-    reader of "where to look") and says where the TARGET sits, as it
-    does on a page anchor. SKETCH IT GENEROUSLY: it gates the tap's
-    centre and the row's centre alike, so a band drawn tight around its
-    target can miss a row sitting on the edge. Omitting it means
-    anywhere, which is always the safe reading — declare one only to
-    keep a word that ALSO reads somewhere harmless from standing in for
-    the real control."""
-
-    label: tuple[str, ...]
-    within: Bbox | None = None
-
-    @property
-    def anchor(self) -> "AnchorDecl":
-        """The same shape the page grammar's anchors have — readings plus
-        the band they sit in — so the ONE row matcher
-        (`match.candidate_rows`) finds this target too."""
-        return AnchorDecl(text=self.label[0], alts=self.label[1:], within=self.within)
 
 
 @dataclass(frozen=True)
@@ -346,7 +327,7 @@ class RunNode:
 
 
 @dataclass(frozen=True)
-class ActivateNode:
+class SelectNode:
     """The `select` step — the channel boot's own, and its last: on
     the thread (its `enter`, the page before it), ONE parse_task call
     over the enabled playbooks; a positive answer becomes the walk's
@@ -422,7 +403,7 @@ class Recovery:
         )
 
 
-Node = DoNode | AgentNode | AskNode | TellNode | RunNode | ActivateNode
+Node = DoNode | AgentNode | AskNode | TellNode | RunNode | SelectNode
 
 
 @dataclass(frozen=True)
@@ -475,13 +456,13 @@ class Playbook:
     def offered(self) -> bool:
         """Whether the boot may launch this playbook at all — an entry,
         yes; one an entry runs, never. The STRUCTURAL rule, apart from
-        readiness (`pack.live_gap`): such a playbook cannot be enabled
+        readiness (`live_gap`): such a playbook cannot be enabled
         into being offered, so everything that filters the menu reads
         this, not a gap string."""
         return self.run_by is None
 
     @property
-    def runs(self) -> tuple["RunNode", ...]:
+    def runs(self) -> tuple[RunNode, ...]:
         """The playbooks this route runs as moves, in route order."""
         return tuple(n for n in self.nodes if isinstance(n, RunNode))
 
@@ -498,7 +479,7 @@ class Playbook:
         """Whether this is the boot — a route ending in `select`, the
         one walk that hands a baton on (the compiler admits the step in
         the channel pack's boot file only)."""
-        return any(isinstance(n, ActivateNode) for n in self.nodes)
+        return any(isinstance(n, SelectNode) for n in self.nodes)
 
     def first_unsettled(self, outputs: dict[str, str]) -> int:
         """Where a walk opens: the route top, past any COMPLETED
@@ -516,141 +497,18 @@ class Playbook:
                 return i
         return len(self.nodes)
 
-
-@dataclass(frozen=True)
-class PlaybookEntry:
-    """One playbook file as found on disk — parsed, or the reason it was
-    excluded (the macro ScanEntry shape, named so downstream consumers get
-    fields instead of tuple positions)."""
-
-    app: str
-    name: str
-    spec: "Playbook | None" = None
-    error: str | None = None
+    @property
+    def with_subs(self) -> list["Playbook"]:
+        """This playbook and every playbook it runs — one level, by the
+        compiler's rule."""
+        return [self, *(r.sub for r in self.runs)]
 
 
-_T = TypeVar("_T")
-
-
-@dataclass(frozen=True)
-class Scanned(Generic[_T]):
-    """One leaf folder, read: what parsed, by bare name, and what did
-    not, with its reason — so a route naming a broken file fails with
-    the cause instead of "not found"."""
-
-    ok: dict[str, _T] = field(default_factory=dict)
-    errors: dict[str, str] = field(default_factory=dict)
-
-
-@dataclass(frozen=True)
-class Files:
-    """The leaf folders a playbook owns beside its PLAYBOOK.yml: its
-    recorded hands (`macros/*.yml`) and the model's prose
-    (`prompts/*.md`, placeholders filled, trailing whitespace trimmed)."""
-
-    macros: Scanned[Macro] = field(default_factory=Scanned)
-    prompts: Scanned[str] = field(default_factory=Scanned)
-
-
-def macro_resolver(ok: Mapping[str, Macro], errors: Mapping[str, str]) -> MacroResolver:
-    """`app.macros.<name>` → one of the pack's hands, or why not — the one
-    lookup a playbook's `macro:`, an agent's `tools:`, a manifest hand
-    and a macro file's `run:` all end in. One wording for "broken" and
-    "not here"."""
-
-    def resolve(ref: str) -> Macro:
-        r = parse_ref(ref)
-        if r is None or not r.is_app(MACROS_KIND):
-            raise MacroError(
-                f"{ref!r} is not a pack macro reference — the pack's hands are "
-                f"`{app_ref(MACROS_KIND, '<name>')}`"
-            )
-        if r.name in errors:
-            raise MacroError(f"pack macro {r.name!r} is invalid: {errors[r.name]}")
-        if r.name not in ok:
-            available = app_refs(MACROS_KIND, ok)
-            raise MacroError(
-                f"{ref!r} not found in this pack's {paths.PACK_MACROS_DIRNAME}/ — "
-                f"available: {available}"
-            )
-        return ok[r.name]
-
-    return resolve
-
-
-@dataclass(frozen=True)
-class Pack:
-    """What a playbook validates against: the app's declared pages, its
-    private macros (name → parsed Macro, or the parse error string), and
-    its landmarks."""
-
-    app: str
-    pages: dict[str, PageDecl]
-    macros: dict[str, Macro]
-    macro_errors: dict[str, str]
-    # The pages merged with their learned geometry — the matcher's
-    # candidate set, built ONCE at load and shared by the walk's verdicts
-    # and every macro jump's page read (`match.PageCheck`).
-    prints: tuple[PagePrint, ...] = ()
-    # The raw playbook files (`<name>/PLAYBOOK.yml`) — parsed per entry
-    # by `scan_playbooks`, so one broken walk excludes itself, never the
-    # pack; the files that would not load ride as errors.
-    playbook_docs: dict = field(default_factory=dict)
-    playbook_errors: dict[str, str] = field(default_factory=dict)
-    # The pack's shared prose (`prompts/*.md`, `app.prompts.<name>`)
-    # and each playbook's own leaf folders, by playbook — the route's
-    # compiler registers a playbook's recorded hands under
-    # `<playbook>.<name>` beside its inline bodies.
-    prompts: Scanned[str] = field(default_factory=Scanned)
-    local: dict[str, Files] = field(default_factory=dict)
-    # The manifest's `pages: <name>: recover:` hands, resolved once at
-    # load through the pack's own resolver (`route.manifest_recovers`);
-    # every route inherits them for a shared page unless it declares
-    # its own.
-    recovers: dict[str, Recovery] = field(default_factory=dict)
-    # The channel pack's `thread: {incoming}` — the box the user's
-    # bubbles' centers fall in; None for every other pack.
-    thread_incoming: Bbox | None = None
-    # Pages a route declared itself (its `pages:` block or beside a
-    # waypoint), by route — a route's page is its own: another route
-    # may not name it.
-    route_pages: dict[str, str] = field(default_factory=dict)
-
-    # The pack's declared fixed spots (`landmarks:`) — recover hands and
-    # agent grants name them. See `pages.Landmark`.
-    landmarks: dict[str, Landmark] = field(default_factory=dict)
-
-    def shared_pages(self) -> dict[str, "PageDecl"]:
-        """The pages the whole pack may name — the manifest's, which is
-        every declaration that is not some route's own. The one spelling
-        of the rule `route_pages` is the other half of."""
-        return {n: d for n, d in self.pages.items() if n not in self.route_pages}
-
-    def local_for(self, playbook: str) -> Files:
-        """A playbook's own leaf folders — its entry's, for a playbook
-        that entry runs — empty when it has none."""
-        return self.local.get(paths.entry_of(playbook), Files())
-
-    def file_errors(self) -> list[tuple[str, str]]:
-        """Every leaf file that would not load, as (pack-relative path,
-        reason) — the one list `check` prints, spelled with the layout's
-        own names so a folder rename never leaves a stale message."""
-        macros, prompts = paths.PACK_MACROS_DIRNAME, paths.PACK_PROMPTS_DIRNAME
-        out = [
-            (f"{macros}/{n}{MACRO_SUFFIX}", e)
-            for n, e in sorted(self.macro_errors.items())
-        ]
-        out += [
-            (f"{prompts}/{n}{paths.PROMPT_SUFFIX}", e)
-            for n, e in sorted(self.prompts.errors.items())
-        ]
-        for pb, files in sorted(self.local.items()):
-            out += [
-                (f"{pb}/{macros}/{n}{MACRO_SUFFIX}", e)
-                for n, e in sorted(files.macros.errors.items())
-            ]
-            out += [
-                (f"{pb}/{prompts}/{n}{paths.PROMPT_SUFFIX}", e)
-                for n, e in sorted(files.prompts.errors.items())
-            ]
-        return out
+def resolve_inputs(spec: Playbook, provided: dict[str, str]) -> dict[str, str]:
+    """Provided values against the declared inputs — the macro layer's
+    resolution contract verbatim (unknown keys, missing required, defaults,
+    strings only), translated to this spec's error class at the one seam."""
+    try:
+        return macro_inputs.resolve_inputs(spec, provided)
+    except MacroError as e:
+        raise PlaybookError(str(e)) from e

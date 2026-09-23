@@ -8,6 +8,7 @@ from conductor_fakes import make_learned
 
 from physiclaw.common import paths
 from physiclaw.common.bbox import BANDS
+from physiclaw.conductor.load import prints
 from physiclaw.conductor.spec import conventions, pages
 from physiclaw.conductor.spec.pages import (
     Landmark,
@@ -137,27 +138,27 @@ def test_ios_pack_is_scaffolded_then_read_from_disk() -> None:
     # `ios` used to be reserved-and-unloadable. It is now an ordinary
     # pack directory the user owns — scaffolded by the CLI, read from
     # disk like every other, never shipped in the wheel.
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import scaffold
 
-    assert pages.scan_app_decls(conventions.IOS_APP) == {}  # nothing until scaffolded
+    assert prints.scan_app_decls(conventions.IOS_APP) == {}  # nothing until scaffolded
 
     scaffold.init_pack(conventions.IOS_APP)
-    decls = pages.scan_app_decls(conventions.IOS_APP)
+    decls = prints.scan_app_decls(conventions.IOS_APP)
 
     assert "locked" in decls
     assert decls["locked"].anchors  # semantics only — geometry is captured
 
 
 def test_scaffolded_ios_pages_are_matchable_prints_without_geometry() -> None:
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import scaffold
 
     scaffold.init_pack(conventions.IOS_APP)
 
-    prints = pages.prints_for_app(conventions.IOS_APP)
+    found = prints.prints_for_app(conventions.IOS_APP)
 
-    assert [p.page_id for p in prints] == ["ios.locked"]
+    assert [p.page_id for p in found] == ["ios.locked"]
     # No learned file until `calibrate` runs — text-only matching.
-    assert prints[0].learned is None
+    assert found[0].learned is None
 
 
 # ---------- discovery + learned store ----------
@@ -174,13 +175,13 @@ def _write_pack(app: str, text: str) -> None:
 def test_scan_app_decls_reads_pack_or_empty() -> None:
     _write_pack("taobao", VALID)
 
-    assert set(pages.scan_app_decls("taobao")) == {"results", "item-detail"}
-    assert pages.scan_app_decls("absent") == {}
+    assert set(prints.scan_app_decls("taobao")) == {"results", "item-detail"}
+    assert prints.scan_app_decls("absent") == {}
 
 
 def test_scan_app_decls_validates_name_before_touching_paths() -> None:
     with pytest.raises(pages.PagesError, match="app name"):
-        pages.scan_app_decls("../escape")
+        prints.scan_app_decls("../escape")
 
 
 def test_parse_wraps_any_loader_error_as_pages_error(mocker) -> None:
@@ -198,28 +199,28 @@ def test_parse_wraps_any_loader_error_as_pages_error(mocker) -> None:
 
 def test_learned_round_trip_and_merge() -> None:
     _write_pack("taobao", VALID)
-    learned = LearnedPage(
+    page = LearnedPage(
         anchors={"综合": make_learned("综合", 0.2, 0.11, variants=("综台",))},
         observations=7,
     )
-    pages.save_learned("taobao", {"results": learned})
+    prints.save_learned("taobao", {"results": page})
 
-    prints = {p.decl.name: p for p in pages.prints_for_app("taobao")}
+    by_name = {p.decl.name: p for p in prints.prints_for_app("taobao")}
 
-    r = prints["results"]
+    r = by_name["results"]
     assert r.learned is not None and r.learned.observations == 7
     assert r.learned.anchors["综合"].variants == ("综台",)
-    d = prints["item-detail"]
+    d = by_name["item-detail"]
     assert d.learned is None
 
 
 def test_load_learned_missing_or_garbage_is_empty() -> None:
-    assert pages.load_learned("nothing") == {}
+    assert prints.load_learned("nothing") == {}
 
     paths.learned_pages_dir().mkdir(parents=True, exist_ok=True)
     (paths.learned_pages_dir() / "bad.json").write_text("{nope", encoding="utf-8")
 
-    assert pages.load_learned("bad") == {}
+    assert prints.load_learned("bad") == {}
 
 
 def test_parse_pages_rejects_unpopulated_placeholder() -> None:
@@ -288,21 +289,6 @@ def test_collect_page_decls_skips_a_dotted_route_page() -> None:
     }
 
     assert list(pages.collect_page_decls(doc, doc.get("playbooks"))) == ["home"]
-
-
-def test_the_channel_manifests_thread_section_says_where_incoming_sits() -> None:
-    from physiclaw.conductor.spec.pages import PagesError, parse_thread
-
-    assert parse_thread({"incoming": [0.0, 0.0, 0.45, 1.0]}) == (0.0, 0.0, 0.45, 1.0)
-    assert parse_thread({"incoming": "left"}) == BANDS["left"]
-    assert parse_thread(None) is None
-    with pytest.raises(PagesError, match="must be one of"):
-        parse_thread({"incoming": "sideways"})
-    with pytest.raises(PagesError, match="unknown key"):
-        parse_thread({"outgoing": "right"})
-    # A page declares no such thing any more.
-    with pytest.raises(PagesError, match="unknown key"):
-        parse_pages("thread:\n  anchors: ['ok']\n  incoming: left\n", "channel")
 
 
 def test_a_forbid_text_takes_the_anchor_shape() -> None:

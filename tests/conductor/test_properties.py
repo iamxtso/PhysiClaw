@@ -12,7 +12,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from physiclaw.conductor.spec import conventions, match, reply
-from physiclaw.conductor.walk import money, step_activate
+from physiclaw.conductor.steps import select
+from physiclaw.conductor.walk import money
 
 # ---------- reply: normalization and whole-message reading ----------
 
@@ -164,7 +165,7 @@ _labels = st.lists(
 def test_merge_keeps_every_newer_label_and_never_loses_the_tail(
     newer: list[str], previous: list[str]
 ) -> None:
-    merged = step_activate.merge_labels(newer, previous)
+    merged = select.merge_labels(newer, previous)
     assert merged[: len(newer)] == newer  # the newer reading leads, in order
     assert len(merged) <= len(newer) + len(previous)
     # Whatever seam was chosen, the previous reading's tail is preserved.
@@ -173,4 +174,4 @@ def test_merge_keeps_every_newer_label_and_never_loses_the_tail(
 
 @given(_labels)
 def test_merging_a_reading_with_itself_is_the_reading(labels: list[str]) -> None:
-    assert step_activate.merge_labels(labels, labels) == labels
+    assert select.merge_labels(labels, labels) == labels

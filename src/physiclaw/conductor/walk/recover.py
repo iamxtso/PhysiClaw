@@ -16,9 +16,13 @@ the walk-wide ceiling `MAX_RECOVER_ACTIONS`.
 from dataclasses import dataclass
 from enum import StrEnum
 
+from physiclaw.conductor.spec.conventions import LOCKED_ID
 from physiclaw.conductor.spec.limits import MAX_RECOVER_ACTIONS
+from physiclaw.conductor.spec.match import Verdict
 from physiclaw.conductor.spec.model import (
+    READING_COVERED,
     READING_ELSEWHERE,
+    READING_LOCKED,
     Checked,
     RecoverHand,
     Recovery,
@@ -91,3 +95,14 @@ def plan(
     if hand is None:
         return Exhausted(f"its page declares no `{reading}` recover hand")
     return Hand(hand)
+
+
+def reading_of(verdict: Verdict | None, target: str) -> str:
+    """The reading a page declared its hands for: the lock screen (taps
+    do not land there — the matcher reads it by shape), the page itself
+    under an overlay, or any other screen."""
+    if verdict is not None and verdict.matches(LOCKED_ID):
+        return READING_LOCKED
+    if verdict is not None and verdict.occludes(target):
+        return READING_COVERED
+    return READING_ELSEWHERE

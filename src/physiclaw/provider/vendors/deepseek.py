@@ -1,33 +1,25 @@
 """DeepSeek — OpenAI-compatible endpoint. Declaration + one knob.
 
-Only `deepseek-v4-flash-vision-exp` (2026-08-21) takes images —
-`image_url` base64 data URLs, the shape `wire.py` already emits —
-so it's the one model that can drive the loop; a text-only pick
-(`deepseek-v4-flash`, `deepseek-v4-pro`) 400s on the first peek.
-Images are resized to ~800×800 and billed at ≤384 tokens: fine for
-phone screens, lossy on dense text.
+Models: `deepseek-flash` takes images (`image_url` data URLs, the
+shape `wire.py` emits) and is the one that can drive the loop.
+`deepseek-v4-pro` is text-only and does not refuse an image: it
+answers as if none was sent. Retired ids (`deepseek-v4-flash`,
+`deepseek-v4-flash-vision-exp`) are served by Flash.
 
-Cache markers OFF (live-probed 2026-08-31): caching is automatic
-prefix caching (64-token blocks, no opt-in field) — markers buy
-nothing, and the docs specify string-only system content, which
-`mark_system`'s rewrap would violate (tolerated today, still
-pointless risk). Image tokens earned no hits — screens recompute
-every turn — so the supersede-stub rewrite costs no cache here.
-
-Usage: live responses duplicate the cache-hit count into the standard
-nested `cached_tokens`, and DeepSeek's documented top-level
-`prompt_cache_hit_tokens` spelling is covered by the base
-`_parse_usage` fallback (same treatment as Moonshot K2). Misses are
-ordinary-priced input (auto-stored), not cache writes.
+Caching: automatic prefix caching, no opt-in field — markers buy
+nothing (`NO_CACHE_MARKERS`). Image tokens cache too. Hits are
+reported as `prompt_tokens_details.cached_tokens` and top-level
+`prompt_cache_hit_tokens`; the base `_parse_usage` reads either.
+Misses are ordinary-priced input, not cache writes.
 
 Auth: `DEEPSEEK_API_KEY` env, or `[provider] deepseek_api_key` in
 `~/.physiclaw/config.toml`.
 
-Thinking: the chat and V-series models have one switch, `thinking:
-{type: disabled | enabled}` (no levels, so "off" is the only level
-that changes anything); `deepseek-reasoner` always thinks and takes no
-field. The V-series thinks by default, so a step that says nothing
-gets a thinking model there.
+Thinking: on by default, so a call that asks for "off" must send the
+switch (an omitted `think:` still gets that default). `thinking:
+{type: disabled | enabled}` toggles it and `reasoning_effort: low |
+high | max` scales it, both top-level body fields. Every id gets the
+same table.
 """
 
 from typing import Any
@@ -43,8 +35,7 @@ class DeepSeekProvider(OpenAICompatibleProvider):
     CACHE_MARKERS = NO_CACHE_MARKERS
 
     def thinking_params(self, thinking: Thinking) -> dict[str, Any]:
-        if self.model == "deepseek-chat" or self.model.startswith("deepseek-v"):
-            return {
-                "thinking": {"type": "disabled" if thinking == "off" else "enabled"}
-            }
-        return {}
+        if thinking == "off":
+            return {"thinking": {"type": "disabled"}}
+        effort = {"low": "low", "medium": "high", "high": "max"}
+        return {"thinking": {"type": "enabled"}, "reasoning_effort": effort[thinking]}

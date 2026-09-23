@@ -1,4 +1,4 @@
-"""Tests for `physiclaw.conductor.drive.decisions` (behind `playbooks
+"""Tests for `physiclaw.conductor.bench.decisions` (behind `playbooks
 micro` and the decisions section of `playbooks stats`) — recorded
 decision calls loaded, re-asked, judged, and folded."""
 
@@ -12,7 +12,7 @@ from typer.testing import CliRunner
 
 from physiclaw.cli.playbooks import playbooks_app
 from physiclaw.common import paths
-from physiclaw.conductor.drive import decisions
+from physiclaw.conductor.bench import decisions
 
 SID = "20260907-203014-ecae27"
 
@@ -351,11 +351,11 @@ def test_playbooks_micro_rejects_a_bad_think_level() -> None:
 
 
 def test_playbooks_stats_reports_the_walks_decisions(monkeypatch) -> None:
-    from physiclaw.conductor.walk import walklog
+    from physiclaw.conductor.bench import runs
 
     _session([], events=EVENTS)
     monkeypatch.setattr(
-        walklog,
+        runs,
         "load",
         lambda: [
             {

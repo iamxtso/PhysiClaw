@@ -19,13 +19,16 @@ from conductor_fakes import (
     write_pack,
 )
 
-from physiclaw.conductor.drive import activation, build, setup
-from physiclaw.conductor.spec import lints
-from physiclaw.conductor.spec import pack as pb
+from physiclaw.conductor.drive import build, setup
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load.pack import discover, load_spec
+from physiclaw.conductor.micro.decision import READ_REPLY, DecisionRequest, MicroOutcome
+from physiclaw.conductor.route import lints, playbook
 from physiclaw.conductor.spec.limits import MAX_MESSAGE_LINES
+from physiclaw.conductor.spec.live import disabled_macros, live_gap
 from physiclaw.conductor.spec.model import PlaybookError, RunNode, TellNode
-from physiclaw.conductor.walk.micro import READ_REPLY, DecisionRequest, MicroOutcome
-from physiclaw.conductor.walk.step import Paused
+from physiclaw.conductor.spec.pack import qualified_inline
+from physiclaw.conductor.walk.surface import Paused
 
 LEG = """\
 kind: playbook
@@ -75,7 +78,7 @@ def _parse(text: str, name: str = "flow", **playbooks: str):
     """One playbook parsed against a pack holding it. A keyword spells
     the id's dot with an underscore (`flow_leg=`), which Python allows."""
     others = {k.replace("_", "."): v for k, v in playbooks.items()}
-    return pb.parse_playbook(text, name, _pack(**{name: text, **others}))
+    return playbook.parse_playbook(text, name, _pack(**{name: text, **others}))
 
 
 def test_a_run_is_a_move_framed_like_a_do() -> None:
@@ -171,10 +174,10 @@ def test_a_leg_without_its_own_start_needs_the_page_before_the_run() -> None:
 
 def test_the_registry_and_the_readiness_rule_see_the_leg_too() -> None:
     pack = _pack(flow=FLOW)
-    spec = pb.parse_playbook(FLOW, "flow", pack)
+    spec = playbook.parse_playbook(FLOW, "flow", pack)
 
-    assert pb.disabled_macros(spec, pack) == []
-    assert pb.qualified_inline("demo", spec) == {}
+    assert disabled_macros(spec, pack) == []
+    assert qualified_inline("demo", spec) == {}
 
 
 # ---------- the walk ----------
@@ -196,7 +199,7 @@ def test_a_run_walks_the_leg_under_its_prefix_and_hands_its_return_forward() -> 
 
     start = p.advance(h)  # the leg's own cold start — the run's first node
     assert start.tool_calls[1].arguments["name"] == "demo/open-app"
-    assert p.label() == "leg[]/app (1/3)"  # the leg's two moves, then the tell
+    assert p.course.label() == "leg[]/app (1/3)"  # the leg's two moves, then the tell
     feed(h, start, HOME)
     search = p.advance(h)
     assert search.tool_calls[1].arguments == {
@@ -245,7 +248,7 @@ def test_a_suspension_inside_a_round_resumes_inside_it() -> None:
 
     resumed = setup.load_suspended()
 
-    assert resumed is not None and resumed.label() == "leg[]/go (3/4)"
+    assert resumed is not None and resumed.course.label() == "leg[]/go (3/4)"
     h2 = history()
     peek = resumed.advance(h2)
     assert peek.tool_names() == ["note", "peek"]
@@ -307,9 +310,13 @@ def test_each_walks_one_round_per_line_and_joins_the_returns() -> None:
     p, h = _walk(flow=EACH, keyword="milk and eggs")
 
     start = _listed(p, h, "milk\neggs\n")
-    assert p.label() == "leg[milk]/app (2/6)"  # parse, two rounds of two, the tell
+    assert (
+        p.course.label() == "leg[milk]/app (2/6)"
+    )  # parse, two rounds of two, the tell
     second = _round(p, h, start, "milk")
-    assert p.label() == "leg[eggs]/app (2/4)"  # the done round has left the route
+    assert (
+        p.course.label() == "leg[eggs]/app (2/4)"
+    )  # the done round has left the route
     tell = _round(p, h, second, "eggs")
 
     assert tell.tool_calls[1].arguments["inputs"]["message"] == (
@@ -380,7 +387,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
     flow = EACH.replace("    limit: {rounds: 2}\n", "    miss: skip\n")
     p, h = _walk(flow=flow, keyword="milk and eggs")
     start = _listed(p, h, "milk\neggs")
-    assert p.label() == "leg[milk]/app (2/6)"
+    assert p.course.label() == "leg[milk]/app (2/6)"
     p.step_one = True
 
     feed(h, start, HOME)  # the leg's cold start landed
@@ -391,7 +398,7 @@ def test_a_stepping_run_pauses_when_a_missed_round_leaves_the_route() -> None:
 
     assert p.phase == "paused"  # not walking into the eggs round
     assert isinstance(step, Paused)
-    assert p.label() == "leg[eggs]/app (2/4)"
+    assert p.course.label() == "leg[eggs]/app (2/4)"
     assert p.ledger.rounds["leg[milk]"]["done"] == "missed"
 
 
@@ -562,7 +569,7 @@ def test_an_uncovered_reply_revises_from_the_named_agent_and_reuses_finished_rou
         )
     )
     # Only the juice round runs: eggs kept its record, milk is off the list.
-    assert p.label() == "leg[juice]/app (2/5)"
+    assert p.course.label() == "leg[juice]/app (2/5)"
     assert p.outputs["parse.items"] == "eggs\njuice" and not p.ledger.previous
     resend = _round(p, h, start, "juice")
     assert resend.tool_calls[1].arguments["inputs"]["message"] == (
@@ -618,7 +625,7 @@ def test_a_stepping_rebuild_after_a_revision_opens_at_the_revised_agent() -> Non
     replan = p.resolve(MicroOutcome(out="other", reason="a change", confidence=0.9))
     assert isinstance(replan, DecisionRequest) and replan.node_id == "parse"
 
-    spec, pack = build.load_spec("demo", "flow", require_live=False)
+    spec, pack = load_spec("demo", "flow")
     stepped = build.build_program(
         spec, pack, {"keyword": "milk and eggs"}, None, position=p.state(), dry=True
     )
@@ -657,11 +664,11 @@ def test_a_reply_sent_before_the_ask_landed_revises_at_the_landing() -> None:
 
 def test_a_run_only_playbook_is_off_the_boot_menu_but_its_entry_walks_it() -> None:
     pack = _pack(flow=FLOW)
-    spec = pb.parse_playbook(LEG, "flow.leg", pack)
-    flow = pb.parse_playbook(FLOW, "flow", pack)
+    spec = playbook.parse_playbook(LEG, "flow.leg", pack)
+    flow = playbook.parse_playbook(FLOW, "flow", pack)
     assert spec.run_by == "flow" and flow.run_by is None
 
-    found = activation.discover()
+    found = discover()
 
     assert "demo/flow" in found.entries and "demo/flow.leg" not in found.entries
     assert "demo/flow.leg (run by flow)" in found.roster
@@ -707,7 +714,7 @@ def test_a_run_only_playbook_reads_its_entrys_leaf_folders() -> None:
     write_local_macro(root, "flow", "hand")
     write_prompt(root, "flow", "note", "read the screen")
 
-    spec = pb.parse_playbook(leg, "flow.leg", pb.load_pack("demo"))
+    spec = playbook.parse_playbook(leg, "flow.leg", pb.load_pack("demo"))
 
     assert spec.inline_macros["flow.hand"].name == "flow.hand"
     assert spec.prompts_used == frozenset({"flow/prompts/note.md"})
@@ -850,7 +857,7 @@ def test_a_suspension_inside_the_second_round_resumes_there_without_the_first() 
     feed(h, back, RESULTS)
     # Round two up to its ask, then silence.
     start2 = p.advance(h)
-    assert p.label() == "leg[eggs]/app (2/5)"
+    assert p.course.label() == "leg[eggs]/app (2/5)"
     feed(h, start2, HOME)
     feed(h, p.advance(h), RESULTS)
     send2 = p.advance(h)
@@ -860,7 +867,7 @@ def test_a_suspension_inside_the_second_round_resumes_there_without_the_first() 
 
     resumed = setup.load_suspended()
 
-    assert resumed is not None and resumed.label() == "leg[eggs]/go (4/5)"
+    assert resumed is not None and resumed.course.label() == "leg[eggs]/go (4/5)"
     assert resumed.ledger.round_finished("leg[milk]")  # round one is not walked again
     h2 = history()
     peek = resumed.advance(h2)
@@ -892,7 +899,7 @@ def test_a_recover_hand_inside_a_round_runs_again_never_the_rounds_start() -> No
     # The same hand again, in place — never the milk round's cold
     # launch, never the eggs round, never the parse.
     assert again.tool_calls[1].name == "go_back"
-    assert p.label() == "leg[milk]/search (3/6)"
+    assert p.course.label() == "leg[milk]/search (3/6)"
     assert "parse.items" in p.ledger.decided
 
 
@@ -992,7 +999,7 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
             out="done", reason="r", confidence=0.9, payload={"items": "milk\neggs"}
         )
     )
-    assert resumed.label() == "leg[eggs]/app (2/5)"
+    assert resumed.course.label() == "leg[eggs]/app (2/5)"
     feed(h2, start2, HOME)
     search = resumed.advance(h2)
     feed(h2, search, ELSEWHERE)
@@ -1003,7 +1010,7 @@ def test_a_revision_on_a_resumed_walk_recovers_in_place_inside_the_new_round() -
     again = resumed.advance(h2)
 
     assert again.tool_calls[1].name == "go_back"  # the hand again, in place
-    assert resumed.label() == "leg[eggs]/search (3/5)"
+    assert resumed.course.label() == "leg[eggs]/search (3/5)"
 
 
 def test_a_runs_on_fail_word_covers_failures_inside_its_rounds() -> None:
@@ -1055,7 +1062,7 @@ def test_a_hand_after_a_done_round_runs_in_place_never_the_round() -> None:
 
     # The hand runs a second time where the walk stands: the move after
     # the run — both rounds are done and gone, never their cold starts.
-    assert p.label() == "after (2/3)"
+    assert p.course.label() == "after (2/3)"
     assert again.tool_calls[1].name == "go_back"
 
 
@@ -1138,7 +1145,7 @@ def test_a_run_of_a_disabled_playbook_is_not_live() -> None:
     write_pack(playbooks={"flow.leg": leg, "flow": FLOW})
     pack = pb.load_pack("demo")
 
-    assert pb.live_gap(pb.parse_playbook(FLOW, "flow", pack), pack) == (
+    assert live_gap(playbook.parse_playbook(FLOW, "flow", pack), pack) == (
         "runs disabled playbook 'flow.leg'"
     )
 

@@ -1,0 +1,241 @@
+---
+title: Playbook
+description: 把一整个任务写成一条路线，智能体按部就班地走，只在需要判断的地方调用模型。
+---
+
+让智能体按 skill 一步步完成任务，是最自然的做法。它足够灵活，智能体可以按需选择工具。但用在手机 app 上，这种方式成本高、速度慢，一旦误操作进入陌生页面，往往要花好几步才能退回来。如今的多模态大模型已经足以完成大多数 app 操作，真正的瓶颈是 token 成本。
+
+app 里大多数页面的图标和布局是固定的，页面之间的跳转也有规律，靠页面上的锚点文字就能识别当前页面、确定下一步动作。这类确定性操作交给大模型，既浪费 token，又增加延迟，遇到陌生页面还可能出错。
+
+Playbook 把路径相对固定的高频操作写成声明式模板，只在需要语义理解的地方才调用大模型，而且每次调用只给最少的上下文和工具。调用次数少了，上下文小了，成本大幅下降，模型也更不容易选错工具。
+
+由此带来三个好处：
+
+- **成本低。** token 消耗可降低 50 到 100 倍。
+- **速度快。** 一次模型调用常常要 20 到 60 秒。调用少了，任务耗时可降低 3 到 5 倍。
+- **成功率高。** 智能体不再随意探索，误操作更少。可选的动作少了，它的判断也更准。
+
+## 创建 playbook
+
+生成 playbook 模板：
+
+```bash
+physiclaw playbooks init taobao
+```
+
+<FileTree>
+- ~/.physiclaw/playbooks/taobao/
+  - APP.yml
+  - buy/
+    - PLAYBOOK.yml
+</FileTree>
+
+### APP.yml
+
+清单文件，放这个 app 下所有 playbook 共用的东西。
+
+```yaml
+kind: manifest
+schema: 1
+app: taobao
+description: 在淘宝购物：搜索、挑选、请用户确认、付款。
+
+# 页面上常用按钮的位置。
+landmarks:
+  close:
+    label: "促销弹窗下方的 ✕"
+    at: [0.44, 0.68, 0.56, 0.75]
+
+# 淘宝的常用页面，靠 anchors 里的文字来识别。
+pages:
+  home:
+    description: "淘宝首页：标签栏（推荐 / 关注）在搜索栏上方"
+    anchors:
+      - {text: ["推荐", "关注"], within: top}
+    recover:
+      covered: {tap: app.landmarks.close}
+  results:
+    description: 搜索结果页，筛选栏（综合 / 销量）之下
+    anchors:
+      - {text: "综合", within: top}
+      - {text: "销量", within: top}
+    scrollable: true
+    recover:
+      covered: {tap: app.landmarks.close}
+      elsewhere: go_back
+  buysheet:
+    description: "下单页：付款按钮在实付金额那一行下方"
+    anchors:
+      - {text: ["免密支付", "提交订单", "立即支付"], within: bottom}
+      - {text: ["实付", "优惠后"], within: [0.0, 0.15, 1.0, 0.85]}
+    forbid: ["支付成功"]
+    recover:
+      covered: {tap: app.landmarks.close}
+      elsewhere: go_back
+  paid:
+    description: "支付成功页"
+    anchors:
+      - ["支付成功", "付款成功"]
+```
+
+### buy/PLAYBOOK.yml
+
+任务的执行路线。从上往下读，每一步先写当前应该在哪个页面，再写在这个页面上做什么。
+
+```yaml
+kind: entry
+schema: 1
+name: buy
+# 大模型根据这一行决定要不要用这个 playbook。
+description: 在淘宝购买商品
+enabled: false
+
+# 任务开始时填入；下面用 {inputs.name} 引用。
+inputs:
+  user_said:
+    description: 用户的原话
+
+route:
+  # 从用户的话里提炼搜索关键词。
+  - agent: parse
+    context:
+      prompt: |
+        请从用户的消息里提炼出淘宝搜索关键词。
+        用户说："{user_said}"
+        要求：只保留商品名和规格，比如"金典有机牛奶 250ml"；
+        去掉数量词、动词和客套话。
+        如果消息里没有提到具体商品，就上报。
+      given:
+        user_said: inputs.user_said
+    returns:
+      keyword: 搜索关键词
+    think: off
+
+  # 打开淘宝。
+  - start: app
+    macro:
+      steps:
+        - home_screen  # 回到手机桌面
+        - tap: "淘宝图标"  # 淘宝图标的位置在你的手机上可能不同
+          at: [0.720, 0.425, 0.909, 0.551]
+        - wait: 5
+        # 冷启动可能停在全屏广告上。
+        - tap: "跳过"
+          at: [0.79, 0.030, 0.87, 0.065]
+          when: {text: "跳过", within: [0.70, 0.0, 1.0, 0.12]}
+        - wait: 2
+
+  - page: app.pages.home
+
+  # 搜索关键词。
+  - do: search
+    with: {keyword: "{parse.keyword}"}
+    macro:
+      inputs:
+        keyword:
+          description: 要搜索的内容
+      steps:
+        - tap: "首页搜索栏"
+          at: [0.30, 0.092, 0.70, 0.128]
+        - send_to_clipboard: "{keyword}"
+        - long_press: "搜索输入框"
+          at: [0.08, 0.115, 0.55, 0.148]
+        - tap: "粘贴"
+          at: [0.066, 0.070, 0.163, 0.098]
+        - tap: "搜索"
+          at: [0.811, 0.865, 0.923, 0.895]
+        - wait: 2
+
+  - page: app.pages.results
+
+  # 调用大模型挑选商品，打开下单页，付款前停下。
+  - agent: pick
+    context:
+      prompt: |
+        你在淘宝替用户买一件商品。从搜索结果开始，走到下单页为止，不要付款。
+        用户说："{user_said}"
+        搜索关键词：{keyword}
+        1. 在搜索结果里比较商品的标题、规格、价格和销量。优先选规格和
+           关键词一致的单件装，销量高、价格低的更好。点一下选中商品的
+           标题，进入详情页。
+        2. 在详情页点"立即购买"或"领券购买"。如果弹出规格选择，点和关键词
+           一致的那一行，再点底部的按钮。
+        3. 下单页显示出正确规格和明确的实付金额，就停下来。付款由
+           playbook 来做，不用你操作。
+        促销弹窗可能会盖住页面，点它的 ✕（{close}）关掉，只点一次。
+        找不到合适的商品，就上报。
+      given:
+        user_said: inputs.user_said
+        keyword: parse.keyword
+        close: app.landmarks.close
+    tools: [tap, scroll, back]
+    never_tap:
+      - {label: ["免密支付", "立即支付", "提交订单"], within: bottom}
+    returns:
+      summary: 一行文字，包含标题、规格、数量和实付金额
+      message: 一条简短的中文消息，请用户确认是否购买
+    limit: {calls: 12, scrolls: 4}
+    think: low
+    on_fail: stop
+
+  - page: app.pages.buysheet
+
+  # 请用户确认。
+  - ask: confirm-pay
+    approve: payment
+    total_label: ["实付", "优惠后"]
+    message: "{pick.message}（实付 ¥{ask.total}）回复 好的 确认支付，或 不用 取消。"
+    yes: ["好的", "好", "可以", "确认"]
+    no: ["不用", "不要", "取消", "算了"]
+    denied: "好的，已取消，未付款。"
+    wait: 45
+    rounds: 3
+    think: off
+    on_fail: stop
+    # 用户回复后，切回淘宝的下单页。
+    resume:
+      steps:
+        - home_screen
+        - tap: "淘宝图标"
+          at: [0.720, 0.425, 0.909, 0.551]
+        - wait: 2
+
+  # 用户同意后，点击付款。
+  - do: pay
+    irreversible: payment
+    on_fail: handover
+    macro:
+      steps:
+        - tap: ["免密支付", "立即支付", "提交订单"]
+          at: [0.368, 0.923, 0.629, 0.948]
+        - wait: 4
+
+  - page: app.pages.paid
+
+  # 告诉用户结果。
+  - tell: report
+    message: "已下单并完成支付：{pick.summary}。"
+```
+
+## 验证
+
+启动 MCP 服务：
+
+```bash
+physiclaw mcp
+```
+
+检查 playbook，然后逐步运行调试：
+
+```bash
+physiclaw playbooks check
+physiclaw playbooks step taobao/buy -i user_said="帮我买一箱金典有机牛奶"
+```
+
+## 最佳实践
+
+**先在本地调试，再启用。** 每个人手机上的坐标框都不一样，playbook 要在你自己的设备上调试过，才能正确运行。
+
+**锚点要稳定、准确。** playbook 靠锚点文字识别页面，所以要选位置固定、不会轻易随改版变动的文字。
+
+**让智能体来写。** 把 `claude` 或 `codex` 接到你的 MCP 服务上，让它替你编写和调试 playbook。

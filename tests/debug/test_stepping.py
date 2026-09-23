@@ -248,7 +248,7 @@ def test_catalog_lists_the_channel_boot_with_its_activate_step(pack) -> None:
     write_channel(
         "kind: macro\nschema: 1\nname: open\ndescription: d\nsteps:\n  - home_screen\n"
     )
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import scaffold
 
     scaffold.ensure_channel_boot(paths.playbooks_dir() / "channel" / "wechat")
 
@@ -266,8 +266,8 @@ def test_stepping_the_boot_reads_the_staged_reply_as_the_request(pack, mocker) -
     # activate step's parse_task runs over the virtual thread.
     from conductor_fakes import write_channel
 
-    from physiclaw.conductor.spec import scaffold
-    from physiclaw.conductor.walk.micro import MicroOutcome, MicroResult
+    from physiclaw.conductor.load import scaffold
+    from physiclaw.conductor.micro.decision import MicroOutcome, MicroResult
     from physiclaw.debug import thread as vthread
 
     write_channel(

@@ -45,7 +45,6 @@ def round_prefix(run_id: str, key: str) -> str:
 @dataclass
 class Ledger:
     ref: str  # the playbook ref, as every line names it
-    nodes: int  # the route's length, for "(n/m nodes)"
     task: dict[str, str]  # the playbook's inputs — what was asked
     decided: dict[str, str] = field(default_factory=dict)  # node.field → value
     # A revised step's last answer (`unsettle`): no longer a decision

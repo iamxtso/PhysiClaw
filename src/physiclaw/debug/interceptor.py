@@ -88,8 +88,7 @@ class FakeChannel:
 
     @property
     def incoming(self) -> Bbox:
-        """The channel manifest's `thread: incoming` box, as the real
-        channel's."""
+        """The IM's incoming box, as the real channel's."""
         return self._view[1]
 
     def intercept(

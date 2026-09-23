@@ -8,7 +8,7 @@ a reader can see, in one screen, what stops a walk from running
 forever. The modules that enforce them import from here.
 """
 
-# ---- the route (model.py / route.py) ----
+# ---- the route (spec/model.py, route/) ----
 
 # Counts MOVES (compiled nodes) — waypoints ride free, bounded by the
 # pack's own MAX_PAGES. (Inputs are capped by the macro grammar's
@@ -52,12 +52,13 @@ MAX_RETURNS = 6
 # (values and landmarks) and `context.memory` together, since they are
 # the names a reader has to hold in their head to read the prompt.
 MAX_CONTEXT = 12
+MAX_MEMORY_LOG = 50  # daily-log entries one step's `memory: {log: n}` may pull
 MAX_NEVER_TAP = 8  # `never_tap:` targets on one agent step
 # A message to the user may hold lines (an itemised confirmation, one
 # item per line), each bounded like any prose; this bounds the count.
 MAX_MESSAGE_LINES = 8
 
-# ---- the pack (pages.py) ----
+# ---- the pack (spec/pages.py) ----
 
 MAX_PAGES = 30
 MAX_ANCHORS = 12
@@ -65,7 +66,7 @@ MAX_FORBID = 8
 MAX_ANCHOR_LEN = 80
 MAX_LANDMARKS = 12
 
-# ---- model calls (micro.py) ----
+# ---- model calls (micro/) ----
 
 # Sanity ceiling on the rows an episode turn shows, not a budget:
 # rows ride in screen order, so a cut removes the bottom of the
@@ -74,7 +75,7 @@ MAX_LANDMARKS = 12
 # runaway listing from growing a prompt without limit.
 MAX_SCREEN_ROWS = 200
 
-# ---- the boot (channel/boot/PLAYBOOK.yml, step_activate.py) ----
+# ---- the boot (channel/boot/PLAYBOOK.yml, steps/select.py) ----
 
 # How many times the boot's `select` step may take parse_task's
 # `scroll_up` escape — scrolling the thread for an older request —
@@ -83,7 +84,7 @@ MAX_SCREEN_ROWS = 200
 # `tries:`, under the walk-wide ceiling above.
 DEFAULT_BOOT_SCROLLS = 2
 
-# ---- the drivers (rehearsal.py / replay.py) ----
+# ---- the drivers (drive/rehearsal.py, bench/replay.py) ----
 
 # A rehearsal is a person watching, so the bound is "long enough for a
 # real walk" rather than the engine's session budget. A gate polling
@@ -92,3 +93,10 @@ REHEARSE_MAX_TURNS = 60
 # A replay's hard stop, whatever the screens say: a walk that keeps
 # recovering must not spin past what a person would read.
 MAX_REPLAY_TURNS = 200
+
+# ---- what any record keeps of free text ----
+# How much of a model's free-text reason any record keeps — a handover
+# brief, a runs row, a day line.
+REASON_CLIP = 200
+# How much of a tool error a synthesized note carries.
+MAX_ERROR_CHARS = 200

@@ -3,8 +3,8 @@
     "part_id": "ext-2040-y",
     "ref": "¥60",
     "inquiry": {
-      "en": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size — 7 pcs, 4 specs:\n1. 2040 black anodized, 345 mm ×2 — M6 counterbores on the 40 mm-wide face, 10 mm from each end\n2. 2040 black anodized, 190 mm ×2 — both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2 — M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
-      "zh": "用于 PhysiClaw 组装的欧标铝型材定制切割，共 7 根 4 种规格：\n1. 2040 黑色阳极氧化 345mm ×2，M6 沉孔开在 40mm 宽面，距两端面各 10mm\n2. 2040 黑色阳极氧化 190mm ×2，两端攻丝 M6\n3. 1020 185mm ×1\n4. 1020 230mm ×2，距两端 10mm 开 M5 通孔\n5. 内六角圆柱头螺栓 M6×20 ×8\n请帮忙报价"
+      "en": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size — 7 pcs, 4 specs:\n1. 2040 black anodized, 345 mm ×2 — M6 counterbores on the 40 mm-wide face, two at each end, 10 mm from the end face\n2. 2040 black anodized, 190 mm ×2 — both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2 — M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
+      "zh": "用于 PhysiClaw 组装的欧标铝型材定制切割，共 7 根 4 种规格：\n1. 2040 黑色阳极氧化 345mm ×2，M6 沉孔开在 40mm 宽面，每端各开两个，距端面 10mm\n2. 2040 黑色阳极氧化 190mm ×2，两端攻丝 M6\n3. 1020 185mm ×1\n4. 1020 230mm ×2，距两端 10mm 开 M5 通孔\n5. 内六角圆柱头螺栓 M6×20 ×8\n请帮忙报价"
     },
     "suppliers": [
       {
@@ -82,8 +82,8 @@
       }
     ],
     "note": {
-      "en": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/download/physiclaw-hardware-v0.1/physiclaw_custom_parts.zip\">Download the STEP files</a> and send them to the shop's customer service.",
-      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/download/physiclaw-hardware-v0.1/physiclaw_custom_parts.zip\">下载 step 文件</a>，发送给店铺客服"
+      "en": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> (print guide included) and send them to the shop's customer service.",
+      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">下载 STEP 文件</a>（内含打印说明），发送给店铺客服"
     }
   },
   {
@@ -391,8 +391,8 @@
           "zh": "绿联"
         },
         "product": {
-          "en": "12 V 2 A adapter, 5.5×2.1 mm barrel plug",
-          "zh": "12V2A/外径5.5*2.1mm-1.5米"
+          "en": "12 V 2 A adapter, 5.5×2.5 mm barrel plug",
+          "zh": "12V2A/外径5.5*2.5mm-1.5米"
         },
         "url": "https://item.taobao.com/item.htm?id=731915982634&skuId=5937503277169"
       },
@@ -420,8 +420,8 @@
       }
     ],
     "note": {
-      "en": "Stick to reputable brands — suspiciously cheap adapters skimp on voltage regulation and safety protections.",
-      "zh": "请选择正规品牌电源，过于廉价的适配器稳压性能和安全保护往往不足。"
+      "en": "Stick to reputable brands. A 5.5×2.5 mm barrel plug fits too.",
+      "zh": "请选择正规品牌电源。5.5×2.5 mm 桶形插头同样适用。"
     }
   },
   {
@@ -986,8 +986,8 @@
       }
     ],
     "note": {
-      "en": "Screws are inexpensive, but each size is sold in packs of 20/50/100 — even if you need only a few, you buy the whole pack.",
-      "zh": "螺丝单价低廉，但每种规格按 20/50/100 个整包出售——即使只需几颗，也需整包购买。"
+      "en": "Screws are inexpensive, but each size is sold in packs of 20/50/100. Even if you need only a few, you buy the whole pack.",
+      "zh": "螺栓单价低廉，但每种规格按 20/50/100 个整包出售。即使只需几颗，也需整包购买。"
     }
   },
   {
@@ -1242,8 +1242,8 @@
       }
     ],
     "note": {
-      "en": "6 pcs needed — if sold in 5-packs, order two packs.",
-      "zh": "共需 6 个——如按 5 个一包出售，记得购买两包。"
+      "en": "6 pcs needed. If sold in 5-packs, order two packs.",
+      "zh": "共需 6 个。如按 5 个一包出售，记得购买两包。"
     }
   },
   {
@@ -1644,8 +1644,8 @@
       }
     ],
     "note": {
-      "en": "Height must match the listed spec; the ID and OD can vary — any ID > 5 mm and OD < 20 mm works.",
-      "zh": "高度必须与所列规格一致；内径、外径可不同——内径 >5 mm、外径 <20 mm 均可。"
+      "en": "Height must match the listed spec. The ID and OD can vary: any ID > 5 mm and OD < 20 mm works.",
+      "zh": "高度必须与所列规格一致。内径、外径可不同，内径 >5 mm、外径 <20 mm 均可。"
     }
   },
   {
@@ -1727,8 +1727,8 @@
       }
     ],
     "note": {
-      "en": "An electric screwdriver with hex bits saves a lot of effort during assembly.",
-      "zh": "如有配六角批头的电动螺丝刀，装配会省力很多。"
+      "en": "You'll need 3 hex keys: get good-quality 2 mm and 3 mm ones (used most); a basic 5 mm will do.",
+      "zh": "需要 3 把六角扳手。2 mm 和 3 mm 常用，建议买质量好的；5 mm 用得少，普通的就够用。"
     }
   },
   {

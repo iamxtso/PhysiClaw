@@ -29,7 +29,7 @@ def _input_screens(session: str | None, listing: Path | None, live: bool) -> lis
     resolved via the shared `logs <suffix>` convention), a listing file,
     or one live peek."""
     from physiclaw.common.listing import Screen
-    from physiclaw.conductor.drive import corpus
+    from physiclaw.conductor.bench import corpus
 
     if live:
         listings = [asyncio.run(_live_listing())]
@@ -61,7 +61,7 @@ def extract(
     out: Path = typer.Option(..., "--out", help="corpus JSONL to write"),
 ) -> None:
     """Dump a session's listings to a corpus file with '?' labels to edit."""
-    from physiclaw.conductor.drive import corpus
+    from physiclaw.conductor.bench import corpus
 
     listings = corpus.session_listings(resolve_sid(session))
     corpus.write_corpus(
@@ -79,16 +79,16 @@ def match(
 ) -> None:
     """Print the matcher's verdict for each input screen."""
     from physiclaw.common.paths import PACK_FILENAME
-    from physiclaw.conductor.spec import pages
+    from physiclaw.conductor.load import prints
     from physiclaw.conductor.spec.match import match_screen
 
-    prints = pages.prints_for_app(app)
-    if not prints:
+    found = prints.prints_for_app(app)
+    if not found:
         exit_error(
             f"no pages declared for app {app!r} (playbooks/{app}/{PACK_FILENAME} `pages:`)"
         )
     for i, screen in enumerate(_input_screens(session, listing, live)):
-        v = match_screen(screen, prints)
+        v = match_screen(screen, found)
         typer.echo(
             f"[{i:3d}] {v.kind:8s} {v.page_id or '-':24s} "
             f"dy={v.dy:+.2f}  {v.describe()}"
@@ -123,10 +123,10 @@ def calibrate(
 
     Either way, writes `learned/pages/<app>.json` and prints the per-page
     report."""
-    from physiclaw.conductor.drive import capture, corpus
-    from physiclaw.conductor.spec import pages
+    from physiclaw.conductor.bench import capture, corpus
+    from physiclaw.conductor.load import prints
 
-    decls = pages.scan_app_decls(app)
+    decls = prints.scan_app_decls(app)
     if not decls:
         exit_error(f"no pages declared for app {app!r}")
     if guided:
@@ -142,15 +142,15 @@ def calibrate(
         items = corpus.read_corpus(corpus_file)
         by_page, negatives = corpus.partition(items, app, set(decls))
 
-    learned, reports, warnings = capture.capture_app(app, decls, by_page, negatives)
+    mined, reports, warnings = capture.capture_app(app, decls, by_page, negatives)
     for w in warnings:
         typer.echo(f"  ⚠ {w}")
     for r in reports:
         typer.echo(_report_line(r))
-    if learned:
-        pages.save_learned(app, learned)
+    if mined:
+        prints.save_learned(app, mined)
         typer.echo(
-            f"saved learned/pages/{pages.learned_file(app).name} ({len(learned)} pages)"
+            f"saved learned/pages/{prints.learned_file(app).name} ({len(mined)} pages)"
         )
 
 
@@ -202,7 +202,7 @@ def propose(
 ) -> None:
     """Suggest anchor declarations from screens — prune by eye into
     the pack's `pages:` section."""
-    from physiclaw.conductor.drive.capture import propose_anchors
+    from physiclaw.conductor.bench.capture import propose_anchors
 
     for i, screen in enumerate(_input_screens(session, listing, live)):
         candidates = propose_anchors(screen)

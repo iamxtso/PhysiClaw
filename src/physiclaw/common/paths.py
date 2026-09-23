@@ -43,7 +43,7 @@ machines write):
                     follow the GitHub-Actions shape, and YAML's
                     implicit-typing hazards are fenced by a 1.2 parser +
                     strict type checks (macros/parse.py,
-                    conductor/pages.py)
+                    conductor/spec/pages.py)
     *.json/*.jsonl  machine-written state, caches, and append-only logs
                     (jq-able; source.json mirrors the upstream manifest
                     verbatim)

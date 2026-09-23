@@ -136,7 +136,7 @@ class Job:
         self.ref: str | None = None
         self.task: asyncio.Task | None = None
         self.lines: list[str] = []
-        # Every model round-trip of a stepped node (`rehearsal.exchanges`
+        # Every model round-trip of a stepped node (`exchange.exchanges`
         # records): what went to the provider and what came back.
         self.exchanges: list[dict] = []
         self.result: dict | None = None

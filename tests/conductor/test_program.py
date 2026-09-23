@@ -34,8 +34,12 @@ from conductor_fakes import (
     thread_screen as _thread,
 )
 
+from physiclaw.conductor.bench import runs
 from physiclaw.conductor.drive import build, setup
-from physiclaw.conductor.spec import channel, limits, lints
+from physiclaw.conductor.load import channel
+from physiclaw.conductor.load.pack import load_spec
+from physiclaw.conductor.route import lints
+from physiclaw.conductor.spec import limits
 from physiclaw.conductor.spec.model import PlaybookError
 from physiclaw.conductor.walk import program, suspension
 
@@ -116,7 +120,7 @@ def test_move_verifying_a_builtin_page_is_refused_at_parse() -> None:
     )
 
     with pytest.raises(PlaybookError, match="reserved built-in"):
-        build.load_spec("demo", "flow", require_live=False)
+        load_spec("demo", "flow")
 
 
 def test_error_result_hands_over() -> None:
@@ -168,7 +172,7 @@ route:
 
 
 def test_failed_agent_call_hands_over() -> None:
-    from physiclaw.conductor.walk.micro import DecisionRequest
+    from physiclaw.conductor.micro.decision import DecisionRequest
 
     write_pack(playbooks={"flow": AGENT_FLOW})
     p = _program(keyword="milk")
@@ -318,7 +322,7 @@ def test_check_warns_when_a_gate_ask_quotes_no_deny_word() -> None:
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"pay": quiet})
 
-    spec, pack = build.load_spec("demo", "pay", require_live=False)
+    spec, pack = load_spec("demo", "pay")
     warnings = [w for w in lints.readiness_warnings(spec, pack) if "yes/no" in w]
 
     (warning,) = warnings
@@ -331,7 +335,7 @@ def test_check_warns_about_weak_unpinned_anchors() -> None:
     # so the checker says so — advisory, never a refusal. The longer
     # anchors (Files, AllDone) draw no warning.
     write_pack(playbooks={"flow": FLOW})
-    spec, pack = build.load_spec("demo", "flow", require_live=False)
+    spec, pack = load_spec("demo", "flow")
 
     warnings = [w for w in lints.readiness_warnings(spec, pack) if "anchor" in w]
 
@@ -394,7 +398,7 @@ def test_gate_reply_outside_the_declared_words_is_read_in_the_thread() -> None:
     # "那就来一份吧" is a yes in spirit, but the ask declared 好的/不用: the
     # words do not decide, so the model that read the request reads the
     # reply — in the session's thread, with the ask and the replies.
-    from physiclaw.conductor.walk.micro import READ_REPLY, DecisionRequest
+    from physiclaw.conductor.micro.decision import READ_REPLY, DecisionRequest
 
     p, h, send = _at_gate()
     ask = send.tool_calls[1].arguments["inputs"]["message"]
@@ -408,7 +412,7 @@ def test_gate_reply_outside_the_declared_words_is_read_in_the_thread() -> None:
 
 
 def test_a_reply_the_model_reads_as_confirm_binds_consent_like_a_yes() -> None:
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     p, h, send = _at_gate()
     _reply_arrives(p, h, send, "那就来一份吧")
@@ -423,7 +427,7 @@ def test_a_reply_the_model_reads_as_confirm_binds_consent_like_a_yes() -> None:
 
 
 def test_a_reply_the_model_reads_as_deny_hands_over_as_a_no() -> None:
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     p, h, send = _at_gate()
     _reply_arrives(p, h, send, "算了吧")
@@ -435,7 +439,7 @@ def test_a_reply_the_model_reads_as_deny_hands_over_as_a_no() -> None:
 
 
 def test_a_reply_the_model_cannot_read_hands_over_before_any_payment() -> None:
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     p, h, send = _at_gate()
     _reply_arrives(p, h, send, "多少钱来着")
@@ -531,7 +535,7 @@ def test_tell_sends_then_the_walk_moves_on() -> None:
 
     assert "move 'wrap' expects page 'results'" in summary
     assert not suspension.suspended_path().exists()
-    assert p.idx == 2  # the cursor stood on `wrap`, past the tell
+    assert p.course.idx == 2  # the cursor stood on `wrap`, past the tell
 
 
 def test_tell_landing_off_the_thread_hands_over() -> None:
@@ -557,7 +561,7 @@ def test_session_setup_builds_the_boot_and_hidden_registry() -> None:
     # the activation (the menu of enabled playbooks) for its `activate`
     # step, and the whole dispatch table beside it.
     from physiclaw.common import paths
-    from physiclaw.conductor.spec.model import ActivateNode
+    from physiclaw.conductor.spec.model import SelectNode
 
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"flow": FLOW})
@@ -569,7 +573,7 @@ def test_session_setup_builds_the_boot_and_hidden_registry() -> None:
     assert (
         paths.playbooks_dir() / "channel" / "wechat" / "boot" / "PLAYBOOK.yml"
     ).exists()
-    assert isinstance(prog.spec.nodes[-1], ActivateNode)
+    assert isinstance(prog.spec.nodes[-1], SelectNode)
     activation = prog.activation
     assert activation is not None
     assert tuple(activation.entries) == ("demo/flow",)
@@ -638,7 +642,7 @@ def test_session_setup_prefers_a_suspended_walk_over_the_boot() -> None:
 
 def test_activation_builds_a_request_over_the_thread_screen() -> None:
     from physiclaw.common.listing import Screen
-    from physiclaw.conductor.walk.micro import PARSE_TASK, MicroOutcome
+    from physiclaw.conductor.micro.decision import PARSE_TASK, MicroOutcome
 
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"flow": FLOW})
@@ -688,7 +692,7 @@ def test_activation_menu_renders_the_input_example() -> None:
 
 
 def test_activation_rejects_unresolvable_inputs_and_not_a_task() -> None:
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"flow": FLOW})
@@ -714,7 +718,7 @@ def test_activation_rejects_unresolvable_inputs_and_not_a_task() -> None:
 
 
 def test_scaffolded_channel_pack_parses_and_loads_disabled() -> None:
-    from physiclaw.conductor.spec import scaffold
+    from physiclaw.conductor.load import scaffold
 
     scaffold.init_pack("channel/wechat")
 
@@ -725,7 +729,7 @@ def test_scaffolded_channel_pack_parses_and_loads_disabled() -> None:
     assert ch is not None
     assert ch.send is None and ch.open is None
     assert ch.boot is None and ch.pack is not None
-    from physiclaw.conductor.spec.pack import load_pack
+    from physiclaw.conductor.load.pack import load_pack
 
     pack = load_pack("channel")
     assert set(pack.macros) == {"send", "open"} and not pack.macro_errors
@@ -1063,7 +1067,7 @@ def test_payment_move_without_consent_hands_over() -> None:
     # if every earlier guard were somehow skipped.
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"pay": GATED})
-    spec, _ = build.load_spec("demo", "pay")
+    spec, _ = load_spec("demo", "pay")
     pay_idx = next(
         i for i, n in enumerate(spec.nodes) if getattr(n, "irreversible", None)
     )
@@ -1142,7 +1146,7 @@ def test_a_stepping_position_recovers_in_place() -> None:
     # cursor never moves, so the prefix the author stepped past never
     # re-runs (a resumed suspension: `test_resumed_walk_never_re_runs…`).
     write_pack(playbooks={"flow": RECOVERING}, landmarks=LANDMARKS)
-    spec, pack = build.load_spec("demo", "flow", require_live=False)
+    spec, pack = load_spec("demo", "flow")
     at_search = {**_program(keyword="milk").state(), "idx": 1}
 
     stepped = build.build_program(
@@ -1155,7 +1159,10 @@ def test_a_stepping_position_recovers_in_place() -> None:
     _feed(h, back, ELSEWHERE)  # the hand did not restore results
     again = stepped.advance(h)
     assert again is not None and again.tool_names() == ["note", "go_back"]
-    assert stepped.idx == 1 and "still off" in again.tool_calls[0].arguments["summary"]
+    assert (
+        stepped.course.idx == 1
+        and "still off" in again.tool_calls[0].arguments["summary"]
+    )
 
 
 def test_declared_unlock_hand_wakes_the_phone_then_continues() -> None:
@@ -1257,15 +1264,16 @@ def _learn_results() -> None:
     """Calibrated geometry for `results` — an overlay verdict needs it."""
     from conductor_fakes import make_learned
 
-    from physiclaw.conductor.spec import pages
+    from physiclaw.conductor.load import prints
+    from physiclaw.conductor.spec.pages import LearnedPage
 
     def anchor(text, cy):
         return make_learned(text, 0.5, cy, pos_tol=0.03)
 
-    pages.save_learned(
+    prints.save_learned(
         "demo",
         {
-            "results": pages.LearnedPage(
+            "results": LearnedPage(
                 anchors={"综合": anchor("综合", 0.1), "销量": anchor("销量", 0.2)},
                 observations=6,
             )
@@ -1458,7 +1466,7 @@ def test_check_warns_when_an_ask_without_resume_precedes_a_screen_move() -> None
     )
     write_channel(CHANNEL_OPEN)
     write_pack(playbooks={"two": flow})
-    spec, pack = build.load_spec("demo", "two", require_live=False)
+    spec, pack = load_spec("demo", "two")
 
     warnings = [w for w in lints.readiness_warnings(spec, pack) if "resume" in w]
 
@@ -1484,7 +1492,6 @@ def test_recovery_never_runs_with_consent_bound() -> None:
 
 
 def test_completed_walk_records_one_completed_run_line() -> None:
-    from physiclaw.conductor.walk import walklog
 
     write_pack(playbooks={"flow": FLOW})
     p = _program(keyword="milk")
@@ -1495,7 +1502,7 @@ def test_completed_walk_records_one_completed_run_line() -> None:
 
     _finish(p, h, p.advance(h))
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "completed"
     assert (row["app"], row["playbook"]) == ("demo", "flow")
     assert row["node"] is None  # cursor past the last node
@@ -1503,7 +1510,6 @@ def test_completed_walk_records_one_completed_run_line() -> None:
 
 
 def test_handover_records_run_line_at_the_failing_node() -> None:
-    from physiclaw.conductor.walk import walklog
 
     p, h, move1 = _recovering_walk()
     _feed(h, move1, HOME)  # move 1 landed on the WRONG page
@@ -1511,7 +1517,7 @@ def test_handover_records_run_line_at_the_failing_node() -> None:
     _feed(h, p.advance(h), HOME)  # the hand again — still wrong, tries spent
     _finish(p, h, p.advance(h))
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "handover"
     assert row["node"] == "open"
     assert row["rescues"] >= 2
@@ -1521,7 +1527,6 @@ def test_completed_payment_walk_records_history_fields() -> None:
     # The completed line carries the structured given: inputs and the
     # fired total (consent is consumed at fire — this is where it
     # survives).
-    from physiclaw.conductor.walk import walklog
 
     p, h, send = _at_gate()
     back = _reply_arrives(p, h, send, "好的")
@@ -1532,7 +1537,7 @@ def test_completed_payment_walk_records_history_fields() -> None:
 
     _finish(p, h, p.advance(h))
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "completed"
     assert row["total"] == 45.0
     assert row["values"] == {"keyword": "milk"}
@@ -1632,7 +1637,6 @@ def test_abandon_records_a_mid_flight_walk_and_breadcrumbs_it() -> None:
     # short — one telemetry row plus the daily-log breadcrumb, since
     # this walk had acted.
     from physiclaw.common import daylog
-    from physiclaw.conductor.walk import walklog
 
     write_pack(playbooks={"flow": FLOW})
     p = _program(keyword="milk")
@@ -1642,19 +1646,18 @@ def test_abandon_records_a_mid_flight_walk_and_breadcrumbs_it() -> None:
 
     p.abandon()
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "abandoned"
     assert row["node"] == "open"
     assert "cut short mid-walk at node open" in daylog.load_recent_entries(5)
 
 
 def test_abandon_is_a_no_op_for_unstarted_and_closed_walks() -> None:
-    from physiclaw.conductor.walk import walklog
 
     write_pack(playbooks={"flow": FLOW})
     fresh = _program(keyword="milk")
     fresh.abandon()  # never advanced — not a run
-    assert walklog.load() == []
+    assert runs.load() == []
 
     p = _program(keyword="milk")
     h = _history()
@@ -1665,13 +1668,12 @@ def test_abandon_is_a_no_op_for_unstarted_and_closed_walks() -> None:
 
     p.abandon()
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "completed"  # still exactly one row
 
 
 def test_failed_agent_call_records_handover_with_micro_count() -> None:
-    from physiclaw.conductor.walk import walklog
-    from physiclaw.conductor.walk.micro import DecisionRequest
+    from physiclaw.conductor.micro.decision import DecisionRequest
 
     write_pack(playbooks={"flow": AGENT_FLOW})
     p = _program(keyword="milk")
@@ -1682,7 +1684,7 @@ def test_failed_agent_call_records_handover_with_micro_count() -> None:
 
     _finish(p, h, p.resolve(None))  # the brokered call failed → handover
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
     assert row["outcome"] == "handover"
     assert row["node"] == "parse"
     assert row["micros"] == 1
@@ -1742,7 +1744,7 @@ def test_suspended_walk_with_a_broken_spec_is_dropped() -> None:
 
     assert setup.load_suspended() is None
     with pytest.raises(PlaybookError):
-        build.load_spec("demo", "pay")
+        load_spec("demo", "pay")
 
 
 # ---------- on_fail: stop — the model never inherits the pay hand ----------
@@ -1814,7 +1816,7 @@ def test_a_deny_is_answered_by_the_ask_before_the_brief() -> None:
 
 
 def test_a_deny_the_model_read_is_answered_too() -> None:
-    from physiclaw.conductor.walk.micro import MicroOutcome
+    from physiclaw.conductor.micro.decision import MicroOutcome
 
     p, h, send = _at_gate(playbook=ANSWERING)
     _reply_arrives(p, h, send, "算了吧")
@@ -1944,10 +1946,10 @@ def test_a_suspension_carries_the_threads_think_level() -> None:
     # walk completes, and the close's `summarize` is that wake's FIRST
     # model call. Without the level travelling it goes out at the
     # vendor's default — on a thinking model, minutes over one line.
-    from physiclaw.conductor.walk.micro import SUMMARIZE
+    from physiclaw.conductor.micro.decision import SUMMARIZE
 
     write_pack(playbooks={"flow": FLOW})
-    spec, pack = build.load_spec("demo", "flow", require_live=False)
+    spec, pack = load_spec("demo", "flow")
     first = _program(keyword="milk")
     first.thread.thinking = "off"  # as the boot's `select` declared it
 
@@ -2008,8 +2010,7 @@ def test_the_asks_verdict_reaches_every_exit_as_an_answer() -> None:
     assert "answered gate='yes'" in brief.walk_brief(
         "something else broke",
         ledger=p.ledger,
-        node="pay",
-        idx=4,
+        where="pay (5/6)",
         consented=None,
     )
     # The journal line still keeps the reply verbatim and who read it.

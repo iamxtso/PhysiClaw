@@ -17,13 +17,14 @@ The walk supplies the numbers and acts on the answers:
     reason — the walk prefixes the move it was guarding and hands over.
 
 Consent itself — quoting, binding, consuming — stays with the gate
-(`step_ask.py`, `speak.py`, `gate.Gate`): consent is a conversation, these are
+(`steps/ask.py`, `speak.py`, `gate.Gate`): consent is a conversation, these are
 arithmetic.
 """
 
 from physiclaw.common.bbox import Bbox, center_of, same_line
 from physiclaw.common.listing import Screen, label_hit
-from physiclaw.conductor.spec.conventions import PRICE_RE
+from physiclaw.conductor.spec.conventions import PRICE_RE, owned_by
+from physiclaw.conductor.spec.match import Reading, Verdict
 
 # The one sentence a fired-but-unverified payment leaves behind — the
 # daily log and the handover brief say it alike.
@@ -119,3 +120,20 @@ def fire_block(
         f"sheet changed after consent: confirmed {plain(consented)}, "
         f"now {now} beside {' / '.join(total_label)}"
     )
+
+
+def page_block(verdict: Verdict | None, app: str, what: str) -> str | None:
+    """A payment fires only off a VERIFIED own-pack page — the move
+    once, a payment episode before each of its taps: the ask left the
+    phone on the IM thread, and an unverified screen could satisfy the
+    predicates with the conductor's own ask bubble, or with whatever a
+    screen the pack never declared happens to print. None when
+    `verdict` is such a page; else the handover reason. (The ask itself
+    reads its total off the exact waypoint before it — `AskNode.enter`.)"""
+    if (
+        verdict is not None
+        and verdict.kind is Reading.MATCH
+        and owned_by(verdict.page_id or "", app)
+    ):
+        return None
+    return f"{what}: current screen is not a verified {app} page — money never reads or fires blind"

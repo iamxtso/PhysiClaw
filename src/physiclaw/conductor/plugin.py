@@ -20,7 +20,7 @@ from functools import partial
 from physiclaw.common.config import CONFIG, parse_model_ref
 from physiclaw.conductor.drive import setup as conductor_setup
 from physiclaw.conductor.drive.conductor import Conductor
-from physiclaw.conductor.walk.micro import MicroCaller
+from physiclaw.conductor.micro.channel import MicroCaller
 from physiclaw.conductor.walk.program import Program
 from physiclaw.contract.dto import AssistantMessage, Message
 from physiclaw.contract.plugin import SessionSetup, SetupContext

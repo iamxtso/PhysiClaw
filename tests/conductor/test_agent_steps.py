@@ -31,17 +31,10 @@ from conductor_fakes import (
 
 from physiclaw.common.bbox import BANDS
 from physiclaw.common.listing import LISTING_HEADER
-from physiclaw.conductor.drive import build
-from physiclaw.conductor.spec import pack as pb
-from physiclaw.conductor.spec import pages
-from physiclaw.conductor.spec.calls import (
-    ACT_SCROLL_DOWN,
-    AGENT_DONE,
-    TOOL_SCROLL,
-    TOOL_TAP,
-)
-from physiclaw.conductor.spec.model import AgentNode, DoNode, NeverTap, PlaybookError
-from physiclaw.conductor.walk.micro import (
+from physiclaw.conductor.load import pack as pb
+from physiclaw.conductor.load.pack import load_spec
+from physiclaw.conductor.micro.compose import user_content
+from physiclaw.conductor.micro.decision import (
     ACT_ARM,
     AGENT_ACT,
     AGENT_FIELDS,
@@ -50,9 +43,17 @@ from physiclaw.conductor.walk.micro import (
     Macro,
     MicroOutcome,
     Tap,
-    user_content,
 )
-from physiclaw.conductor.walk.step_agent import refusal
+from physiclaw.conductor.spec import pages
+from physiclaw.conductor.spec.calls import (
+    ACT_SCROLL_DOWN,
+    AGENT_DONE,
+    TOOL_SCROLL,
+    TOOL_TAP,
+)
+from physiclaw.conductor.spec.fence import refusal
+from physiclaw.conductor.spec.live import disabled_macros
+from physiclaw.conductor.spec.model import AgentNode, DoNode, NeverTap, PlaybookError
 from physiclaw.contract.dto import AssistantMessage, ImageBlock, TextBlock
 
 BACK_LANDMARK = """\
@@ -141,7 +142,7 @@ def _done_outcome(**payload) -> MicroOutcome:
 
 def test_parse_the_agented_playbook() -> None:
     _write()
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
 
     kinds = [type(n).__name__ for n in spec.nodes]
     assert kinds == ["AgentNode", "DoNode", "DoNode", "AgentNode"]
@@ -160,7 +161,7 @@ def test_parse_the_agented_playbook() -> None:
 
 def _parse(text: str):
     _write(text)
-    return build.load_spec("demo", "walk", require_live=False)[0]
+    return load_spec("demo", "walk")[0]
 
 
 @pytest.mark.parametrize(
@@ -205,7 +206,7 @@ def test_tools_may_grant_a_pack_macro() -> None:
     pick = spec.nodes[3]
     assert isinstance(pick, AgentNode)
     assert pick.landmarks == {"back": "back"} and pick.macros == ("add-cart",)
-    assert pb.disabled_macros(spec, pb.load_pack("demo")) == []
+    assert disabled_macros(spec, pb.load_pack("demo")) == []
 
 
 @pytest.mark.parametrize(
@@ -228,7 +229,7 @@ def test_tool_grants_are_checked(grant, fragment) -> None:
         macros=("open-app", "add-cart", "done"),
     )
     with pytest.raises(PlaybookError, match=fragment):
-        build.load_spec("demo", "walk", require_live=False)
+        load_spec("demo", "walk")
 
 
 def test_landmarks_are_optional() -> None:
@@ -608,7 +609,7 @@ def test_an_episodes_context_is_said_once_across_its_turns() -> None:
     # turn's own block is what happened and the screen, nothing else.
     from physiclaw.common import paths
     from physiclaw.common.text import write_text
-    from physiclaw.conductor.walk import micro
+    from physiclaw.conductor.micro import compose
 
     f = paths.memory_file()
     f.parent.mkdir(parents=True, exist_ok=True)
@@ -634,7 +635,7 @@ def test_an_episodes_context_is_said_once_across_its_turns() -> None:
     assert isinstance(req2, DecisionRequest) and req2.call == AGENT_ACT
 
     # What the provider sees on the second call, as one text.
-    system = micro._system(req2)
+    system = compose.system(req2)
     replayed = "\n".join(
         c if isinstance(c, str) else "\n".join(getattr(b, "text", "") for b in c)
         for _, c in req2.history
@@ -735,7 +736,7 @@ def test_episode_taps_an_icon_by_its_listed_box() -> None:
 
 
 def test_episode_runs_a_granted_macro_by_name() -> None:
-    from physiclaw.conductor.walk.step_agent import KIND_MACRO
+    from physiclaw.conductor.steps.agent import KIND_MACRO
 
     _write(
         AGENTED.replace(BACK, "").replace(
@@ -780,7 +781,7 @@ def test_a_page_scoped_landmark_is_checked_against_the_page_it_opens_on() -> Non
             playbooks={"walk": AGENTED},
             landmarks=BACK_LANDMARK.rstrip("\n") + f"\n  page: {page}\n",
         )
-        return build.load_spec("demo", "walk", require_live=False)[0]
+        return load_spec("demo", "walk")[0]
 
     spec = _scoped("results")  # the page this episode opens on
     assert spec.nodes[3].landmarks == {"back": "back"}
@@ -1060,7 +1061,7 @@ def test_episode_grammar_lints(old, new, fragment) -> None:
         + 'done:\n  label: "done"\n  at: [0.5, 0.5, 0.6, 0.6]\n',
     )
     with pytest.raises(PlaybookError, match=fragment):
-        build.load_spec("demo", "walk", require_live=False)
+        load_spec("demo", "walk")
 
 
 def test_a_given_may_share_its_name_with_a_macro() -> None:
@@ -1077,7 +1078,7 @@ def test_a_given_may_share_its_name_with_a_macro() -> None:
         landmarks=BACK_LANDMARK,
         macros=("open-app", "add-cart", "back"),
     )
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
     pick = spec.nodes[3]
     assert isinstance(pick, AgentNode)
     assert pick.landmarks == {"back": "back"} and pick.macros == ("back",)
@@ -1088,7 +1089,7 @@ def test_payment_ask_before_a_screen_move_needs_resume() -> None:
     write_channel()
     write_pack(playbooks={"pay": text})
     with pytest.raises(PlaybookError, match="declare `resume:`"):
-        build.load_spec("demo", "pay", require_live=False)
+        load_spec("demo", "pay")
 
 
 def test_payment_ask_reads_the_page_before_it() -> None:
@@ -1100,7 +1101,7 @@ def test_payment_ask_reads_the_page_before_it() -> None:
     write_channel()
     write_pack(playbooks={"pay": text})
     with pytest.raises(PlaybookError, match="reads its total off the page before"):
-        build.load_spec("demo", "pay", require_live=False)
+        load_spec("demo", "pay")
 
 
 def test_payment_episode_fires_only_off_a_verified_page_like_the_move() -> None:
@@ -1166,7 +1167,7 @@ def test_a_prompt_file_is_the_step_prompt_verbatim() -> None:
     root = paths.playbooks_dir() / "demo"
     write_prompt(root, "walk", "parse", "# Keyword\n\nDerive it from `said`.\n\n")
 
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
 
     parse = spec.nodes[0]
     assert isinstance(parse, AgentNode)
@@ -1182,7 +1183,7 @@ def test_a_pack_level_prompt_is_shared_by_every_route() -> None:
     root = paths.playbooks_dir() / "demo"
     write_prompt(root, None, "parse", "Shared brief.")
 
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
 
     assert spec.nodes[0].prompt == "Shared brief."
 
@@ -1196,7 +1197,7 @@ def test_a_prompt_file_takes_no_refs_either() -> None:
     write_prompt(paths.playbooks_dir() / "demo", "walk", "parse", "Said: {inputs.nope}")
 
     with pytest.raises(PlaybookError, match="declare `<name>: inputs.nope`"):
-        build.load_spec("demo", "walk", require_live=False)
+        load_spec("demo", "walk")
 
 
 def test_a_missing_prompt_file_names_what_exists() -> None:
@@ -1208,7 +1209,7 @@ def test_a_missing_prompt_file_names_what_exists() -> None:
     with pytest.raises(
         PlaybookError, match=r"no file 'parse.md' in walk/prompts/ \(other\)"
     ):
-        build.load_spec("demo", "walk", require_live=False)
+        load_spec("demo", "walk")
 
 
 def test_an_empty_prompt_file_fails_the_step_with_the_cause() -> None:
@@ -1223,7 +1224,7 @@ def test_an_empty_prompt_file_fails_the_step_with_the_cause() -> None:
     with pytest.raises(
         PlaybookError, match="parse.md is invalid: the prompt file is empty"
     ):
-        build.load_spec("demo", "walk", require_live=False)
+        load_spec("demo", "walk")
 
 
 def test_a_prompt_name_in_both_the_pack_and_the_route_is_no_clash() -> None:
@@ -1236,11 +1237,11 @@ def test_a_prompt_name_in_both_the_pack_and_the_route_is_no_clash() -> None:
     write_prompt(root, "walk", "parse", "mine")
     write_prompt(root, None, "parse", "ours")
 
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
     assert spec.nodes[0].prompt == "mine"
 
     _write(FILE_PROMPT.replace("prompts.parse", "app.prompts.parse"))
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
     assert spec.nodes[0].prompt == "ours"
 
 
@@ -1254,7 +1255,7 @@ def test_placeholders_fill_in_a_prompt_file_too() -> None:
         paths.playbooks_dir() / "demo", "walk", "parse", "Buy for <<CONTACT>>."
     )
 
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
 
     assert spec.nodes[0].prompt == "Buy for Alice."
 
@@ -1266,7 +1267,7 @@ def test_inline_prose_that_merely_mentions_prompts_stays_prose() -> None:
     )
     _write(inline)
 
-    spec, _ = build.load_spec("demo", "walk", require_live=False)
+    spec, _ = load_spec("demo", "walk")
 
     assert "see prompts.parse in the docs" in spec.nodes[0].prompt
     assert spec.prompts_used == frozenset()
@@ -1284,7 +1285,7 @@ async def test_conductor_drives_a_full_episode_over_tool_call_replies() -> None:
     from conductor_fakes import ScriptedProvider, Sink
 
     from physiclaw.conductor.drive.conductor import Conductor
-    from physiclaw.conductor.walk.micro import MicroCaller
+    from physiclaw.conductor.micro.channel import MicroCaller
 
     milk = make_screen(("综合", 0.5, 0.1), ("Milk 5kg", 0.5, 0.4)).rows[1]
     replies = [

@@ -16,8 +16,11 @@ declared anchor of the `thread` page is rendered at its learned position
 (else its region band, else spread across the top), so `match_screen`
 scores the render like a genuine reading rather than being bypassed.
 Bubble geometry carries the semantics `reply.read_incoming` keys on:
-incoming bubbles centered left of `INCOMING_FALLBACK`, our own right of
-it, newest at the bottom, long texts split into wrapped-line rows.
+incoming bubbles hang from the IM's `incoming_box` side, our own from
+the other, newest at the bottom, long texts split into wrapped-line
+rows — and a line is as wide as its text, up to the width of a bubble,
+so a long line's center drifts toward the middle of the screen exactly
+as a real one does (the reader must not lean on a line's center).
 
 Block builders mirror the server's wire shapes (`core/server/tools.py`):
 a view reply is `[image, listing]` — block 0 must NOT be text, or
@@ -37,6 +40,7 @@ from physiclaw.common.logger import write_json_atomic
 from physiclaw.common.text import read_text
 from physiclaw.conductor.spec.conventions import CHANNEL_APP, THREAD_PAGE
 from physiclaw.conductor.spec.pages import PagePrint
+from physiclaw.conductor.spec.reply import INCOMING_LEFT, incoming_box
 
 log = logging.getLogger(__name__)
 
@@ -44,13 +48,15 @@ THREAD_SCHEMA = 1
 USER = "user"
 AGENT = "agent"
 
-# Bubble geometry: user bubbles center in the thread page's `incoming:`
-# box, the agent's mirrored across the screen — the sides the reader
-# keys on. The fallback box serves a home with no thread page yet (the
-# stepper's placeholder thread). Bands start below the anchor chrome
-# and stack downward like a real thread scrolled to its tail.
-INCOMING_FALLBACK = (0.0, 0.0, 0.45, 1.0)
-_BUBBLE_HALF_W = 0.19
+# Bubble geometry: user bubbles hang from the near edge of the IM's
+# incoming box, the agent's from the mirrored edge — the sides the
+# reader keys on — and a line runs from its edge as far as its text
+# needs, one character's width per character, up to one bubble's width.
+# Bands start below the anchor chrome and stack downward like a real
+# thread scrolled to its tail.
+_BUBBLE_EDGE = 0.18  # a bubble's near edge, in from the screen's (the avatar)
+_BUBBLE_MAX_W = 0.64  # the widest a bubble's line runs
+_CHAR_W = 0.04  # one character's width
 _BUBBLE_TOP = 0.20  # first bubble's center y, below the anchor chrome
 _BUBBLE_STEP = 0.06
 _BUBBLE_BOTTOM = 0.95
@@ -174,18 +180,18 @@ def peek_bubbles() -> list[Bubble]:
 
 def channel_view() -> tuple[PagePrint | None, Bbox]:
     """The channel pack's thread fingerprint (None: an anchorless
-    render) and its `thread: incoming` box (the fallback when the pack
-    is unreadable or declares none) — one load; per-session callers
-    cache the pair, the pack cannot change mid-session."""
-    from physiclaw.conductor.spec.pack import load_pack
+    render) and its IM's incoming box (the left default when the pack
+    is unreadable) — one load; per-session callers cache the pair, the
+    pack cannot change mid-session."""
+    from physiclaw.conductor.load.pack import load_pack
 
     try:
         pack = load_pack(CHANNEL_APP)
     except Exception:
         log.warning("channel pack unreadable — rendering an anchorless thread")
-        return None, INCOMING_FALLBACK
+        return None, INCOMING_LEFT
     pp = next((p for p in pack.prints if p.decl.name == THREAD_PAGE), None)
-    return pp, pack.thread_incoming or INCOMING_FALLBACK
+    return pp, incoming_box(paths.pack_root(CHANNEL_APP).name)
 
 
 def _element(idx: int, label: str, cx: float, cy: float, half_w: float) -> Element:
@@ -236,12 +242,20 @@ def render_listing(bubbles: list[Bubble], pp: PagePrint | None, incoming: Bbox) 
     ]
     fit = int((_BUBBLE_BOTTOM - _BUBBLE_TOP) / _BUBBLE_STEP)
     y = _BUBBLE_TOP
-    user_cx = (incoming[0] + incoming[2]) / 2
+    user_left = (incoming[0] + incoming[2]) / 2 < 0.5  # the user's side
     for sender, line in lines[-fit:]:
-        cx = 1.0 - user_cx if sender == AGENT else user_cx
-        elements.append(_element(len(elements), line, cx, y, _BUBBLE_HALF_W))
+        cx, half_w = _line_geometry(line, from_left=(sender == USER) == user_left)
+        elements.append(_element(len(elements), line, cx, y, half_w))
         y += _BUBBLE_STEP
     return format_elements(elements)
+
+
+def _line_geometry(line: str, *, from_left: bool) -> tuple[float, float]:
+    """A line's center and half-width: it hangs from its bubble's edge
+    and runs as far as its text needs, capped at a bubble's width."""
+    half_w = min(_BUBBLE_MAX_W, len(line) * _CHAR_W) / 2
+    cx = _BUBBLE_EDGE + half_w if from_left else 1.0 - _BUBBLE_EDGE - half_w
+    return cx, half_w
 
 
 # ---------- wire shapes ----------

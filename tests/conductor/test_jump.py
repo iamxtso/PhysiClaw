@@ -11,7 +11,7 @@ from conductor_fakes import HOME, RESULTS, write_pack
 
 from physiclaw.common import paths
 from physiclaw.common.listing import Screen
-from physiclaw.conductor.spec import pack as pb
+from physiclaw.conductor.load import pack as pb
 from physiclaw.conductor.spec.match import PageCheck
 from physiclaw.macros import store
 from physiclaw.macros.steps import GotoStep, MarkStep

@@ -31,18 +31,16 @@ The position file is a tool's scratch under `debug/` (never a wake's
 contract: `conductor.suspension` stays the only cross-wake file).
 """
 
-import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from physiclaw.common import paths
 from physiclaw.common.logger import write_json_atomic
-from physiclaw.common.text import read_text
-from physiclaw.conductor.drive import rehearsal
+from physiclaw.conductor.drive import exchange, rehearsal
 from physiclaw.conductor.drive.hooks import Emit, McpCaller, Observe, OnExchange
+from physiclaw.conductor.load.pack import load_spec, qualified_all
 from physiclaw.conductor.spec.model import (
-    ActivateNode,
     AgentNode,
     AskNode,
     DoNode,
@@ -50,12 +48,15 @@ from physiclaw.conductor.spec.model import (
     Playbook,
     PlaybookError,
     RunNode,
+    SelectNode,
     TellNode,
+    resolve_inputs,
 )
-from physiclaw.conductor.spec.pack import qualified_all, qualified_macro
+from physiclaw.conductor.spec.pack import macro_app, qualified_macro
 from physiclaw.conductor.spec.specfile import SpecError
+from physiclaw.conductor.walk.course import Course
 from physiclaw.conductor.walk.gate import Gate
-from physiclaw.conductor.walk.suspension import SUSPENDED_SCHEMA
+from physiclaw.conductor.walk.suspension import read_position
 from physiclaw.contract.dto import ToolCall
 from physiclaw.debug import thread as vthread
 from physiclaw.macros.model import Macro, MacroError, MacroInput
@@ -127,7 +128,7 @@ def node_info(app: str, node: Node) -> NodeInfo:
     if isinstance(node, AskNode):
         resume = qualified_macro(app, node.resume) if node.resume else None
         return NodeInfo(node.id, KIND_ASK, node.enter, macro=resume)
-    if isinstance(node, ActivateNode):
+    if isinstance(node, SelectNode):
         return NodeInfo(node.id, KIND_SELECT, node.enter)
     if isinstance(node, RunNode):
         return NodeInfo(node.id, KIND_RUN, node.enter, node.verify)
@@ -149,10 +150,11 @@ def node_index(spec: Playbook, node: str) -> int:
 
 
 def node_label(spec: Playbook, idx: int) -> str:
-    total = len(spec.nodes)
-    if idx >= total:
-        return f"(end, {total}/{total})"
-    return f"{spec.nodes[idx].id} ({idx + 1}/{total})"
+    """The walk's own spelling of a spec position (`Course.label`), for
+    a stored state that carries none."""
+    course = Course(spec)
+    course.skip_to(idx)
+    return course.label()
 
 
 # ---------- the position ----------
@@ -204,14 +206,7 @@ class Position:
 def read_state() -> dict | None:
     """The one stored position, whoever's — None when missing or
     unreadable. `load_state` narrows it to a playbook."""
-    p = state_path()
-    if not p.exists():
-        return None
-    try:
-        data = json.loads(read_text(p))
-    except Exception:
-        return None
-    return data if data.get("schema") == SUSPENDED_SCHEMA else None
+    return read_position(state_path())
 
 
 def _owned(state: dict | None, app: str, name: str) -> dict | None:
@@ -258,12 +253,11 @@ def position(spec: Playbook, state: dict, staged: list[str] | None = None) -> Po
 
 def status(app: str, name: str) -> Position | None:
     """The stored position, or None when the next step starts the route."""
-    from physiclaw.conductor.drive import build
 
     state = load_state(app, name)
     if state is None:
         return None
-    spec, _pack = build.load_spec(app, name, require_live=False)
+    spec, _pack = load_spec(app, name)
     return position(spec, state)
 
 
@@ -272,7 +266,7 @@ def catalog() -> list[dict]:
     its route, and its stored position — the studio panel's whole
     model, JSON-shaped. A pack that fails to load reports its error
     instead of hiding."""
-    from physiclaw.conductor.spec.pack import list_apps, load_pack, scan_playbooks
+    from physiclaw.conductor.load.pack import list_apps, load_pack, scan_playbooks
 
     stored = read_state()
     staged = list(vthread.load().staged)
@@ -366,16 +360,16 @@ async def step(
     `emit_warn` the readiness advisories, `observe(call, blocks)` every
     real result before the virtual channel rewrites it; `raw` emits
     every model round-trip as sent and received, and `on_exchange`
-    receives each one as a record (`rehearsal.exchanges`).
+    receives each one as a record (`exchange.exchanges`).
     Raises PlaybookError on a bad ref, node, or input."""
     from physiclaw.conductor.drive import activation, build
     from physiclaw.conductor.drive import setup as conductor_setup
-    from physiclaw.conductor.spec import channel as channel_mod
-    from physiclaw.conductor.spec import lints
+    from physiclaw.conductor.load import channel as channel_mod
+    from physiclaw.conductor.route import lints
     from physiclaw.debug.interceptor import FakeChannel
 
     emit_warn = emit_warn or emit
-    spec, pack = build.load_spec(app, name, require_live=False)
+    spec, pack = load_spec(app, name)
     channel = channel_mod.load_channel()
     # The boot's menu of enabled playbooks: every pack on disk, read
     # once per invocation rather than per node built.
@@ -387,7 +381,7 @@ async def step(
         state = build.build_program(
             spec,
             pack,
-            build.resolve_inputs(spec, values or {}),
+            resolve_inputs(spec, values or {}),
             channel,
             dry=True,
             activation=menu,
@@ -451,7 +445,7 @@ async def step(
         )
         program.step_one = True
         registry = conductor_setup.walk_registry(program, channel)
-        emit(f"node {program.label()}")
+        emit(f"node {program.course.label()}")
         outcome = await rehearsal.walk(
             program,
             registry,
@@ -531,7 +525,7 @@ def _pack_macros(app: str) -> tuple[dict[str, Macro], dict[str, str]]:
     and every playbook's inline bodies, what a walk of that pack can
     dispatch — and the directory macros that failed to parse, by the
     same names. Raises MacroError when the pack itself does not load."""
-    from physiclaw.conductor.spec.pack import load_pack
+    from physiclaw.conductor.load.pack import load_pack
 
     try:
         pack = load_pack(app)
@@ -545,7 +539,7 @@ def macro_catalog() -> list[dict]:
     """Every macro a rehearsal can run by name: the user's own, then each
     pack's under `app/name` — with inputs and steps, the Macro tab's
     whole model. A pack or macro that fails to load reports its error."""
-    from physiclaw.conductor.spec.pack import list_apps
+    from physiclaw.conductor.load.pack import list_apps
     from physiclaw.macros import store as macro_store
 
     out = [_macro_item(e.name, "user", e.spec, e.error) for e in macro_store.scan()]
@@ -568,7 +562,6 @@ def find_macro(name: str) -> Macro:
     """The macro a name addresses: a user macro's directory name, or a
     pack macro's qualified `app/name` (an inline body is
     `app/<playbook>.<move>`). Raises MacroError, naming the reason."""
-    from physiclaw.conductor.spec.pack import macro_app
     from physiclaw.macros import store as macro_store
 
     app = macro_app(name)
@@ -614,7 +607,7 @@ async def run_macro(
         spec, values, mcp, caller=caller, start_at=start_at, stop_after=stop_after
     )
     text = verdict.action_text(result.blocks)
-    lines = rehearsal.result_lines(text, False)
+    lines = exchange.result_lines(text, False)
     for line in lines:
         emit(line)
     if observe is not None:

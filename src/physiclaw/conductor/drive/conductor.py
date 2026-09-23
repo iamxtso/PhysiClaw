@@ -2,7 +2,7 @@
 
 While a walk is live the turn loop never calls the provider; it asks
 ``Conductor.advance()``, which drives the walk (`program.py`), brokers
-its model requests through the micro-caller (`micro.py`), and — when
+its model requests through the micro-caller (`micro/channel.py`), and — when
 the walk goes quiet — takes the baton it may hand on (the boot's
 `select` step built the program the thread asked for) and drives
 that. With no walk left it answers None, "not mine", and the loop
@@ -16,9 +16,10 @@ logging stay with the engine.
 
 import logging
 
-from physiclaw.conductor.walk.micro import DecisionRequest, MicroCaller
+from physiclaw.conductor.micro.channel import MicroCaller
+from physiclaw.conductor.micro.decision import DecisionRequest
 from physiclaw.conductor.walk.program import Program
-from physiclaw.conductor.walk.step import Paused
+from physiclaw.conductor.walk.surface import Paused
 from physiclaw.contract.dto import AssistantMessage, Message
 
 log = logging.getLogger(__name__)

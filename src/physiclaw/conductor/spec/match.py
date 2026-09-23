@@ -28,7 +28,7 @@ mathematically pass.
 """
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import lru_cache
@@ -463,8 +463,21 @@ class Verdict:
         `covered:` hand is declared for)?"""
         return self.kind is Reading.OCCLUDED and self.page_id == expected_id
 
+    def mismatch(self, expected_id: str) -> str | None:
+        """None when this verdict is a match on the full `expected_id`
+        (`app.page`); else a short reason — pack pages and the channel
+        thread judged by one spelling."""
+        if self.matches(expected_id):
+            return None
+        gap = self.gaps.get(expected_id)
+        if gap is not None:
+            # The one clause that matters: what the EXPECTED page lacked,
+            # not every candidate's gap.
+            return f"screen reads as unknown — {page_name(expected_id)} {gap}"
+        return f"screen reads as {self.describe()}"
 
-def match_screen(screen: Screen, candidates: list[PagePrint]) -> Verdict:
+
+def match_screen(screen: Screen, candidates: Sequence[PagePrint]) -> Verdict:
     """The open-set decision over one app-scoped candidate set.
 
     The lock screen is read FIRST and by shape (`reads_as_locked`),

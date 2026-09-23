@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from conductor_fakes import Sink
 
-from physiclaw.conductor.walk import walklog
+from physiclaw.conductor.bench import runs
 from physiclaw.conductor.walk.record import Record
 from physiclaw.conductor.walk.walklog import Outcome
 
@@ -58,7 +58,7 @@ def test_a_live_walk_writes_the_event_and_the_runs_row() -> None:
             "total": None,
         }
     ]
-    assert [r["outcome"] for r in walklog.load()] == ["handover"]
+    assert [r["outcome"] for r in runs.load()] == ["handover"]
 
 
 def test_a_dry_walk_still_tells_the_session_but_writes_no_row() -> None:
@@ -70,13 +70,13 @@ def test_a_dry_walk_still_tells_the_session_but_writes_no_row() -> None:
     )
 
     assert [e["reason"] for e in sink.events] == ["hands over to demo/flow"]
-    assert walklog.load() == []
+    assert runs.load() == []
 
 
 def test_no_sink_means_no_event_and_the_row_still_lands() -> None:
     _run(Record("demo", "flow", dry=False))
 
-    assert len(walklog.load()) == 1
+    assert len(runs.load()) == 1
 
 
 def test_the_first_terminal_moment_wins() -> None:
@@ -87,7 +87,7 @@ def test_the_first_terminal_moment_wins() -> None:
 
     assert record.outcome is Outcome.SUSPENDED
     assert [e["outcome"] for e in sink.events] == ["suspended"]
-    assert len(walklog.load()) == 1
+    assert len(runs.load()) == 1
 
 
 def test_a_failing_sink_never_stops_the_record() -> None:
@@ -96,7 +96,7 @@ def test_a_failing_sink_never_stops_the_record() -> None:
     _run(record)
 
     assert record.outcome is Outcome.HANDOVER
-    assert len(walklog.load()) == 1
+    assert len(runs.load()) == 1
 
 
 def test_a_reading_is_an_event_beside_its_tool_result() -> None:

@@ -4,10 +4,10 @@ session.
 No policy gates, no compaction, no trace, no sentinel: just the
 conductor's contract — ask the Program for a turn, dispatch its one
 action, feed the result back — so a rehearsal exercises the real walk.
-`arm` loads and validates everything BEFORE any connection exists;
-`walk` runs the loop over an open client and returns one of the
-`WALK_*` outcomes below. `emit` receives every progress
-line; the core never prints.
+`setup.arm` loads and validates everything BEFORE any connection
+exists; `walk` runs the loop over an open client and returns one of
+the `WALK_*` outcomes below. `emit` receives every progress line; the
+core never prints, and `exchange.py` renders what it kept.
 
 `playbooks run` is typer around it, `playbooks replay` shares `arm`,
 and `playbooks step` (`debug/stepping.py`, the studio's driver too)
@@ -17,11 +17,17 @@ the first macro run to a step range.
 """
 
 import asyncio
-import json
 from typing import TYPE_CHECKING
 
 from physiclaw.common import gesture_vocab
-from physiclaw.common.listing import is_header
+from physiclaw.conductor.drive.exchange import (
+    ModelLog,
+    args_text,
+    describe_result,
+    describe_verdict,
+    exchanges,
+    result_lines,
+)
 from physiclaw.conductor.drive.hooks import (
     Emit,
     McpCaller,
@@ -29,81 +35,31 @@ from physiclaw.conductor.drive.hooks import (
     OnExchange,
     Transform,
 )
+from physiclaw.conductor.micro.calltable import has_fallback
+from physiclaw.conductor.micro.decision import DecisionRequest, MicroResult
 from physiclaw.conductor.spec.limits import REHEARSE_MAX_TURNS
-from physiclaw.conductor.walk.micro import MicroResult, has_fallback
+from physiclaw.conductor.walk.surface import Paused
 from physiclaw.conductor.walk.walklog import Outcome
-from physiclaw.contract.wire import leaf_blocks, reply_gist
+from physiclaw.contract.dto import SystemMessage, ToolResultMessage, UserMessage
 
 if TYPE_CHECKING:
-    from physiclaw.conductor.spec.match import Verdict
-    from physiclaw.conductor.walk.micro import DecisionRequest, MicroCaller, MicroResult
+    from physiclaw.conductor.micro.channel import MicroCaller
     from physiclaw.conductor.walk.program import Program
-    from physiclaw.contract.dto import MicroRecord, ToolCall
+    from physiclaw.contract.dto import ToolCall
     from physiclaw.contract.plugin import WireSink
     from physiclaw.macros.model import Macro
-
-
-def arm(
-    app: str, name: str, values: dict[str, str], emit_warn: Emit, *, dry: bool = False
-) -> "tuple[Program, dict[str, Macro]]":
-    """Load, validate, and build the walk — no connection, no gesture.
-    Raises PlaybookError/MacroError on a bad spec or bad inputs.
-    Returns (program, registry) ready for `walk`; `dry` builds the
-    walk the offline replay drives (it writes nothing)."""
-    from physiclaw.conductor.drive import activation, build
-    from physiclaw.conductor.drive import setup as conductor_setup
-    from physiclaw.conductor.spec import channel as channel_mod
-    from physiclaw.conductor.spec import lints
-
-    spec, pack = build.load_spec(app, name, require_live=False)
-    values = build.resolve_inputs(spec, values)
-    if not spec.enabled:
-        emit_warn(f"{app}/{name} is disabled — rehearsing it anyway")
-    for line in lints.readiness_warnings(spec, pack):
-        emit_warn(line)
-    channel = channel_mod.load_channel()
-    program = build.build_program(
-        spec,
-        pack,
-        values,
-        channel,
-        dry=dry,
-        activation=activation.activation_for(channel) if spec.activates else None,
-    )
-    # The dispatch registry a real wake would arm — one spelling, shared
-    # with `session_setup` (a gate's ask dispatches `channel/send`,
-    # which is not this pack's macro).
-    registry = conductor_setup.walk_registry(program, channel)
-    return program, registry
-
-
-class ModelLog:
-    """A `contract.plugin.WireSink` for a rehearsal: every model
-    round-trip the micro-caller makes (each attempt's serialized
-    request and the provider's raw reply), kept in memory so the
-    debugger can show exactly what went to the provider and what came
-    back. `walk` drains it after each decision."""
-
-    def __init__(self) -> None:
-        self.exchanges: list[dict] = []
-
-    def write_micro(self, rec: "MicroRecord") -> None:
-        self.exchanges.append(
-            {"call": rec.call, "request": rec.request, "reply": rec.raw}
-        )
-
-    def drain(self) -> list[dict]:
-        out, self.exchanges = self.exchanges, []
-        return out
-
 
 # What `walk` answers when the walk ends — pinned so a caller reads
 # the outcome instead of parsing prose. (The stepping driver has its
 # own outcome vocabulary one level up; these are the loop's.)
 WALK_ENDED = "walk finished or handed over — see the notes above"
+
 WALK_COMPLETED = "walk completed — the session would close DONE"
+
 WALK_SUSPENDED = "walk suspended waiting on you — suspension dropped"
+
 WALK_STOPPED = "walk stopped by its own word — see the notes above"
+
 WALK_PAUSED = "walk paused — the node settled"
 
 
@@ -137,10 +93,6 @@ async def walk(
     (the studio's expandable log entry). `unlock` is the one lock-screen
     preamble; a caller re-entering per node pays it once. Raises
     RuntimeError when a model call fires with no model configured."""
-    from physiclaw.conductor.walk.micro import DecisionRequest
-    from physiclaw.conductor.walk.step import Paused
-    from physiclaw.contract.dto import SystemMessage, ToolResultMessage, UserMessage
-
     history: list = [
         SystemMessage(content="rehearsal"),
         UserMessage(content="rehearse the armed walk"),
@@ -162,7 +114,7 @@ async def walk(
             step = program.advance(history)
             if program.verdict is not None and program.verdict is not shown:
                 shown = program.verdict
-                emit(f"  {_describe_verdict(shown)}")
+                emit(f"  {describe_verdict(shown)}")
             while isinstance(step, DecisionRequest):
                 # Built on FIRST use, and after the connection — so
                 # "start the server first" is what a user without one
@@ -183,7 +135,7 @@ async def walk(
                     result = await micro.run(step)
                 else:
                     result = MicroResult(None, unwired or "", attempts=0, elapsed_ms=0)
-                decision = _describe(result)
+                decision = describe_result(result)
                 emit(f"  model {step.call} ({step.node_id}): {decision}")
                 for record in exchanges(wire.drain(), step, decision):
                     if raw:
@@ -222,7 +174,7 @@ async def walk(
                 if program.outcome is Outcome.COMPLETED:
                     return WALK_COMPLETED
                 return WALK_STOPPED
-            emit(f"    → {act.name}({_args(act.arguments)})")
+            emit(f"    → {act.name}({args_text(act.arguments)})")
             run_opts: dict = {}
             if opts and act.name == gesture_vocab.RUN_MACRO:
                 run_opts, opts = opts, {}  # the first macro run only
@@ -274,107 +226,6 @@ async def unlock_if_covered(mcp: McpCaller, emit: Emit) -> None:
             await mcp.call_tool(gesture_vocab.UNLOCK_PHONE, {})
     except Exception as e:
         emit(f"unlock preamble skipped ({e})")
-
-
-def exchanges(drained: list[dict], req: "DecisionRequest", decision: str) -> list[dict]:
-    """The drained round-trips of one decision as debugger records:
-    which call and node, the attempt (a repair retry is a second
-    round-trip), how many replayed episode turns the request carries
-    (the record is whole; the rendering folds them, since earlier
-    calls showed them), the decision the caller made of the last
-    reply, and `lines` — the round-trip rendered once for every eye
-    (the CLI prints them, the studio shows them), so no skin parses
-    the provider wire itself."""
-    out = []
-    for i, x in enumerate(drained, start=1):
-        record = {
-            **x,
-            "node": req.node_id,
-            "attempt": i,
-            "attempts": len(drained),
-            "history": len(req.history),
-            "outcome": decision if i == len(drained) else "",
-        }
-        record["lines"] = exchange_lines(record)
-        out.append(record)
-    return out
-
-
-def exchange_lines(record: dict) -> list[str]:
-    """One round-trip for the eye: the system message and the newest
-    exchange with their roles — an episode's replayed turns, a user
-    block and a reply per turn right after the system message, are
-    folded, since the calls that first showed them did — then the
-    reply's text (or the whole raw reply when its shape is unknown),
-    then the decision."""
-    head = f"── model {record['call']} ({record['node']})"
-    if record["attempts"] > 1:
-        head += f" attempt {record['attempt']}/{record['attempts']}"
-    replayed = record["history"]
-    if replayed:
-        head += f" · {replayed} replayed turn(s) folded"
-    lines = [head]
-    request = record["request"]
-    shown = request[:1] + request[1 + 2 * replayed :] if replayed else request
-    for m in shown:
-        lines.append(f"[{m.get('role', '?')}]")
-        lines.extend(_message_text(m).splitlines())
-    lines.append("── reply")
-    lines.extend(reply_text(record["reply"]).splitlines())
-    if record["outcome"]:
-        lines.append(f"── decision: {record['outcome']}")
-    return lines
-
-
-def _message_text(message: dict) -> str:
-    """A serialized message's text, whichever wire shape — the wire
-    codec's own flattening."""
-    return "\n".join(
-        str(b.get("text", "")) for b in leaf_blocks(message.get("content"))
-    )
-
-
-def reply_text(raw: dict) -> str:
-    """The model's text out of a raw provider reply — the two wire
-    shapes in the tree (`wire.reply_gist`), else the reply verbatim."""
-    gist = reply_gist(raw)
-    return gist["text"] if gist is not None else json.dumps(raw, ensure_ascii=False)
-
-
-def _describe_verdict(v: "Verdict") -> str:
-    """What the matcher made of the screen the next turn acts on."""
-    return f"screen reads {v.describe()}"
-
-
-def _describe(result: "MicroResult") -> str:
-    from physiclaw.conductor.walk.micro import describe_move, move_of
-
-    o = result.outcome
-    if o is None:
-        return f"no outcome — {result.detail} ({result.elapsed_ms} ms)"
-    picked = f" → {describe_move(*move_of(o))}" if o.picked is not None else ""
-    fields = f" {o.payload}" if o.payload else ""
-    return (
-        f"{o.out}{picked}{fields} [{o.confidence:.2f}] {o.reason} "
-        f"({result.elapsed_ms} ms)"
-    )
-
-
-def _args(arguments: dict) -> str:
-    return ", ".join(f"{k}={v!r}" for k, v in (arguments or {}).items())
-
-
-def result_lines(text: str, verbose: bool) -> list[str]:
-    """A result's text for the eye: a macro's header and step log always,
-    the listing rows only when `verbose`. Shared with the macro stepping
-    driver, which reads a macro run the same way."""
-    lines = text.splitlines()
-    head: list[str] = []
-    for i, line in enumerate(lines):
-        if is_header(line):
-            return head + (lines[i:] if verbose else [f"({len(lines) - i - 1} rows)"])
-        head.append(line)
-    return head
 
 
 async def dispatch(
@@ -452,7 +303,7 @@ def micro_caller(rlog: "WireSink | None" = None) -> "MicroCaller":
     sink every round-trip goes to (`ModelLog`). Raises RuntimeError
     when no model is configured."""
     from physiclaw.common.config import CONFIG, model_ref, parse_model_ref
-    from physiclaw.conductor.walk.micro import MicroCaller
+    from physiclaw.conductor.micro.channel import MicroCaller
     from physiclaw.provider import make_provider
 
     ref = CONFIG.conductor.micro_model or model_ref()

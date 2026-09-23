@@ -1,7 +1,7 @@
 """The walk's voice — how a step speaks to the user and reads what
-comes back, over the channel pack (`channel.py`).
+comes back, over the channel pack (`load.channel`).
 
-Both `ask` (`step_ask.py`) and `tell` (`step_tell.py`) send the
+Both `ask` (`steps/ask.py`) and `tell` (`steps/tell.py`) send the
 playbook's `message:` VERBATIM (only the author knows the user's
 language) through the channel's send macro, land on the thread, and
 baseline it; an ask later reads the bubbles that arrived since against
@@ -20,7 +20,7 @@ from physiclaw.conductor.spec import reply
 from physiclaw.conductor.spec.conventions import THREAD_ID
 from physiclaw.conductor.spec.limits import MAX_MESSAGE_LINES
 from physiclaw.conductor.spec.specfile import MAX_PROSE_LEN
-from physiclaw.conductor.walk.step import Turn, Walk
+from physiclaw.conductor.walk.surface import Turn, Walk
 
 
 def thread_mismatch(walk: Walk) -> str | None:
@@ -28,7 +28,7 @@ def thread_mismatch(walk: Walk) -> str | None:
     if walk.channel is None:
         return "no channel pack"
     assert walk.verdict is not None
-    return walk.mismatch(walk.verdict, THREAD_ID)
+    return walk.verdict.mismatch(THREAD_ID)
 
 
 def send(
@@ -48,10 +48,8 @@ def send(
         return walk.handover(
             "no channel send macro — install a channel pack to enable asks and tells"
         )
-    walk.gate.ask = text
-    walk.gate.next_words = (yes, no)
+    walk.gate.opened(text, yes, no)
     walk.ledger.say(text)
-    walk.gate.tried_open = False
     return walk.synth(
         kind,
         "conductor: messaging the user",

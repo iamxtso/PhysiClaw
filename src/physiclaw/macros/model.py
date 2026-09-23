@@ -545,7 +545,7 @@ class Macro:
     def live_gap(self) -> str | None:
         """What keeps a wake from running this macro, in a few words —
         None when nothing does. The ONE liveness rule (the playbook's
-        `pack.live_gap` is its twin): the agent's discovery, the
+        `spec.live.live_gap` is its twin): the agent's discovery, the
         channel's send/open, the pack's readiness lint and `macros
         check` all read it, so a macro that runs a disabled macro is
         disabled everywhere at once. Rehearsal (`macros run`)

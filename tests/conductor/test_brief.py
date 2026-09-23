@@ -10,8 +10,8 @@ from physiclaw.conductor.walk.ledger import Ledger
 
 
 def _walk(outputs=None, paid=None, **overrides) -> str:
-    ledger = Ledger(ref="demo/flow", nodes=9, task={}, decided=outputs or {}, paid=paid)
-    base = dict(ledger=ledger, node="search", idx=2, consented=None)
+    ledger = Ledger(ref="demo/flow", task={}, decided=outputs or {}, paid=paid)
+    base = dict(ledger=ledger, where="search (3/9)", consented=None)
     return brief.walk_brief("move did not land", **{**base, **overrides})
 
 
@@ -19,14 +19,14 @@ def test_walk_brief_carries_reason_and_position() -> None:
     text = _walk()
 
     assert "conductor handing over: move did not land." in text
-    assert "Walk demo/flow stopped at node search (3/9)." in text
+    assert "Walk demo/flow stopped at search (3/9)." in text
     assert "Verify state before acting." in text
 
 
 def test_walk_brief_past_the_last_node_names_the_end() -> None:
-    text = _walk(node=None, idx=9)
+    text = _walk(where="(end, 9/9)")
 
-    assert "past the last node (9/9)" in text
+    assert "stopped at (end, 9/9)" in text
 
 
 def test_walk_brief_includes_recorded_outputs_under_the_data_stamp() -> None:

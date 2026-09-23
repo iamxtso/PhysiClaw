@@ -304,3 +304,12 @@ class Screen:
 
 
 BLANK_SCREEN = Screen(text="", content="", rows=())
+
+
+def is_screen(text: str) -> bool:
+    """Whether a wire text is a screen: the listing header plus at least
+    one line that parses as a real element row — a header quoted in
+    prose (or a superseded labels-only stub) is not a screen."""
+    return LISTING_HEADER in text and any(
+        parse_row(line) is not None for line in text.splitlines()
+    )

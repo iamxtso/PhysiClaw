@@ -276,3 +276,41 @@ def _assert_settle_guard_matches_the_skip(spec: Macro, rel: Path) -> None:
         f"{rel}: step {settle.name} accepts {sorted(accepted)}, which excludes "
         f"the {thread.skip_when.text!r} state step {thread.name} skips on"
     )
+
+
+def test_playbook_examples_are_valid_packs(physiclaw_home: Path) -> None:
+    """The files on the playbooks pages, written under their `###`
+    headings into a pack folder, must load through the real pack door
+    and parse as one valid, disabled playbook — both translations,
+    since each carries its own prose and comments. A copy-paste
+    starting point that no longer loads is worse than none."""
+    from physiclaw.conductor.load.pack import load_pack, scan_playbooks
+
+    for page in (DOCS / "custom/playbooks.mdx", DOCS / "custom/playbooks.zh.mdx"):
+        rel = page.relative_to(REPO)
+        files = dict(
+            re.findall(
+                r"^### (\S+)\n.*?^```\w*\n(.*?)^```",
+                page.read_text(encoding="utf-8"),
+                re.M | re.S,
+            )
+        )
+        assert set(files) == {"APP.yml", "buy/PLAYBOOK.yml"}, (
+            f"{rel}: the example's files changed; update the FileTree and this test"
+        )
+        # Each page demonstrates the store its own readers use, so the
+        # pack name comes from the manifest rather than being hardcoded.
+        app = re.search(r"^app:\s*(\S+)", files["APP.yml"], re.M).group(1)
+        root = physiclaw_home / "playbooks" / app
+        for name, body in files.items():
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_text(body, encoding="utf-8")
+
+        pack = load_pack(app)  # raises PlaybookError on a bad manifest
+        entries = scan_playbooks(app, pack)
+
+        assert not pack.macro_errors, f"{rel}: {pack.macro_errors}"
+        assert [e.name for e in entries] == ["buy"], rel
+        assert entries[0].spec is not None, f"{rel}: {entries[0].error}"
+        assert not entries[0].spec.enabled, f"{rel}: the example ships enabled"
+        assert all(not m.enabled for m in pack.macros.values()), rel

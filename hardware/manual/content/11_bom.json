@@ -37,8 +37,8 @@
           "zh": "欧标 2040 铝型材，黑色阳极氧化"
         },
         "spec": {
-          "en": "Length 345 mm, counterbored 10 mm from each end on the 40 mm-wide face for M6 SHCS",
-          "zh": "长度 345 mm，在 40 mm 宽面距两端 10 mm 各开沉孔，配 M6 内六角圆柱头螺栓"
+          "en": "Length 345 mm, two M6 counterbores at each end on the 40 mm-wide face, 10 mm from the end face, for M6 SHCS",
+          "zh": "长度 345 mm，在 40 mm 宽面每端各开两个 M6 沉孔，距端面 10 mm，配 M6 内六角圆柱头螺栓"
         },
         "qty": "2",
         "desc": {
@@ -122,8 +122,8 @@
         },
         "qty": "11",
         "desc": {
-          "en": "Idler mount (4 pc), XY joint (left), XY joint (right), Belt clamp, Solenoid mount, Phone bed, Control board holder, Tube holder",
-          "zh": "惰轮支座（4个）、XY 连接件（左）、XY 连接件（右）、同步带夹具、电磁铁支架、手机托架、控制板支架、导管支架"
+          "en": "Idler mount (2 front, 2 rear), XY joint (left), XY joint (right), Belt clamp, Solenoid mount, Phone bed, Control board holder, Tube holder",
+          "zh": "惰轮支座（前后各两个）、XY 连接件（左）、XY 连接件（右）、同步带夹具、电磁铁支架、手机托架、控制板支架、导管支架"
         }
       },
       {

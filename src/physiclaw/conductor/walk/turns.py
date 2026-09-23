@@ -17,6 +17,7 @@ the walk's.
 import re
 from dataclasses import dataclass
 
+from physiclaw.conductor.spec.limits import MAX_ERROR_CHARS
 from physiclaw.conductor.walk import views
 from physiclaw.contract.dto import (
     AssistantMessage,
@@ -51,11 +52,6 @@ def scroll_args(*, down: bool) -> dict:
     """The `swipe` arguments that scroll the content one notch: `down`
     = see what lies further down (the stylus drags up)."""
     return {"bbox": list(SCROLL_BBOX), "direction": "up" if down else "down"}
-
-
-# How much of a blocked call's text a hand-over reason quotes. Enough to
-# name the cause, short enough not to paste a screen into a log line.
-MAX_ERROR_CHARS = 200
 
 
 @dataclass(frozen=True)

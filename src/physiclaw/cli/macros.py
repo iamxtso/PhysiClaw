@@ -89,7 +89,7 @@ def _pack_macros_root(app: str | None):
     one home; None for the user macros dir."""
     if app is None:
         return None
-    from physiclaw.conductor.spec import pack as pb
+    from physiclaw.conductor.load import pack as pb
 
     name, _, playbook = app.partition("/")
     if not name or "/" in playbook:

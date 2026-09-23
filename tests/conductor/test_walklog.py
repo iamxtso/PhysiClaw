@@ -7,6 +7,7 @@ import json
 
 import pytest
 
+from physiclaw.conductor.bench import runs
 from physiclaw.conductor.walk import walklog
 
 
@@ -27,7 +28,7 @@ def _record(**overrides) -> None:
 def test_record_appends_line_with_fields() -> None:
     _record()
 
-    rows = walklog.load()
+    rows = runs.load()
 
     assert len(rows) == 1
     assert rows[0]["app"] == "demo"
@@ -44,7 +45,7 @@ def test_record_appends_line_with_fields() -> None:
 def test_record_without_session_marker_records_null_session() -> None:
     _record()
 
-    rows = walklog.load()
+    rows = runs.load()
 
     assert rows[0]["session"] is None
 
@@ -57,14 +58,14 @@ def test_record_rejects_unknown_outcome() -> None:
 def test_record_clips_long_reason() -> None:
     _record(reason="x" * 500)
 
-    rows = walklog.load()
+    rows = runs.load()
 
     assert len(rows[0]["reason"]) == 200
     assert rows[0]["reason"].endswith("…")
 
 
 def test_load_returns_empty_when_missing() -> None:
-    assert walklog.load() == []
+    assert runs.load() == []
 
 
 def test_load_skips_unparseable_lines() -> None:
@@ -73,7 +74,7 @@ def test_load_skips_unparseable_lines() -> None:
         f.write("not json\n")
     _record(outcome="completed", node=None, reason="")
 
-    rows = walklog.load()
+    rows = runs.load()
 
     assert [r["outcome"] for r in rows] == ["handover", "completed"]
 
@@ -91,7 +92,7 @@ def test_load_skips_unparseable_lines() -> None:
 def test_summarize_counts_each_outcome(outcome: str, attr: str) -> None:
     rows = [{"app": "demo", "playbook": "flow", "outcome": outcome}]
 
-    stats = walklog.summarize(rows)["demo/flow"]
+    stats = runs.summarize(rows)["demo/flow"]
 
     assert stats.runs == 1
     assert getattr(stats, attr) == 1
@@ -108,7 +109,7 @@ def test_summarize_escalation_rate_counts_handover_and_crash_only() -> None:
         {"app": "demo", "playbook": "flow", "outcome": "abandoned", "node": "b"},
     ]
 
-    stats = walklog.summarize(rows)["demo/flow"]
+    stats = runs.summarize(rows)["demo/flow"]
 
     assert stats.escalation_rate == pytest.approx(0.4)
 
@@ -138,7 +139,7 @@ def test_summarize_ranks_hot_nodes_with_latest_reason() -> None:
         },
     ]
 
-    hot = walklog.summarize(rows)["demo/flow"].hot_nodes()
+    hot = runs.summarize(rows)["demo/flow"].hot_nodes()
 
     assert hot == [("search", 2, "new reason"), ("open", 1, "once")]
 
@@ -149,7 +150,7 @@ def test_summarize_sums_micros_across_runs() -> None:
         {"app": "demo", "playbook": "flow", "outcome": "handover", "micros": 3},
     ]
 
-    stats = walklog.summarize(rows)["demo/flow"]
+    stats = runs.summarize(rows)["demo/flow"]
 
     assert stats.micros == 5
 
@@ -157,8 +158,8 @@ def test_summarize_sums_micros_across_runs() -> None:
 def test_record_and_summarize_carry_rescues() -> None:
     _record(rescues=3)
 
-    rows = walklog.load()
-    stats = walklog.summarize(rows)["demo/flow"]
+    rows = runs.load()
+    stats = runs.summarize(rows)["demo/flow"]
 
     assert rows[0]["rescues"] == 3
     assert stats.rescues == 3
@@ -173,7 +174,7 @@ def test_record_carries_history_fields() -> None:
         total=45.0,
     )
 
-    (row,) = walklog.load()
+    (row,) = runs.load()
 
     assert row["values"] == {"keyword": "milk"}
     assert row["total"] == 45.0
@@ -206,7 +207,7 @@ def test_escalation_sites_rank_and_carry_the_evidence() -> None:
         {"app": "a", "playbook": "p", "outcome": "completed", "node": None},
     ]
 
-    sites = walklog.escalation_sites(rows)
+    sites = runs.escalation_sites(rows)
 
     assert (sites[0].node, sites[0].count, sites[0].reason) == ("x", 2, "new")
     assert sites[0].sessions == ("sid-2",)
@@ -216,7 +217,7 @@ def test_escalation_sites_rank_and_carry_the_evidence() -> None:
 def test_escalation_sites_empty_without_escalations() -> None:
     rows = [{"app": "a", "playbook": "p", "outcome": "completed"}]
 
-    assert walklog.escalation_sites(rows) == []
+    assert runs.escalation_sites(rows) == []
 
 
 def test_record_lines_are_valid_json_per_line() -> None:

@@ -39,6 +39,6 @@ class Transform(Protocol):
 
 
 class OnExchange(Protocol):
-    """One model round-trip record (`rehearsal.exchanges`)."""
+    """One model round-trip record (`exchange.exchanges`)."""
 
     def __call__(self, record: dict, /) -> None: ...
