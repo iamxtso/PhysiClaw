@@ -54,7 +54,7 @@ help:
 	@echo "  hw-print                — 3D-print package (zip)"
 	@echo "  hw-manual [ARGS=--pdf]  — bilingual build manual"
 	@echo "  hw-sourcing             — sourcing guide"
-	@echo "  hw-drawing [ARGS=--pdf] — extrusion cut & drill drawing (one A4 page, EN + ZH)"
+	@echo "  hw-drawing [ARGS=--pdf] — extrusion tech drawing: cut & drill, one A4 page, EN + ZH"
 	@echo "  hw-mark ARGS=<svg|json> — annotate a step drawing"
 	@echo "  hw-replay [ARGS=file]   — replay annotation patches"
 	@echo "  hw-camera ARGS=\"...\"    — FreeCAD camera view → Camera() literal"
@@ -244,7 +244,7 @@ hw-camera:
 	$(HW) camera $(ARGS)
 
 # Full rebuild — STEPs → steps+BOM → print package → manual (HTML+PDF) →
-# sourcing → extrusion drawing (HTML+PDF). Includes --pdf so the result
+# sourcing → extrusion tech drawing (HTML+PDF). Includes --pdf so the result
 # always satisfies hw-release's artifact guard: a "full" rebuild is a
 # releasable one.
 hw-rebuild:
@@ -295,7 +295,7 @@ hw-release: hw-preflight _hw-package
 # mirror their owners — LANG_FILENAME in build_manual.py /
 # build_sourcing_guide.py / build_extrusion_drawing.py, ZIP_PATH in
 # build_custom_parts.py, scheme.py's step naming — keep them in sync. The
-# extrusion drawing travels twice: its HTML + PDFs ride inside the
+# extrusion tech drawing travels twice: its HTML + PDFs ride inside the
 # sourcing-guide zip (the docs site serves them from there), and the two
 # PDFs are also direct release assets so the guide's note can link them at
 # releases/latest/download/. set -e aborts before the release is cut, so no
@@ -321,8 +321,8 @@ _hw-package:
 	printf '%s\n' \
 		'Build artifacts for assembling a PhysiClaw rig (English + 中文).' '' \
 		'- **physiclaw-assembly-manual.zip** — full assembly manual: HTML + PDF in English and 中文, with all exploded/step SVG figures.' \
-		'- **physiclaw-sourcing-guide.zip** — sourcing guide: HTML in English and 中文, plus the extrusion drawing (HTML + PDF).' \
-		'- **physiclaw_extrusion_drawing_en.pdf / _zh.pdf** — the one-page cut & drill drawing for the 7 frame extrusions, to send to the profile supplier.' \
+		'- **physiclaw-sourcing-guide.zip** — sourcing guide: HTML in English and 中文, plus the extrusion tech drawing (HTML + PDF).' \
+		'- **physiclaw_extrusion_drawing_en.pdf / _zh.pdf** — the one-page extrusion tech drawing (cut & drill for the 7 frame extrusions), to send to the profile supplier.' \
 		'- **physiclaw_custom_parts.zip** — the 9 custom 3D-printed parts as STEP files (print in black PA12 via SLS/MJF) plus a bilingual print guide.' \
 		> "$$REL/notes.md"; \
 	gh release create "$(HW_REL_TAG)" "$$REL"/*.zip "$$REL"/*.pdf \

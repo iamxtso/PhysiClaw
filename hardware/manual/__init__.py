@@ -1,5 +1,5 @@
 """Bilingual document builders — the assembly manual, the sourcing guide and
-the extrusion drawing.
+the extrusion tech drawing.
 
 Standard-library only (no build123d): the manual and the guide consume the
 SVG renders the assembly pipeline already produced; the drawing consumes

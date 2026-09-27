@@ -33,7 +33,7 @@ manual/     content/*.json + step SVGs     →  bilingual HTML / PDF
    └─ content/11_bom.json (the parts list) feeds Section 11 AND ─┐
                                                                  ▼
 sourcing/   that same BOM + vendor data    →  bilingual HTML
-drawing/    the model's own constants       →  extrusion cut & drill sheet (HTML / PDF)
+drawing/    the model's own constants       →  extrusion tech drawing, cut & drill (HTML / PDF)
 ```
 
 All generated files land under `output/` and are not committed.
@@ -158,7 +158,7 @@ The subcommands — each forwarding its flags to the stage it wraps:
 | `print` | 3D-print package → `output/print_3d/*.zip` |
 | `manual` | bilingual HTML / PDF manual → `output/manual/` |
 | `sourcing` | sourcing guide → `output/sourcing/` |
-| `drawing` | extrusion cut & drill drawing (EN + ZH, one A4 page each; `--pdf`) → `output/drawing/` |
+| `drawing` | extrusion tech drawing (cut & drill; EN + ZH, one A4 page each; `--pdf`) → `output/drawing/` |
 | `mark` / `replay` | annotate step SVGs / replay saved patches |
 | `camera` | FreeCAD camera view → `Camera()` literal |
 
@@ -186,7 +186,7 @@ make hw-print                     # 3D-print package (zip)
 make hw-manual                    # build the assembly manual (HTML)
 make hw-manual-pdf                # build the assembly manual, also as PDF
 make hw-sourcing                  # build sourcing guide
-make hw-drawing ARGS=--pdf        # build the extrusion drawing (HTML, and PDF)
+make hw-drawing ARGS=--pdf        # build the extrusion tech drawing (HTML, and PDF)
 make hw-mark ARGS=<svg|json>      # annotate a step drawing
 pbpaste | make hw-camera          # FreeCAD view → Camera() literal
 make hw-rebuild                   # full rebuild, all stages
@@ -207,7 +207,7 @@ uv run --group cad python -m hardware build --bom                # steps + BOM
 uv run --group cad python -m hardware print                      # 3D-print package
 uv run            python -m hardware manual                      # the manual
 uv run            python -m hardware sourcing                    # the sourcing guide
-uv run            python -m hardware drawing --pdf                # the extrusion drawing
+uv run            python -m hardware drawing --pdf                # the extrusion tech drawing
 ```
 
 ---
@@ -220,8 +220,8 @@ packaged from a freshly regenerated `output/`:
 - **Assembly manual** — the whole `manual/` folder (HTML + PDF in English
   and 中文, plus the step figures).
 - **Sourcing guide** — the `sourcing/` folder (HTML in English and 中文)
-  together with the `drawing/` folder (the extrusion drawing, HTML + PDF).
-- **Extrusion drawing PDFs** — `physiclaw_extrusion_drawing_en.pdf` and
+  together with the `drawing/` folder (the extrusion tech drawing, HTML + PDF).
+- **Extrusion tech drawing PDFs** — `physiclaw_extrusion_drawing_en.pdf` and
   `_zh.pdf` as direct assets too, so the sourcing guide's note can link
   them at `releases/latest/download/`; the docs site rewrites that link to
   its own `/downloads/` copy.
@@ -240,13 +240,13 @@ make hw-deploy HW_VERSION=X.Y
 This preflights (version, `gh`, tag free, tree clean and pushed — the tag
 points at GitHub's `main`), rebuilds what's stale (the step build is
 incremental via `output/.cache`; manual with PDFs, sourcing and the
-extrusion drawing always re-render), runs `hw-check`, then packages the
+extrusion tech drawing always re-render), runs `hw-check`, then packages the
 four zips and two PDFs and publishes the
 release with tag `physiclaw-hardware-vX.Y`. To publish `output/` as-is
 without building, use `make hw-release HW_VERSION=X.Y` — it guards that the
 artifacts (including the manual and drawing PDFs) exist first.
 
 After publishing, redeploy the docs site (docs-site) — it serves the
-assembly manual, the sourcing guide and the extrusion drawing from the
+assembly manual, the sourcing guide and the extrusion tech drawing from the
 release assets, so the live pages stay on the old release until the site
 rebuilds.

@@ -14,7 +14,7 @@ still apply:
     uv run            python -m hardware check                                static consistency check (CI-friendly)
     uv run            python -m hardware manual     [--pdf] [--lang …] …      bilingual build manual
     uv run            python -m hardware sourcing   [--lang …] [--scaffold]   sourcing guide
-    uv run            python -m hardware drawing    [--pdf] [--lang …]        extrusion cut & drill drawing
+    uv run            python -m hardware drawing    [--pdf] [--lang …]        extrusion tech drawing (cut & drill)
     uv run --group cad python -m hardware mark      <svg|json>                annotate a step drawing
     uv run --group cad python -m hardware replay    [file]                    replay annotation patches
     uv run --group cad python -m hardware camera    "<freecad-view>"          FreeCAD view → Camera() literal

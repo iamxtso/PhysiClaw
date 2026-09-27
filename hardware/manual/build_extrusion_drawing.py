@@ -278,10 +278,10 @@ def outline_1020() -> list[Point]:
 # --------------------------------------------------------------------------- #
 UI: dict[str, dict[str, str]] = {
     "doc_title": {
-        "en": "PhysiClaw.ai Aluminum Extrusion Drawing",
+        "en": "PhysiClaw.ai Aluminum Extrusion Tech Drawing",
         "zh": "PhysiClaw.ai 铝型材加工图",
     },
-    "h1": {"en": "Aluminum extrusion drawing", "zh": "铝型材加工图"},
+    "h1": {"en": "Aluminum extrusion tech drawing", "zh": "铝型材加工图"},
     "subtitle": {
         "en": "Cut-to-length and drilling for the PhysiClaw frame · "
         "{pieces} pieces, {specs} specifications · EU-standard T-slot profiles",
@@ -1012,7 +1012,7 @@ def main() -> None:
     langs = ["en", "zh"] if args.lang == "all" else [args.lang]
     out = args.out.resolve()
     shown = out.relative_to(Path.cwd()) if out.is_relative_to(Path.cwd()) else out
-    print(f"building extrusion drawing [{', '.join(langs)}] -> {shown}")
+    print(f"building extrusion tech drawing [{', '.join(langs)}] -> {shown}")
     try:
         written = build(langs, out, pdf=args.pdf)
     except BuildError as exc:
