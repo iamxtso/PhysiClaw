@@ -1,10 +1,10 @@
 .PHONY: test test-cov test-fast test-slow test-integration test-all mutate lint fmt typecheck help bump build publish release \
-        hw-help hw-parts hw-build hw-check hw-step hw-print hw-manual hw-manual-pdf hw-sourcing hw-mark hw-replay hw-camera hw-rebuild hw-preflight hw-deploy hw-release _hw-package
+        hw-help hw-parts hw-build hw-check hw-step hw-print hw-manual hw-manual-pdf hw-sourcing hw-drawing hw-mark hw-replay hw-camera hw-rebuild hw-preflight hw-deploy hw-release _hw-package
 
 PY ?= uv run
 
 # Hardware CAD pipeline (see hardware/README.md). Geometry stages need the
-# `cad` group; the manual / sourcing builders are standard-library only.
+# `cad` group; the manual / sourcing / drawing builders are standard-library only.
 # Pass flags through ARGS, e.g.  make hw-build ARGS="--bom --bom-delta"
 HW     = $(PY) --group cad python -m hardware
 HW_DOC = $(PY) python -m hardware
@@ -54,6 +54,7 @@ help:
 	@echo "  hw-print                — 3D-print package (zip)"
 	@echo "  hw-manual [ARGS=--pdf]  — bilingual build manual"
 	@echo "  hw-sourcing             — sourcing guide"
+	@echo "  hw-drawing [ARGS=--pdf] — extrusion cut & drill drawing (one A4 page, EN + ZH)"
 	@echo "  hw-mark ARGS=<svg|json> — annotate a step drawing"
 	@echo "  hw-replay [ARGS=file]   — replay annotation patches"
 	@echo "  hw-camera ARGS=\"...\"    — FreeCAD camera view → Camera() literal"
@@ -224,6 +225,12 @@ hw-manual-pdf:
 hw-sourcing:
 	$(HW_DOC) sourcing $(ARGS)
 
+# The supplier's sheet for the frame extrusions — drawn from the same
+# constants the assembly cuts and drills with, so it can't drift from the
+# model. --pdf prints it through headless Chrome like the manual.
+hw-drawing:
+	$(HW_DOC) drawing $(ARGS)
+
 hw-mark:
 	$(call need-args,<svg|json>)
 	$(HW) mark $(ARGS)
@@ -237,14 +244,16 @@ hw-camera:
 	$(HW) camera $(ARGS)
 
 # Full rebuild — STEPs → steps+BOM → print package → manual (HTML+PDF) →
-# sourcing. Includes --pdf so the result always satisfies hw-release's
-# artifact guard: a "full" rebuild is a releasable one.
+# sourcing → extrusion drawing (HTML+PDF). Includes --pdf so the result
+# always satisfies hw-release's artifact guard: a "full" rebuild is a
+# releasable one.
 hw-rebuild:
 	$(HW) parts --custom --standard
 	$(HW) build --bom
 	$(HW) print
 	$(HW_DOC) manual --pdf
 	$(HW_DOC) sourcing
+	$(HW_DOC) drawing --pdf
 
 # Shared release preflight — every check that can fail does so here, before
 # any long build. Beyond the version/gh/tag guards: `gh release create
@@ -269,11 +278,12 @@ hw-deploy: hw-preflight
 	$(HW) print
 	$(HW_DOC) manual --pdf
 	$(HW_DOC) sourcing
+	$(HW_DOC) drawing --pdf
 	$(HW_DOC) check
 	$(MAKE) _hw-package HW_VERSION=$(HW_VERSION)
 
-# Package what's already in hardware/output into the four release zips and
-# publish them as a GitHub release. Prefer `hw-deploy`, which builds first;
+# Package what's already in hardware/output into the four release zips plus
+# the two extrusion-drawing PDFs and publish them as a GitHub release. Prefer `hw-deploy`, which builds first;
 # this exists for re-publishing an output/ that is already built and checked.
 #   make hw-release HW_VERSION=0.3
 hw-release: hw-preflight _hw-package
@@ -283,9 +293,13 @@ hw-release: hw-preflight _hw-package
 # exactly once. The artifact guard catches a missing or HTML-only build
 # (zip -r would happily package a manual without its PDFs); the filenames
 # mirror their owners — LANG_FILENAME in build_manual.py /
-# build_sourcing_guide.py, ZIP_PATH in build_custom_parts.py, scheme.py's
-# step naming — keep them in sync. set -e aborts before the release is cut,
-# so no half-published release.
+# build_sourcing_guide.py / build_extrusion_drawing.py, ZIP_PATH in
+# build_custom_parts.py, scheme.py's step naming — keep them in sync. The
+# extrusion drawing travels twice: its HTML + PDFs ride inside the
+# sourcing-guide zip (the docs site serves them from there), and the two
+# PDFs are also direct release assets so the guide's note can link them at
+# releases/latest/download/. set -e aborts before the release is cut, so no
+# half-published release.
 _hw-package:
 	@set -e; \
 	rm -rf "$(HW_REL_DIR)"; mkdir -p "$(HW_REL_DIR)"; \
@@ -294,20 +308,24 @@ _hw-package:
 	         step/camera_40_frame_assembled.step \
 	         manual/physiclaw_manual.html manual/physiclaw_manual.pdf \
 	         manual/physiclaw装配手册.html manual/physiclaw装配手册.pdf \
-	         sourcing/sourcing_guide.html sourcing/physiclaw采购指南.html; do \
+	         sourcing/sourcing_guide.html sourcing/physiclaw采购指南.html \
+	         drawing/physiclaw_extrusion_drawing_en.html drawing/physiclaw_extrusion_drawing_en.pdf \
+	         drawing/physiclaw_extrusion_drawing_zh.html drawing/physiclaw_extrusion_drawing_zh.pdf; do \
 		[ -f "$$f" ] || { echo "✗ missing $(HW_OUT)/$$f — run: make hw-deploy HW_VERSION=$(HW_VERSION)"; exit 1; }; \
 	done; \
 	cp print_3d/physiclaw_custom_parts.zip "$$REL"/; \
+	cp drawing/physiclaw_extrusion_drawing_en.pdf drawing/physiclaw_extrusion_drawing_zh.pdf "$$REL"/; \
 	zip -jq "$$REL/physiclaw_camera_frame_assembled.zip" step/camera_40_frame_assembled.step; \
 	zip -rq "$$REL/physiclaw-assembly-manual.zip" manual   -x '*.DS_Store'; \
-	zip -rq "$$REL/physiclaw-sourcing-guide.zip"  sourcing -x '*.DS_Store'; \
+	zip -rq "$$REL/physiclaw-sourcing-guide.zip"  sourcing drawing -x '*.DS_Store'; \
 	printf '%s\n' \
 		'Build artifacts for assembling a PhysiClaw rig (English + 中文).' '' \
 		'- **physiclaw-assembly-manual.zip** — full assembly manual: HTML + PDF in English and 中文, with all exploded/step SVG figures.' \
-		'- **physiclaw-sourcing-guide.zip** — sourcing guide: HTML in English and 中文.' \
+		'- **physiclaw-sourcing-guide.zip** — sourcing guide: HTML in English and 中文, plus the extrusion drawing (HTML + PDF).' \
+		'- **physiclaw_extrusion_drawing_en.pdf / _zh.pdf** — the one-page cut & drill drawing for the 7 frame extrusions, to send to the profile supplier.' \
 		'- **physiclaw_custom_parts.zip** — the 9 custom 3D-printed parts as STEP files (print in black PA12 via SLS/MJF) plus a bilingual print guide.' \
 		> "$$REL/notes.md"; \
-	gh release create "$(HW_REL_TAG)" "$$REL"/*.zip \
+	gh release create "$(HW_REL_TAG)" "$$REL"/*.zip "$$REL"/*.pdf \
 		--target main --latest \
 		--title "PhysiClaw hardware v$(HW_VERSION) — assembly manual, sourcing guide & printed parts (STEP)" \
 		--notes-file "$$REL/notes.md"; \

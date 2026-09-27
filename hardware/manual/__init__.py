@@ -1,9 +1,12 @@
-"""Bilingual document builders — the assembly manual and the sourcing guide.
+"""Bilingual document builders — the assembly manual, the sourcing guide and
+the extrusion drawing.
 
-Standard-library only (no build123d): the builders consume the SVG renders
-the assembly pipeline already produced. ``build_manual`` and
-``build_sourcing_guide`` are the two entry points; ``assets`` / ``common``
-/ ``paginate`` / ``pdf`` are their support modules.
+Standard-library only (no build123d): the manual and the guide consume the
+SVG renders the assembly pipeline already produced; the drawing consumes
+the model's own constants (lengths, hole specs, profile vertices).
+``build_manual``, ``build_sourcing_guide`` and ``build_extrusion_drawing``
+are the entry points; ``assets`` / ``common`` / ``paginate`` / ``pdf`` are
+their support modules.
 """
 
 
