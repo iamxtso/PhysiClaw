@@ -15,6 +15,10 @@ What a rename or typo breaks quietly, this catches loudly:
                generates itself (``HAND_FIGURES``).
   sourcing     ``sourcing_vendors.json`` part_ids match the BOM content
                rows one-to-one (no missing, stale, or duplicate ids).
+  extrusions   every extrusion the model cuts has a BOM row whose spec
+               states that length — the drawing builder's own refusal,
+               surfaced here so a travel-range edit that skipped
+               ``11_bom.json`` fails CI, not the release build.
 
 Static only: everything is read via AST / JSON — no build123d import, no
 ``--group cad`` — so it runs anywhere (CI included) in under a second. The
@@ -39,7 +43,9 @@ from collections import Counter
 
 from hardware.assembly.mark.patch import ID_RE, ORIG_SENTINEL
 from hardware.assembly.mark.replay import find_leaves
+from hardware.manual import BuildError
 from hardware.manual.assets import HAND_FIGURES
+from hardware.manual.build_extrusion_drawing import cut_list
 from hardware.manual.common import CONTENT_DIR, VENDOR_FILE
 from hardware.scheme import (
     FAMILY_PRIORITY,
@@ -339,14 +345,10 @@ def _duplicates(ids: list) -> list[str]:
     return sorted(i for i, n in Counter(filter(None, ids)).items() if n > 1)
 
 
-def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
-    """The BOM content rows and sourcing_vendors.json must join one-to-one
-    on part_id — the same invariants build_sourcing_guide enforces at build
-    time (missing/duplicate row ids) plus the sync drift it only reports
-    (stale / missing vendor entries)."""
-    findings: list[str] = []
-    # A malformed row (not an object) must produce a finding, not crash the
-    # gate on `row.get(...)` — the vendor-file side already guards this way.
+def _bom_rows(pages_by_file: dict[str, list]) -> tuple[list[dict], int]:
+    """The ``bom`` pages' rows, and how many were malformed (not an
+    object). A malformed row must become a finding, not crash the gate on
+    ``row.get(...)`` — the vendor-file side already guards this way."""
     rows: list[dict] = []
     malformed = 0
     for pages in pages_by_file.values():
@@ -364,6 +366,16 @@ def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
                     rows.append(row)
                 else:
                     malformed += 1
+    return rows, malformed
+
+
+def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
+    """The BOM content rows and sourcing_vendors.json must join one-to-one
+    on part_id — the same invariants build_sourcing_guide enforces at build
+    time (missing/duplicate row ids) plus the sync drift it only reports
+    (stale / missing vendor entries)."""
+    findings: list[str] = []
+    rows, malformed = _bom_rows(pages_by_file)
     if malformed:
         findings.append(f"sourcing: {malformed} malformed BOM row(s) (not an object)")
     row_ids = [r.get("part_id") for r in rows]
@@ -399,6 +411,22 @@ def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
     return findings
 
 
+# ── extrusions ────────────────────────────────────────────────────────────────
+
+
+def check_extrusions(pages_by_file: dict[str, list]) -> list[str]:
+    """Each extrusion the model cuts (``build_extrusion_drawing.SPECS``,
+    lengths from ``travel_ranges``) needs a BOM row stating that length in
+    both languages — the join the drawing builder makes; its refusal is the
+    finding."""
+    rows, _ = _bom_rows(pages_by_file)
+    try:
+        cut_list(rows)
+    except BuildError as exc:
+        return [f"extrusions: {exc}"]
+    return []
+
+
 # ── entry point ───────────────────────────────────────────────────────────────
 
 
@@ -413,6 +441,7 @@ def main(argv: list[str] | None = None) -> int:
         + content_findings
         + check_manual(views_by_stem, leaves_by_svg, pages_by_file)
         + check_sourcing(pages_by_file)
+        + check_extrusions(pages_by_file)
     )
     if findings:
         for f in findings:
@@ -422,7 +451,7 @@ def main(argv: list[str] | None = None) -> int:
     n_patches = len(list(PATCH_DIR.glob("*.json")))
     print(
         f"hardware check OK — {len(views_by_stem)} procedures, "
-        f"{n_patches} patches, manual + sourcing consistent"
+        f"{n_patches} patches, manual + sourcing + extrusions consistent"
     )
     return 0
 

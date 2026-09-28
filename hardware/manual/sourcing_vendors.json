@@ -30,8 +30,8 @@
       }
     ],
     "note": {
-      "en": "Custom order — send the {inquiry} to the shop's customer service.",
-      "zh": "定制商品，请将{inquiry}发送给店铺客服"
+      "en": "Custom order — send the {inquiry} together with the <a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_en.pdf\">tech drawing</a> (PDF) to the shop's customer service for a quote.",
+      "zh": "定制商品，请将{inquiry}和<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_zh.pdf\">加工图纸</a>（PDF）一并发给店铺客服报价。"
     }
   },
   {

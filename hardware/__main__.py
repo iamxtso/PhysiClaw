@@ -14,12 +14,13 @@ still apply:
     uv run            python -m hardware check                                static consistency check (CI-friendly)
     uv run            python -m hardware manual     [--pdf] [--lang …] …      bilingual build manual
     uv run            python -m hardware sourcing   [--lang …] [--scaffold]   sourcing guide
+    uv run            python -m hardware drawing    [--pdf] [--lang …]        extrusion tech drawing (cut & drill)
     uv run --group cad python -m hardware mark      <svg|json>                annotate a step drawing
     uv run --group cad python -m hardware replay    [file]                    replay annotation patches
     uv run --group cad python -m hardware camera    "<freecad-view>"          FreeCAD view → Camera() literal
 
-Geometry commands need ``--group cad`` (build123d); ``check`` and the manual
-and sourcing builders are standard-library only. Run all commands from the
+Geometry commands need ``--group cad`` (build123d); ``check`` and the manual,
+sourcing and drawing builders are standard-library only. Run all commands from the
 repo root.
 
 Each underlying module also stays runnable on its own (e.g.
@@ -42,12 +43,13 @@ _DELEGATED: dict[str, list[str]] = {
     "camera": ["-m", "hardware.assembly.projection"],
     "manual": ["-m", "hardware.manual.build_manual"],
     "sourcing": ["-m", "hardware.manual.build_sourcing_guide"],
+    "drawing": ["-m", "hardware.manual.build_extrusion_drawing"],
 }
 
 
 def _parts(argv: list[str]) -> int:
     """Export part STEPs — the legacy default behaviour. Imported lazily so
-    non-geometry subcommands (manual, sourcing) don't need ``--group cad``."""
+    non-geometry subcommands (manual, sourcing, drawing) don't need ``--group cad``."""
     import shutil
 
     from hardware.parts.base import export_all
