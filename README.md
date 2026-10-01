@@ -2,9 +2,9 @@
 
 **An AI agent that physically operates a phone — the way you do.**
 
-[English docs](https://docs.physiclaw.ai/en/) · [Demo video](https://youtu.be/YJ1O6gW0KVw)
+[English docs](https://docs.physiclaw.ai/en/) · [Demo video](https://youtu.be/YJ1O6gW0KVw) · [Assembly video](https://youtu.be/Acmta1kzEko)
 
-[中文文档](https://docs.physiclaw.ai/zh/) · [演示视频](https://b23.tv/jnegfgC)
+[中文文档](https://docs.physiclaw.ai/zh/) · [演示视频](https://b23.tv/jnegfgC) · [装配视频](https://www.bilibili.com/video/BV1b7av68E77/)
 
 PhysiClaw watches a phone's screen with a camera and taps it with a stylus,
 working the phone the way a person would. No APIs, no OAuth, no ADB cables,
