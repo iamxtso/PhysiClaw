@@ -296,7 +296,8 @@ UI: dict[str, dict[str, str]] = {
     "th_qty": {"en": "Qty", "zh": "数量"},
     "th_machining": {"en": "Machining", "zh": "加工要求"},
     "th_application": {"en": "Application", "zh": "用途"},
-    "total": {"en": "Total {pieces} pieces", "zh": "合计 {pieces} 根"},
+    "total_label": {"en": "Total", "zh": "合计"},
+    "total": {"en": "{pieces} pieces", "zh": "{pieces} 根"},
     "section": {"en": "Section 1:1", "zh": "截面 1:1"},
     "face_40": {"en": "40 mm face · 1:2", "zh": "40 mm 宽面 · 1:2"},
     "face_slot": {"en": "Slot face · 1:2", "zh": "槽面 · 1:2"},
@@ -674,12 +675,14 @@ def face_1020(x0: float, y0: float, length: float, lang: str, holes: bool) -> st
         for cx in (x0 + off, x0 + L - off):
             parts.append(circle(cx, y0 + W / 2, r))
         parts.append(end_offset_dims(x0, L, y0 + W, spec.end_hole_offset))
+        # Below the plate: above it, the band between the top edge and the
+        # length dimension is too narrow for a line of text.
         parts.append(
             leader(
                 x0 + off + r * 0.7,
-                y0 + W / 2 - r * 0.7,
-                x0 + off + 12,
-                y0 - 2.2,
+                y0 + W / 2 + r * 0.7,
+                x0 + off + 14,
+                y0 + W + 4.5,
                 callout_lines(HOLE, lang),
             )
         )
@@ -824,11 +827,13 @@ def render_table(
             parts.append(text(x + COLS[5] + 0.6, base + i * TD_LEAD, s, "td", "start"))
         yy += row_h + (len(machining) - 1) * TD_LEAD
         parts.append(line(x, yy, x + w, yy, "rule"))
+    # The count starts flush with the Qty column, its label a space before.
     pieces = sum(it.qty for it in items)
+    count_x, base = x + COLS[4] + 0.6, yy + 3.9
+    label_x = count_x - text_width(" ", TD_FS)
+    parts.append(text(label_x, base, ui("total_label", lang), "td", "end"))
     parts.append(
-        text(
-            x + COLS[4] + 0.6, yy + 3.9, ui("total", lang, pieces=pieces), "td", "start"
-        )
+        text(count_x, base, ui("total", lang, pieces=pieces), "td mono", "start")
     )
     return "".join(parts), yy + 5.0
 
