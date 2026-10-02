@@ -102,9 +102,9 @@
       },
       {
         "h3": { "en": "Motor cable connectors", "zh": "电机接线端子" },
-        "body": { "en": "Motor side: 6-pin PH2.0 (2.0 mm pitch), with two pins empty and only four used. Board side: 4-pin XH2.54 (2.54 mm pitch).", "zh": "电机侧为 6 针 PH2.0（2.0 mm 间距），2 针空置，只用 4 针。控制板侧为 4 针 XH2.54（2.54 mm 间距）。" },
+        "body": { "en": "Motor side: 6-pin PH2.0 (2.0 mm pitch), with two pins empty and only four used. Board side: 4-pin XH2.54 (2.54 mm pitch). The connector is keyed and fits in one orientation only. Align the key on the plug with the notch on the socket. Do not force it in.", "zh": "电机侧为 6 针 PH2.0（2.0 mm 间距），2 针空置，只用 4 针。控制板侧为 4 针 XH2.54（2.54 mm 间距）。端子带防呆结构，仅能单向插入。请将插头凸起对准插座缺口，切勿强行插入。" },
         "classes": "note overlay sm",
-        "style": "left:30mm; top:145mm; width:100mm;"
+        "style": "left:30mm; top:145mm; width:110mm;"
       }
     ],
     "bom": {
