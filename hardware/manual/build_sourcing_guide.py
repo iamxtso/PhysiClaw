@@ -123,8 +123,8 @@ UI = {
         "(not unit prices, shipping excluded). Vendors may adjust "
         "prices at any time, so use them only as a rough gauge.",
         "zh": "本指南涵盖装配手册物料清单的全部零件，每项列出三家参考供应商。<br>"
-        "参考价为所需数量的合计金额（非单价，不含运费）。"
-        "商家可能随时调价，仅供衡量大致价格水平。",
+        "参考价为所需数量的合计（非单价，不含运费）。"
+        "商家随时可能调价，仅作大致参考。",
     },
     "pending": {"en": "to be found", "zh": "待补充"},
     "disclaimer": {
@@ -139,11 +139,11 @@ UI = {
         "recommend, we welcome your feedback and will review and "
         "update the listings accordingly.",
         "zh": "<strong>免责声明：</strong>本指南所列供应商及商品链接仅供采购参考。"
-        "我们与所列商家不存在任何关联或利益关系，"
-        "对其商品的质量、价格及供货情况不作任何保证。"
+        "我们与所列商家无任何关联或利益关系，"
+        "对其商品的质量、价格及供货不作任何保证。"
         "请按规格自行甄选，从您信任的商家购买。"
-        "如所列商品存在质量问题，或您有优质供应商推荐，"
-        "欢迎向我们反馈，我们将及时核实并更新相关条目。",
+        "如所列商品存在问题，或您有可靠的供应商推荐，"
+        "欢迎反馈，我们将核实并更新相应条目。",
     },
     "inquiry_label": {"en": "Inquiry message", "zh": "询价说明"},
     "supplier_n": {"en": "Supplier", "zh": "供应商"},

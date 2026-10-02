@@ -83,7 +83,7 @@
     ],
     "note": {
       "en": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> (print guide included) and send them to the shop's customer service.",
-      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">下载 STEP 文件</a>（内含打印说明），发送给店铺客服"
+      "zh": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">下载 STEP 文件</a>（内含打印说明），发给店铺客服。"
     }
   },
   {
@@ -118,7 +118,7 @@
     ],
     "note": {
       "en": "Custom order — send the {inquiry} to the shop's customer service.<br>MGN9H rails and carriages are precision motion parts: workmanship and accuracy grades vary noticeably between makers, and prices span a wide range — choose according to your needs.",
-      "zh": "定制商品，请将{inquiry}发送给店铺客服。<br>MGN9H 导轨滑块为精密运动件，各厂商做工与精度等级差异明显，价格区间较大，请根据需要进行选购。"
+      "zh": "定制商品，请将{inquiry}发给店铺客服。<br>MGN9H 导轨滑块是精密运动件，各厂商做工和精度等级差异明显，价格区间较大，请按需选择。"
     }
   },
   {
@@ -175,7 +175,7 @@
     ],
     "note": {
       "en": "Standard parts — same spec from every maker; just buy the cheapest.",
-      "zh": "标准件，各家规格一致，选便宜的买即可。"
+      "zh": "标准件，各厂商规格一致，选最便宜的即可。"
     }
   },
   {
@@ -338,7 +338,7 @@
     ],
     "note": {
       "en": "Controller board and stepper drivers — same spec from every maker.",
-      "zh": "主板和电机驱动各家规格一致。"
+      "zh": "控制板和电机驱动各厂商规格一致。"
     }
   },
   {
@@ -421,7 +421,7 @@
     ],
     "note": {
       "en": "Stick to reputable brands. A 5.5×2.5 mm barrel plug fits too.",
-      "zh": "请选择正规品牌电源。5.5×2.5 mm 桶形插头同样适用。"
+      "zh": "选择正规品牌。5.5×2.5 mm 桶形插头同样适用。"
     }
   },
   {
@@ -464,7 +464,7 @@
     ],
     "note": {
       "en": "Recommended: native 8 MP sensor with autofocus.",
-      "zh": "建议原生800万像素 + 自动对焦。"
+      "zh": "建议选择原生 800 万像素、带自动对焦的型号。"
     }
   },
   {
@@ -507,7 +507,7 @@
     ],
     "note": {
       "en": "Optional — the cable bundled with the motor is ~1 m, too long to store neatly; a 30 cm one is plenty.",
-      "zh": "可选购买。电机自带的连接线约 1 米，太长不便收纳，买 30cm 的即可。"
+      "zh": "选配。电机自带的连接线约 1 m，过长不便收纳，买 30 cm 的即可。"
     }
   },
   {
@@ -550,7 +550,7 @@
     ],
     "note": {
       "en": "Buy 5 m to leave slack for the ground run.",
-      "zh": "铜线建议买 5m 长度，给接地走线预留余量。"
+      "zh": "建议购买 5 m，为接地走线预留余量。"
     }
   },
   {
@@ -632,7 +632,7 @@
     ],
     "note": {
       "en": "The lead wire needs soldering to extend and is easily damaged by careless handling; buy one spare.",
-      "zh": "引线需焊接加长，操作不当容易损坏，建议多买一个备用。"
+      "zh": "引线需焊接加长，操作不当易损坏，建议多买一个备用。"
     }
   },
   {
@@ -987,7 +987,7 @@
     ],
     "note": {
       "en": "Screws are inexpensive, but each size is sold in packs of 20/50/100. Even if you need only a few, you buy the whole pack.",
-      "zh": "螺栓单价低廉，但每种规格按 20/50/100 个整包出售。即使只需几颗，也需整包购买。"
+      "zh": "螺栓单价低，但每种规格按 20/50/100 个整包出售，只需几颗也要买整包。"
     }
   },
   {
@@ -1118,7 +1118,7 @@
     ],
     "note": {
       "en": "If the custom extrusion order already includes these 8 bolts, no need to buy them again.",
-      "zh": "如定制铝型材已配齐这 8 颗螺栓，无需重复购买。"
+      "zh": "如果定制铝型材已包含这 8 颗螺栓，无需再买。"
     }
   },
   {
@@ -1161,7 +1161,7 @@
     ],
     "note": {
       "en": "Use with a 3/16\" imperial hex key.",
-      "zh": "搭配英制 3/16\" 内六角扳手使用。"
+      "zh": "需使用英制 3/16\" 内六角扳手。"
     }
   },
   {
@@ -1243,7 +1243,7 @@
     ],
     "note": {
       "en": "6 pcs needed. If sold in 5-packs, order two packs.",
-      "zh": "共需 6 个。如按 5 个一包出售，记得购买两包。"
+      "zh": "共需 6 个，按 5 个一包出售时买两包。"
     }
   },
   {
@@ -1520,7 +1520,7 @@
     ],
     "note": {
       "en": "Tighten with an 11mm open-end wrench.",
-      "zh": "搭配 11mm 开口扳手使用。"
+      "zh": "使用 11 mm 开口扳手拧紧。"
     }
   },
   {
@@ -1602,7 +1602,7 @@
     ],
     "note": {
       "en": "If the exact 9 mm height is unavailable, stack shorter spacers to reach 9 mm.",
-      "zh": "如买不到 9 mm 高的规格，可用较短的轴套叠加至 9 mm。"
+      "zh": "如果买不到 9 mm 高的规格，用较短的轴套叠加至 9 mm。"
     }
   },
   {
@@ -1645,7 +1645,7 @@
     ],
     "note": {
       "en": "Height must match the listed spec. The ID and OD can vary: any ID > 5 mm and OD < 20 mm works.",
-      "zh": "高度必须与所列规格一致。内径、外径可不同，内径 >5 mm、外径 <20 mm 均可。"
+      "zh": "高度必须与所列规格一致；内径、外径可不同，内径 >5 mm、外径 <20 mm 均可。"
     }
   },
   {
@@ -1728,7 +1728,7 @@
     ],
     "note": {
       "en": "You'll need 3 hex keys: get good-quality 2 mm and 3 mm ones (used most); a basic 5 mm will do.",
-      "zh": "需要 3 把六角扳手。2 mm 和 3 mm 常用，建议买质量好的；5 mm 用得少，普通的就够用。"
+      "zh": "需要 3 把内六角扳手：2 mm 和 3 mm 最常用，选质量好的；5 mm 普通款即可。"
     }
   },
   {

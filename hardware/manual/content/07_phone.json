@@ -12,7 +12,7 @@
     },
     "lede": {
       "en": "Two cross-beams mount under the frame and carry the printed phone bed. The phone lies in the bed screen-up, its top-left corner seated against the bed's corner, level under the stylus.",
-      "zh": "两根横梁装在框架底面，托起 3D 打印的手机托架。手机屏幕朝上放进托架，左上角顶住托架内角，水平正对触控笔。"
+      "zh": "两根横梁装在框架底面，承载 3D 打印的手机托架。手机屏幕朝上放入托架，左上角抵住托架内角，水平置于触控笔下方。"
     }
   },
   {
@@ -37,11 +37,11 @@
       {
         "h3": {
           "en": "Make two",
-          "zh": "做两根"
+          "zh": "制作两根"
         },
         "body": {
           "en": "You need two identical cross-beams for the bed.",
-          "zh": "托架需要两根一模一样的横梁。"
+          "zh": "托架需要两根相同的横梁。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:88mm; width:90mm;"
@@ -154,7 +154,7 @@
         },
         "body": {
           "en": "Lay the two cross-beams parallel, slotted faces up, then lower the bed's hanging T-nuts into the slots and tighten.",
-          "zh": "把两根横梁平行摆好，开槽的一面朝上；让托架上吊着的 T 型螺母落进槽里，再拧紧。"
+          "zh": "两根横梁平行摆放，开槽面朝上，把托架上悬吊的 T 型螺母放入槽内，再拧紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:140mm; width:60mm;"
@@ -183,7 +183,7 @@
         },
         "body": {
           "en": "Stand the frame on end first. It's far easier to work vertically. Then slide each beam's T-nuts into the slots on the frame's underside.",
-          "zh": "先把框架竖起来，立着干活要省事得多。再把每根横梁上的 T 型螺母滑进框架底面的型材槽里。"
+          "zh": "先把框架竖起，竖直操作方便得多。再把每根横梁的 T 型螺母滑入框架底面的型材槽。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:22mm; width:90mm;"
@@ -191,11 +191,11 @@
       {
         "h3": {
           "en": "Position the phone",
-          "zh": "放手机"
+          "zh": "放置手机"
         },
         "body": {
           "en": "Place a phone on the bed, pushed into the top-left corner. Move the X carriage around and check the stylus tip can reach every part of the screen.",
-          "zh": "把手机放到托架上，左上角靠齐内角。让 X 滑座四处移动，确认触控笔尖能够到屏幕的每个位置。"
+          "zh": "把手机放到托架上，推到左上角抵住内角。移动 X 滑座，确认触控笔尖能够到屏幕的每个位置。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:50mm; width:90mm;"
@@ -207,7 +207,7 @@
         },
         "body": {
           "en": "Set the solenoid's mounting height so the stylus tip just makes stable contact with the screen. Too low, and the solenoid can't pull in fully: the magnetic force is then too weak to hold the tip down, so the tip springs back and both long-press and swipe fail. Too high, and the tip can't reach the screen or the contact patch is too small. Fine-tune until the tip makes stable contact with the screen.",
-          "zh": "调整电磁铁的安装高度，让笔尖恰好能稳定接触屏幕：装得太低，螺线管吸合不到位，电磁吸引力不够，压不住笔尖，笔尖被弹开，无法实现长按和划屏手势；装得太高，够不到屏幕或接触面太小。反复微调，直到笔尖和屏幕能稳定接触。"
+          "zh": "调整电磁铁的安装高度，使笔尖恰好稳定接触屏幕。过低则电磁铁无法完全吸合，吸力不足以压住笔尖，笔尖弹回，长按和滑动都会失败；过高则笔尖够不到屏幕或接触面太小。微调至笔尖与屏幕稳定接触。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:80mm; width:90mm;"
@@ -219,7 +219,7 @@
         },
         "body": {
           "en": "The rear camera bump lifts one corner, so the phone won't lie flat. Slip a thin shim or a few sheets of paper under the low edge until the screen is level and facing straight up. Make sure the phone can't rock or shift when the stylus taps. Any tilt or wobble can make it miss.",
-          "zh": "后置摄像头那块凸起会把一个角顶起来，手机就放不平。在偏低的那一边垫一片薄垫片或几张纸，直到屏幕水平、正对上方。还要确保点击时手机不会晃、不会移位。只要有一点歪或松，就可能点不准。"
+          "zh": "后置摄像头的凸起会顶起手机一角，手机无法放平。在较低的一边垫薄垫片或几张纸，直到屏幕水平、正对上方。确保触控笔点击时手机不晃动、不移位，稍有倾斜或松动都可能点击失准。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:135mm; width:90mm; display:flex; gap:4mm; align-items:flex-start;",

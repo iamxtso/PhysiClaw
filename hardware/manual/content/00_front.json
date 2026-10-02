@@ -141,7 +141,7 @@
         },
         "body": {
           "en": "PhysiClaw is a physically-interactive agent: it operates a phone by tapping on its screen, so it needs hardware to carry out those actions. This manual covers the assembly of that hardware. It has three parts: a CoreXY stage that moves across the plane (X/Y positioning), a touch mechanism that presses the screen along the Z axis, and a camera that watches the screen.",
-          "zh": "PhysiClaw 是一个能与物理世界交互的 Agent，靠点触屏幕来操作手机，因此需要一套硬件来执行动作。本手册讲的就是这套硬件怎么装，它分三部分：在平面内移动的 CoreXY 结构（负责 X/Y 定位）、沿 Z 轴按压屏幕的触控机构，以及一个观察屏幕的摄像头。"
+          "zh": "PhysiClaw 是能与物理世界交互的智能体，通过点击屏幕操作手机，因此需要一套硬件来执行动作。本手册介绍这套硬件的装配。硬件分为三部分：在平面内移动的 CoreXY 结构（X/Y 定位）、沿 Z 轴按压屏幕的触控机构，以及观察屏幕的摄像头。"
         },
         "classes": "note"
       },
@@ -152,7 +152,7 @@
         },
         "body": {
           "en": "Before you start, read this manual all the way through, and check the parts you've bought against the bill of materials to make sure nothing is missing. Assembling a PhysiClaw takes about two to three hours, so set aside enough time.",
-          "zh": "动手组装前，先把本手册从头到尾通读一遍，再对照物料清单核对买好的零件，确保一切齐备。组装一台 PhysiClaw 大约需要两到三个小时，请预留好时间。"
+          "zh": "装配前请通读本手册，并对照物料清单清点已购零件，确认没有缺漏。组装一台 PhysiClaw 约需两到三小时，请预留足够时间。"
         },
         "classes": "note"
       },
@@ -163,7 +163,7 @@
         },
         "body": {
           "en": "Should you find an error in this manual or have a suggestion for an improvement, please consider opening an issue on GitHub (<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>). When raising an issue please include the relevant page numbers and a short description; annotated screenshots are also very welcome. We periodically update the manual based on the feedback we get.",
-          "zh": "如果你发现本手册有错，或者有改进建议，欢迎到 GitHub 提交 issue（<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>）。提交时请写明相关页码，简单说一下问题，最好再附上标注过的截图。我们会根据收到的反馈定期更新手册。"
+          "zh": "如发现本手册有错误或有改进建议，欢迎到 GitHub 提交 issue（<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>）。请写明相关页码并简要描述问题，也欢迎附上标注过的截图。我们会根据反馈定期更新手册。"
         },
         "classes": "note"
       }
@@ -220,7 +220,7 @@
         },
         "body": {
           "en": "Domed head, hex drive. Used on surfaces where a lower profile matters but a flush head isn't required.",
-          "zh": "圆顶头，用内六角扳手拧。用在需要压低头部高度、但又不必与表面齐平的位置。"
+          "zh": "圆顶头，用内六角扳手拧。用在需要降低螺栓头高度但不要求齐平的位置。"
         },
         "ref": {
           "en": "ISO 7380-1",
@@ -235,7 +235,7 @@
         },
         "body": {
           "en": "90° countersunk head, hex drive. Sits flush with the surface, used where nothing can protrude above the part.",
-          "zh": "90° 沉头，用内六角扳手拧。装好后与表面齐平，用在不允许凸出零件表面的位置。"
+          "zh": "90° 沉头，用内六角扳手拧。与表面齐平，用在不允许凸出零件表面的位置。"
         },
         "ref": {
           "en": "ISO 10642 / DIN 7991",
@@ -265,7 +265,7 @@
         },
         "body": {
           "en": "Pairs with a bolt to clamp parts firmly together.",
-          "zh": "和螺栓配合，把零件牢牢夹紧。"
+          "zh": "与螺栓配合，把零件牢固夹紧。"
         },
         "ref": {
           "en": "ISO 4032 / DIN 934",
@@ -280,7 +280,7 @@
         },
         "body": {
           "en": "A square nut sits in a pocket of the printed part, letting you tighten a bolt into it.",
-          "zh": "把四方螺母嵌进打印件的方槽，配上螺栓即可拧紧固定。"
+          "zh": "四方螺母嵌在打印件的方槽内，螺栓拧入即可固定。"
         },
         "ref": {
           "en": "DIN 557",
@@ -307,7 +307,7 @@
         },
         "body": {
           "en": "Slides into the slot from the open end of the extrusion. As you tighten the screw, the nut is pulled up and catches on the inner edges of the slot opening.",
-          "zh": "从型材的开口端把它滑进滑槽。拧紧螺栓时，螺母会往上提，卡在滑槽开口的内侧边缘上。"
+          "zh": "从型材开口端滑入槽内。拧紧螺栓时，螺母向上提起，卡在槽口内侧边缘。"
         }
       },
       {
@@ -318,7 +318,7 @@
         },
         "body": {
           "en": "Drops flat into a slot anywhere along its length, then a quarter turn locks it.",
-          "zh": "可以从滑槽的任意位置平放进去，转 90° 就卡紧。"
+          "zh": "从型材槽任意位置平放进去，旋转 90° 即卡紧。"
         }
       },
       {
@@ -329,7 +329,7 @@
         },
         "body": {
           "en": "20-tooth toothed pulley. One sits on each stepper shaft, locked to the shaft's D-flat with a set screw; it drives the GT2 belt.",
-          "zh": "20 齿同步轮。每个步进电机轴上装一个，用紧定螺钉顶在电机轴的 D 形切面上，由它带动 GT2 同步带。"
+          "zh": "20 齿同步轮。每个步进电机轴上装一个，用紧定螺钉顶住轴的 D 形切面固定，带动 GT2 同步带。"
         },
         "ref": {
           "en": "GT2 · 20T · 5 mm bore · 6 mm belt",
@@ -344,7 +344,7 @@
         },
         "body": {
           "en": "Toothed turning wheel that meshes with the toothed side of the belt as it spins.",
-          "zh": "带齿转向轮，和同步带带齿一面贴合转动。"
+          "zh": "带齿转向轮，和同步带的齿面啮合转动。"
         },
         "ref": {
           "en": "GT2 · 20T · 5 mm bore · 6 mm belt",
@@ -401,7 +401,7 @@
         },
         "body": {
           "en": "The 2 mm and 3 mm hex drivers see the most use in this build. We recommend a quality driver in each size.",
-          "zh": "装配这台机器时，2 mm 和 3 mm 内六角扳手用得最多。建议准备两把质量好的扳手。"
+          "zh": "2 mm 和 3 mm 内六角扳手在装配中使用最多，建议各备一把质量好的扳手。"
         },
         "classes": "note overlay sm",
         "style": "left:152mm; top:56mm; width:120mm;"
@@ -413,7 +413,7 @@
         },
         "body": {
           "en": "These cover the socket screws used in this build: 2 mm for M3 button/flat head screws, 3 mm for M5 button/flat head screws (BHCS/FHCS), and 5 mm for M6 socket head cap screws (SHCS).",
-          "zh": "这几把扳手覆盖本次装配用到的内六角螺栓：2 mm 对应 M3 半圆头/沉头螺栓，3 mm 对应 M5 半圆头/沉头螺栓，5 mm 对应 M6 内六角圆柱头螺栓。"
+          "zh": "这几种规格覆盖本次装配的全部内六角螺栓：M3 半圆头/沉头螺栓用 2 mm，M5 半圆头/沉头螺栓用 3 mm，M6 内六角圆柱头螺栓用 5 mm。"
         },
         "classes": "note overlay sm",
         "style": "left:152mm; top:108mm; width:120mm;"
@@ -437,7 +437,7 @@
         },
         "body": {
           "en": "PhysiClaw's custom parts are printed by a nylon powder-bed fusion process, either Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF), rather than the common FDM. The powder-bed process fuses nylon powder layer by layer into dense, support-free parts with uniform strength in every direction. These parts carry side holes and overhangs: with FDM the side holes deform and the overhangs sag, so a powder-bed process is required. Match the specifications below when sourcing parts.",
-          "zh": "PhysiClaw 的定制零件采用尼龙粉末床熔融工艺打印，选择性激光烧结（SLS）或 多射流熔融（MJF）均可，不采用常见的 FDM。粉末床工艺将尼龙粉末逐层熔结成型，零件结构致密、无需支撑、各向强度均匀。这些零件带有侧向开孔和悬空结构：FDM 打印时侧孔易变形、悬空处会塌陷，故须采用粉末床工艺。采购时请参照以下规格。"
+          "zh": "PhysiClaw 的定制件采用尼龙粉末床熔融工艺打印，选择性激光烧结（SLS）或多射流熔融（MJF）均可，不采用常见的 FDM。粉末床工艺将尼龙粉末逐层熔结，零件致密、无需支撑，各方向强度一致。这些零件带有侧孔和悬空结构，FDM 打印会使侧孔变形、悬空处塌陷，因此必须采用粉末床工艺。采购时请参照以下规格。"
         },
         "classes": "note"
       }
@@ -450,7 +450,7 @@
         },
         "v": {
           "en": "Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF)",
-          "zh": "选择性激光烧结（SLS）或 多射流熔融（MJF）"
+          "zh": "选择性激光烧结（SLS）或多射流熔融（MJF）"
         }
       },
       {
@@ -532,7 +532,7 @@
         },
         "body": {
           "en": "Any file whose name ends in <span class=\"ref\">_x#</span> tells you the quantity of that part required to build the machine. For example, a part named <span class=\"ref\">idler_mount_front_x2.step</span> is needed two times.",
-          "zh": "文件名以 <span class=\"ref\">_x#</span> 结尾时，末尾的数字表示组装整机要用到几个这种零件。比如 <span class=\"ref\">idler_mount_front_x2.step</span>，就需要用到两个。"
+          "zh": "文件名末尾的 <span class=\"ref\">_x#</span> 表示整机需要几个这种零件。例如 <span class=\"ref\">idler_mount_front_x2.step</span> 需要两个。"
         },
         "classes": "note"
       }

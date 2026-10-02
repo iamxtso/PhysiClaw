@@ -12,7 +12,7 @@
     },
     "lede": {
       "en": "PhysiClaw's X/Y motion uses a CoreXY arrangement, guided by three MGN9H linear rails: two run left and right as the Y axis, and one spans between them as the X axis. Each of the two points where the X axis meets the Y rails carries two idler assemblies.",
-      "zh": "PhysiClaw 的 X/Y 运动采用 CoreXY 方案，靠三根 MGN9H 导轨导向：左右两根作 Y 轴，横跨其间的一根作 X 轴。X 轴两端与 Y 轨相接的左右两处，各装两个惰轮组。"
+      "zh": "PhysiClaw 的 X/Y 运动采用 CoreXY 方案，靠三根 MGN9H 导轨导向：左右两根作 Y 轴，横跨其间的一根作 X 轴。X 轴与 Y 导轨相接的两处各装两个惰轮组。"
     }
   },
   {
@@ -41,7 +41,7 @@
         },
         "body": {
           "en": "Some carriages ship on a plastic dummy rail. Align it with the guide rail and slide the carriage across. Never remove the dummy rail first, or the balls will fall out and ruin the carriage.",
-          "zh": "有些厂家将滑块套在塑料假轨上，与导轨分开包装。安装时，将假轨与导轨端面对齐，把滑块直接推入导轨。切勿先抽出假轨，滑块一旦脱轨，钢珠便会脱落，导致滑块报废。"
+          "zh": "有些滑块出厂时套在塑料假轨上。安装时把假轨与导轨端面对齐，将滑块推入导轨。不要先抽出假轨，否则钢珠会掉出，滑块随即报废。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:30mm; width:80mm;"
@@ -53,7 +53,7 @@
         },
         "body": {
           "en": "The Y axis uses two identical rails.",
-          "zh": "Y 轴用两条一模一样的导轨。"
+          "zh": "Y 轴使用两条相同的导轨。"
         },
         "classes": "note overlay sm",
         "style": "left:120mm; top:95mm; width:60mm;"
@@ -61,11 +61,11 @@
       {
         "h3": {
           "en": "Clean and grease the rails",
-          "zh": "把导轨擦干净、上好润滑脂"
+          "zh": "清洁导轨并涂润滑脂"
         },
         "body": {
           "en": "MGN9H rails come coated in anti-rust oil. Wipe it off before installing, then add some fresh grease to the carriage so it runs smoothly and lasts longer. Keep it away from water the whole time.",
-          "zh": "MGN9H 导轨出厂时涂着一层防锈油。安装前先把它擦干净，再给滑块补点新的润滑脂，这样滑起来顺，也更耐用。整个过程注意别碰水。"
+          "zh": "MGN9H 导轨出厂时涂有防锈油。安装前将其擦净，再给滑块涂新的润滑脂，滑动更顺畅、更耐用。全程避免接触水。"
         },
         "classes": "note overlay sm",
         "style": "left:120mm; bottom:25mm; width:80mm;"
@@ -73,11 +73,11 @@
       {
         "h3": {
           "en": "Let the T-nuts hang",
-          "zh": "让 T 型螺母先吊着"
+          "zh": "先让 T 型螺母悬吊"
         },
         "body": {
           "en": "Thread an M3×10 FHCS into every other hole and let its drop-in T-nut dangle on the screw tip. Lower the whole rail onto the extrusion slot, then tighten to draw the nuts up snug.",
-          "zh": "每隔一个孔拧一颗 M3×10 沉头螺栓，让船形螺母吊在螺栓末端。把整条导轨放进型材槽，再拧紧螺栓，把螺母拉上来夹紧。"
+          "zh": "每隔一个孔拧入一颗 M3×10 沉头螺栓，船形螺母悬吊在螺栓末端。把整条导轨放入型材槽，再拧紧螺栓，把螺母拉起夹紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:80mm; width:74mm;"
@@ -89,7 +89,7 @@
         },
         "body": {
           "en": "The carriage slides off the rail end with little effort, and a dropped one spills its ball bearings, ruining it. Keep it on the rail, and never swap carriages between rails.",
-          "zh": "滑块稍一用力就会从导轨端头滑出，一旦掉到地上，钢珠就会散落，整个滑块也就报废了。务必让它始终留在导轨上，且不同导轨的滑块绝不要互换。"
+          "zh": "滑块稍一用力就会从导轨端头滑出，一旦掉落，钢珠散出，滑块随即报废。滑块应始终留在导轨上，不同导轨的滑块不要互换。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:90mm; width:60mm; display:flex; gap:4mm; align-items:flex-start;",
@@ -150,7 +150,7 @@
         },
         "body": {
           "en": "Adjust the idler mounts away from the motor so both ends of each Y rail sit snug against them.",
-          "zh": "调整远离电机一侧的惰轮支座位置，使导轨两端紧靠支座。"
+          "zh": "调整远离电机一侧的惰轮支座，使 Y 导轨两端紧靠支座。"
         },
         "classes": "note overlay sm",
         "style": "right:5mm; top:0mm; width:60mm;"
@@ -158,11 +158,11 @@
       {
         "h3": {
           "en": "Fix the Y rails, but not tight",
-          "zh": "先固定 Y 导轨，但别拧死"
+          "zh": "先固定 Y 导轨，暂不拧紧"
         },
         "body": {
           "en": "Hold both Y rails in place with the bolts snug, not fully tightened. Only once the X axis is installed and travels smoothly should you torque them down.",
-          "zh": "用螺栓把两条 Y 导轨固定好，拧到贴合就行，先别拧死。等 X 轴装好、能顺畅移动了，再把它们拧紧到位。"
+          "zh": "两条 Y 导轨的螺栓拧到贴合即可，暂不完全拧紧。等 X 轴装好并移动顺畅后再拧紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:120mm; width:80mm;"
@@ -170,11 +170,11 @@
       {
         "h3": {
           "en": "Tighten from the middle out",
-          "zh": "从中间往两边拧"
+          "zh": "从中间向两边拧紧"
         },
         "body": {
           "en": "When you do tighten, start at the center bolt and work outward so the rail beds down flush against the extrusion.",
-          "zh": "正式拧紧时，从中间那颗螺栓开始，往两边依次拧，让导轨平整地贴在型材上。"
+          "zh": "正式拧紧时从中间的螺栓开始向两边拧，使导轨平贴型材。"
         },
         "classes": "note overlay sm",
         "style": "left:0mm; top:0mm; width:55mm;"
@@ -205,11 +205,11 @@
       {
         "h3": {
           "en": "Straight side toward the motor",
-          "zh": "平直的一面朝电机"
+          "zh": "平直的一面朝向电机"
         },
         "body": {
           "en": "The left and right joints are mirrored. Mount each one with its straight side facing the motor.",
-          "zh": "左右两个连接件互为镜像。安装时让每个连接件平直的一面都朝向电机。"
+          "zh": "左右两个连接件互为镜像，安装时平直的一面都朝向电机。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:120mm; width:80mm;"
@@ -221,7 +221,7 @@
         },
         "body": {
           "en": "Thread all four screws in first, then tighten opposite corners in pairs. This seats the joint flat on the slider.",
-          "zh": "先将四颗螺栓全部旋入，再两两对角拧紧，这样连接件才能平贴滑块。"
+          "zh": "四颗螺栓全部旋入后，再按对角成对拧紧，使连接件平贴滑块。"
         },
         "classes": "note overlay sm",
         "style": "left:100mm; top:30mm; width:80mm;"
@@ -286,7 +286,7 @@
         },
         "body": {
           "en": "Slide the two M5 T-nuts in, one from each end.",
-          "zh": "把两颗 M5 T 型螺母从两端滑进去。"
+          "zh": "从两端各滑入一颗 M5 T 型螺母。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:90mm; width:80mm;"
@@ -339,7 +339,7 @@
         },
         "body": {
           "en": "The X beam should glide freely along the Y rails. If it binds, realign the Y rails until it runs smoothly, then tighten them from the center bolt outward.",
-          "zh": "X 横梁应该能沿 Y 导轨自由滑动。若滑动发涩，先把 Y 导轨重新校正到顺畅，再从中间那颗螺栓往两边拧紧。"
+          "zh": "X 横梁应能沿 Y 导轨自由滑动。如果发涩，重新校正 Y 导轨直到滑动顺畅，再从中间的螺栓向两边拧紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:50mm; width:60mm;"
@@ -351,7 +351,7 @@
         },
         "body": {
           "en": "Don't expect to get it in one pass. Snug a few screws, slide the X beam to feel the resistance, then nudge the Y rails and try again. It can take a few minutes of back-and-forth before the beam glides smoothly.",
-          "zh": "调试往往无法一次到位。先拧紧部分螺栓，推动 X 横梁感受滑动阻力，再微调 Y 导轨，如此反复。可能要来回调整几分钟，横梁才能顺畅滑动。"
+          "zh": "调整通常无法一次到位。拧上几颗螺栓，推动 X 横梁感受阻力，再微调 Y 导轨，如此反复。可能需要来回调整几分钟，横梁才能顺畅滑动。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:100mm; width:60mm;"
@@ -400,7 +400,7 @@
         },
         "body": {
           "en": "Mount this rail just like the Y rails: let the T-nuts hang loose, lower the rail into the slot, then tighten.",
-          "zh": "这条导轨的装法和 Y 导轨一样：先让 T 型螺母松松地吊着，放进滑槽后，再拧紧。"
+          "zh": "这条导轨的装法与 Y 导轨相同：让 T 型螺母悬吊在螺栓上，把导轨放入型材槽，再拧紧。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:100mm; width:80mm;"
@@ -461,7 +461,7 @@
         },
         "body": {
           "en": "The X rail is now mounted on the X beam. Confirm its carriage slides smoothly along the X rail, and that the whole beam still travels freely along the Y rails. If either binds, realign that rail and retighten from the center out.",
-          "zh": "X 导轨现在已经装到 X 横梁上了。确认它的滑块能沿 X 导轨顺畅滑动，整根横梁也还能沿 Y 导轨自由移动。哪一处不顺畅，就校正那条导轨，再从中间往两边重新拧紧。"
+          "zh": "X 导轨已装到 X 横梁上。确认滑块能沿 X 导轨顺畅滑动，整根横梁仍能沿 Y 导轨自由移动。如有一处发涩，重新校正该导轨，再从中间向两边拧紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:60mm; width:60mm;"
@@ -490,11 +490,11 @@
       {
         "h3": {
           "en": "Motor B idler — sits higher",
-          "zh": "电机 B 的惰轮——位置较高"
+          "zh": "电机 B 的惰轮：位置偏高"
         },
         "body": {
           "en": "This idler carries Motor B's belt on the left joint. The 9 mm spacer lifts it above the others, keeping its belt on the upper plane.",
-          "zh": "这个惰轮装在左连接件上，走电机 B 的同步带。9 mm 轴套把它垫得比其他惰轮高，让这条带留在上层平面。"
+          "zh": "这个惰轮装在左连接件上，承载电机 B 的同步带。9 mm 轴套把它垫高到其他惰轮之上，同步带保持在上层平面。"
         },
         "classes": "note overlay sm",
         "style": "left:110mm; top:80mm; width:80mm;"
@@ -564,11 +564,11 @@
       {
         "h3": {
           "en": "Use the correct hole",
-          "zh": "用对孔位"
+          "zh": "使用正确的孔位"
         },
         "body": {
           "en": "The idler mounts in the top hole of the left joint. Take care not to use the wrong one.",
-          "zh": "惰轮装在左连接件上面那个孔，注意别装错孔。"
+          "zh": "惰轮装在左连接件上方的孔位，注意不要装错。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:120mm; width:80mm;"
@@ -613,11 +613,11 @@
       {
         "h3": {
           "en": "Motor A idler — sits lower",
-          "zh": "电机 A 的惰轮——位置较低"
+          "zh": "电机 A 的惰轮：位置偏低"
         },
         "body": {
           "en": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">Use the toothed idler here, not the smooth one.</p><p>It carries Motor A's belt and, with no spacer, rides on the lower belt plane.</p>",
-          "zh": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">这里用带齿的惰轮，不是光面的。</p><p>它走电机 A 的同步带，不加轴套，走下层那条带的平面。</p>"
+          "zh": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">这里用带齿惰轮，不要用光面的。</p><p>它承载电机 A 的同步带，不加轴套，位于下层同步带平面。</p>"
         },
         "classes": "note overlay sm",
         "style": "left:110mm; top:80mm; width:80mm;"
@@ -679,11 +679,11 @@
       {
         "h3": {
           "en": "Install in the right position",
-          "zh": "装到正确的位置"
+          "zh": "安装到正确位置"
         },
         "body": {
           "en": "Before tightening, confirm the idler is seated in the correct position on the joint.",
-          "zh": "拧紧前，确认惰轮已经落在连接件上正确的位置。"
+          "zh": "拧紧前确认惰轮装在连接件的正确位置。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:120mm; width:80mm;"
@@ -728,11 +728,11 @@
       {
         "h3": {
           "en": "Motor A idler — sits lower",
-          "zh": "电机 A 的惰轮——位置较低"
+          "zh": "电机 A 的惰轮：位置偏低"
         },
         "body": {
           "en": "This idler carries Motor A's belt on the right joint, in the top hole. With no spacer, it rides on the lower belt plane.",
-          "zh": "这个惰轮装在右连接件上面那个孔，走电机 A 的同步带。不加轴套，它落在下层那条带的平面上。"
+          "zh": "这个惰轮装在右连接件上方的孔位，承载电机 A 的同步带。不加轴套，位于下层同步带平面。"
         },
         "classes": "note overlay sm",
         "style": "left:110mm; top:80mm; width:80mm;"
@@ -794,11 +794,11 @@
       {
         "h3": {
           "en": "Install in the right position",
-          "zh": "装到正确的位置"
+          "zh": "安装到正确位置"
         },
         "body": {
           "en": "Before tightening, confirm the idler is seated in the correct position on the joint.",
-          "zh": "拧紧前，确认惰轮已经落在连接件上正确的位置。"
+          "zh": "拧紧前确认惰轮装在连接件的正确位置。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:120mm; width:80mm;"
@@ -843,11 +843,11 @@
       {
         "h3": {
           "en": "Motor B idler — sits higher",
-          "zh": "电机 B 的惰轮——位置较高"
+          "zh": "电机 B 的惰轮：位置偏高"
         },
         "body": {
           "en": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">Use the toothed idler here, not the smooth one.</p><p>It carries Motor B's belt and, with the 9 mm spacer, rides on the upper belt plane.</p>",
-          "zh": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">这里用带齿的惰轮，不是光面的。</p><p>它走电机 B 的同步带，加了 9 mm 轴套，走上层那条带的平面。</p>"
+          "zh": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">这里用带齿惰轮，不要用光面的。</p><p>它承载电机 B 的同步带，加 9 mm 轴套，位于上层同步带平面。</p>"
         },
         "classes": "note overlay sm",
         "style": "left:110mm; top:60mm; width:80mm;"
@@ -921,7 +921,7 @@
         },
         "body": {
           "en": "All four idlers are now mounted on the XY joints. Recheck that each one sits in its correct location.",
-          "zh": "四个惰轮现在都装到 XY 连接件上了。再逐个确认每个惰轮都在正确的位置。"
+          "zh": "四个惰轮已全部装到 XY 连接件上。再逐个确认位置正确。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:120mm; width:78mm;"
