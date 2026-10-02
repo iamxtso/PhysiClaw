@@ -246,7 +246,8 @@ release with tag `physiclaw-hardware-vX.Y`. To publish `output/` as-is
 without building, use `make hw-release HW_VERSION=X.Y` — it guards that the
 artifacts (including the manual and drawing PDFs) exist first.
 
-After publishing, redeploy the docs site (docs-site) — it serves the
-assembly manual, the sourcing guide and the extrusion tech drawing from the
-release assets, so the live pages stay on the old release until the site
-rebuilds.
+After publishing, run `make docs-deploy` — it triggers the docs site's
+Cloudflare Pages deploy hook (the URL lives in the gitignored
+`.docs-deploy-hook` at the repo root). The site serves the assembly manual,
+the sourcing guide and the extrusion tech drawing from the release assets,
+so the live pages stay on the old release until it rebuilds.

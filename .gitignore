@@ -46,3 +46,6 @@ hardware/output/
 *.FCBak
 *.step
 *.stl
+
+# Cloudflare Pages deploy hook for the docs site (secret; read by make docs-deploy)
+.docs-deploy-hook
