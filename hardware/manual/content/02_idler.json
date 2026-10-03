@@ -11,8 +11,8 @@
       "zh": "惰轮"
     },
     "lede": {
-      "en": "Install one idler assembly at each of the four corners of the frame. All four use smooth idlers. The idlers roll on the flat back of the GT2 belt and turn it around each corner. Every idler mount sits 2 mm clear of the flat bracket at its corner, so the four corners are symmetric.",
-      "zh": "框架四角各装一个惰轮组，全部用光面惰轮。惰轮贴着 GT2 同步带的平背面滚动，让同步带在转角处转向。每个惰轮支座都离转角的一字连接板 2 mm，四角因此对称。"
+      "en": "Install one idler assembly at each of the four corners of the frame. All four use smooth idlers. The idlers roll on the flat back of the GT2 belt and turn it around each corner. Every idler mount sits 2 mm clear of the horizontal flat bracket at its corner, so the four corners are symmetric.",
+      "zh": "框架四角各装一个惰轮组，全部用光面惰轮。惰轮贴着 GT2 同步带的平背面滚动，让同步带在转角处转向。每个惰轮支座都离转角水平安装的一字连接板 2 mm，四角因此对称。"
     }
   },
   {
@@ -189,23 +189,23 @@
           "zh": "两处固定到框架"
         },
         "body": {
-          "en": "The idler mount attaches to the frame in two places. The middle M5 screw catches a slide-in T-nut in the extrusion slot. The flat bracket bridges the idler mount and the frame. On the bracket, the longer M5×12 BHCS threads into the captive square nut of the idler mount. The M5×10 BHCS catches the drop-in T-nut in the frame slot.",
-          "zh": "惰轮支座在两处固定到框架。中间的 M5 螺栓拧入型材槽内的滑块螺母。一字连接板连接惰轮支座和框架。连接板上较长的 M5×12 半圆头螺栓拧入惰轮支座的预埋四方螺母。M5×10 半圆头螺栓拧入型材槽内的船形螺母。"
+          "en": "The middle M5 screw catches a slide-in T-nut in the extrusion slot. The flat bracket bridges the idler mount and the frame. On the bracket, the longer M5×12 BHCS threads into the captive square nut of the idler mount. The M5×10 BHCS catches the drop-in T-nut in the frame slot.",
+          "zh": "中间的 M5 螺栓拧入型材槽内的滑块螺母。一字连接板连接惰轮支座和框架。连接板上较长的 M5×12 半圆头螺栓拧入惰轮支座的预埋四方螺母。M5×10 半圆头螺栓拧入型材槽内的船形螺母。"
         },
         "classes": "note overlay sm",
         "style": "left:110mm; top:30mm; width:80mm;"
       },
       {
         "h3": {
-          "en": "2 mm gap to the flat bracket",
-          "zh": "与一字连接板留 2 mm 间隙"
+          "en": "2 mm gap to the corner flat bracket",
+          "zh": "与转角一字连接板留 2 mm 间隙"
         },
         "body": {
-          "en": "Put the idler mount 2 mm clear of the flat bracket.",
-          "zh": "惰轮支座离一字连接板留 2 mm。"
+          "en": "Put the idler mount 2 mm clear of the horizontal flat bracket at the frame corner.",
+          "zh": "惰轮支座与框架转角水平安装的一字连接板之间留 2 mm。"
         },
         "classes": "note overlay sm",
-        "style": "left:110mm; top:72mm; width:80mm;"
+        "style": "left:110mm; top:78mm; width:80mm;"
       }
     ],
     "bom": {
@@ -413,8 +413,8 @@
           "zh": "间隙和左边的惰轮支座一致"
         },
         "body": {
-          "en": "Same 2 mm gap as the left idler mount.",
-          "zh": "与左边惰轮支座同样留 2 mm。"
+          "en": "Set the same 2 mm gap as at the left idler mount.",
+          "zh": "与左边的惰轮支座一样，留 2 mm 间隙。"
         },
         "classes": "note overlay sm",
         "style": "left:130mm; top:120mm; width:80mm;"
@@ -581,12 +581,12 @@
     "notes": [
       {
         "h3": {
-          "en": "2 mm gap to the flat bracket",
-          "zh": "与一字连接板留 2 mm 间隙"
+          "en": "2 mm gap to the corner flat bracket",
+          "zh": "与转角一字连接板留 2 mm 间隙"
         },
         "body": {
-          "en": "Put this idler mount 2 mm clear of the flat bracket too.",
-          "zh": "这个惰轮支座也离一字连接板留 2 mm。"
+          "en": "Put this idler mount 2 mm clear of the horizontal flat bracket at the frame corner too.",
+          "zh": "这个惰轮支座也离框架转角水平安装的一字连接板留 2 mm。"
         },
         "classes": "note overlay sm",
         "style": "left:160mm; top:130mm; width:78mm;"
@@ -722,8 +722,8 @@
           "zh": "间隙和左边的惰轮支座一致"
         },
         "body": {
-          "en": "Same 2 mm gap as the left idler mount.",
-          "zh": "与左边惰轮支座同样留 2 mm。"
+          "en": "Set the same 2 mm gap as at the left idler mount.",
+          "zh": "与左边的惰轮支座一样，留 2 mm 间隙。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:140mm; width:78mm;"
