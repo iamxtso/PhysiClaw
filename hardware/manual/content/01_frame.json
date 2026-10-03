@@ -4,7 +4,7 @@
     "page": "frame",
     "secnum": { "en": "SECTION 01", "zh": "第 01 节" },
     "h1": { "en": "Frame", "zh": "框架" },
-    "lede": { "en": "Four 2040 aluminum extrusions form the base frame, and every other part mounts onto it. Make sure all four corners are square. This is the foundation for accurate motion later on.", "zh": "四根 2040 铝型材拼成底座，其余零件都装在上面。框架四角务必成直角，这是后续运动精度的基础。" }
+    "lede": { "en": "Four 2040 aluminum extrusions form the base frame, and every other part mounts onto it. Make sure that all four corners are square: they are the foundation for accurate motion later.", "zh": "四根 2040 铝型材拼成底座框架，其余零件都装在框架上。确认框架四角成直角。方正的框架是后续运动精度的基础。" }
   },
   {
     "type": "solo",
@@ -16,7 +16,7 @@
     "notes": [
       {
         "h3": { "en": "Preload the T-nuts", "zh": "先装 T 型螺母" },
-        "body": { "en": "Slide every T-nut into its slot before squaring the frame.", "zh": "校正框架方正前，先把每颗 T 型螺母滑入型材槽。" },
+        "body": { "en": "Before you square the frame, slide every T-nut into its slot.", "zh": "校正框架方正前，先把每颗 T 型螺母滑入型材槽。" },
         "classes": "note overlay sm",
         "style": "right:16mm; bottom:70mm; width:80mm;"
       }
@@ -39,26 +39,26 @@
     ],
     "notes": [
       {
-        "h3": { "en": "Direction Convention", "zh": "方向约定" },
+        "h3": { "en": "Direction convention", "zh": "方向约定" },
         "body": { "en": "Top, bottom, left, and right throughout this manual refer to this view.", "zh": "本手册中的上、下、左、右均以这个视角为准。" },
         "classes": "note overlay sm",
         "style": "right:16mm; top:40mm; width:80mm;"
       },
       {
         "h3": { "en": "Mind the placement", "zh": "注意位置" },
-        "body": { "en": "The short extrusion carrying the four slide-in T-nuts goes on top.", "zh": "带四个滑块螺母的短型材放在最上面。" },
+        "body": { "en": "Put the short extrusion with the 4 slide-in T-nuts on top.", "zh": "把带四个滑块螺母的短型材放在顶部。" },
         "classes": "note overlay sm",
         "style": "right:16mm; top:60mm; width:80mm;"
       },
       {
         "h3": { "en": "Counterbores face out", "zh": "沉孔朝外" },
-        "body": { "en": "The counterbored ends of the long extrusions face outboard, each counterbore aligned with the short extrusion's end bore.", "zh": "长型材带沉孔的一端朝外，每个沉孔对准短型材端面的孔位。" },
+        "body": { "en": "Turn the counterbored ends of the long extrusions outward. Align each counterbore with the end hole of the short extrusion.", "zh": "长型材的沉孔开口朝外。每个沉孔对准短型材端面的孔。" },
         "classes": "note overlay sm",
         "style": "right:16mm; top:90mm; width:80mm;"
       },
       {
         "h3": { "en": "Square before final tightening", "zh": "先校方正，再拧紧" },
-        "body": { "en": "Each M6×20 SHCS drops through the long's counterbore into the short's end hole. Run all 8 in snug, square the frame on a flat surface, then tighten.", "zh": "每颗 M6×20 圆柱头螺栓穿过长型材沉孔，拧进短型材端面的螺纹孔。8 颗都拧到贴合后，在平整台面上校正框架方正，再拧紧。" },
+        "body": { "en": "1. Drop each M6×20 SHCS through the counterbore into the end hole of the short extrusion. 2. Tighten all 8 until snug. 3. Square the frame on a flat surface. 4. Tighten fully.", "zh": "1. 把每颗 M6×20 圆柱头螺栓穿过长型材沉孔。2. 全部拧入短型材端面螺纹孔，拧到贴合。3. 在平整台面上校正框架方正。4. 全部拧紧。" },
         "classes": "note overlay sm",
         "style": "right:16mm; top:120mm; width:80mm;"
       }
@@ -81,7 +81,7 @@
     "notes": [
       {
         "h3": { "en": "Reinforce the frame", "zh": "框架加固" },
-        "body": { "en": "One joining plate reinforces each corner. Run an M5×10 BHCS through the plate, start a drop-in T-nut on it loosely, drop the assembly into the closed frame, then tighten.", "zh": "每个角用一块连接板加固。M5×10 半圆头螺栓穿过连接板，拧上船形螺母但不拧紧，整组放进拼好的框架后再拧紧。" },
+        "body": { "en": "One flat bracket reinforces each corner. 1. Put an M5×10 BHCS through the bracket. 2. Thread a drop-in T-nut on loosely. 3. Drop the assembly into the assembled frame. 4. Tighten the screw.", "zh": "1. 把 M5×10 半圆头螺栓穿过连接板。2. 拧上船形螺母，暂不拧紧。3. 把连接板连同螺母放入拼好的框架。4. 拧紧螺栓。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:100mm; width:80mm;"
       }
@@ -106,13 +106,13 @@
     "notes": [
       {
         "h3": { "en": "Feet point down", "zh": "支脚朝下" },
-        "body": { "en": "The bumpers are the machine's feet, mounted under the four corners of the frame.", "zh": "橡胶脚垫是机器的支脚，装在框架底面四角。" },
+        "body": { "en": "The bumpers are the feet of the machine. Install them under the 4 corners of the frame.", "zh": "橡胶脚垫是机器的支脚。装在框架底面四角。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:100mm; width:78mm;"
       },
       {
-        "h3": { "en": "Use the screws that come with the bumpers", "zh": "用橡胶脚垫自带的螺栓" },
-        "body": { "en": "If the bumpers you bought came with their own screws, use those. They're the right size.", "zh": "如果脚垫自带螺栓，直接使用，尺寸正合适。" },
+        "h3": { "en": "Bumper screws", "zh": "脚垫螺栓" },
+        "body": { "en": "If the bumpers came with their own screws, use those screws. They are the right size.", "zh": "如果脚垫自带螺栓，就用自带的螺栓。尺寸正合适。" },
         "classes": "note overlay sm",
         "style": "left:135mm; top:30mm; width:70mm;"
       }

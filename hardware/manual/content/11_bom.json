@@ -11,8 +11,8 @@
       "zh": "物料清单"
     },
     "lede": {
-      "en": "This is the complete parts list for the whole machine. Use it to gather everything before you start assembling.",
-      "zh": "这是整台机器的完整零件清单，组装前请据此备齐零件。"
+      "en": "This is the complete parts list for the whole machine. Use it to gather every part before you start assembly.",
+      "zh": "这是整台机器的完整零件清单。组装前，按清单备齐零件。"
     }
   },
   {

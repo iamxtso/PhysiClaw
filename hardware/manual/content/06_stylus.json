@@ -4,7 +4,7 @@
     "page": "stylus",
     "secnum": { "en": "SECTION 06", "zh": "第 06 节" },
     "h1": { "en": "Touch end", "zh": "触控机构" },
-    "lede": { "en": "Mount the capacitive stylus tip onto the push-pull solenoid, then install the two together onto the X carriage.", "zh": "把电容触控笔尖装到推拉式电磁铁上，再将两者一起装到 X 滑座上。" }
+    "lede": { "en": "Install the capacitive stylus tip on the push-pull solenoid. Then install the two together onto the X carriage.", "zh": "把电容触控笔尖装到推拉式电磁铁上。再把两者一起装到 X 滑座上。" }
   },
   {
     "type": "tall-left",
@@ -20,8 +20,8 @@
     ],
     "notes": [
       {
-        "h3": { "en": "Fit the stylus tip", "zh": "安装触控笔尖" },
-        "body": { "en": "The solenoid ships with a nut on its bottom end. Remove that nut, then thread the stylus tip on in its place.", "zh": "电磁铁底端出厂时拧有一颗螺母。拧下后在原位拧上触控笔尖。" },
+        "h3": { "en": "Install the stylus tip", "zh": "安装触控笔尖" },
+        "body": { "en": "The solenoid ships with a nut on its bottom end. Remove the nut, then thread the stylus tip on where the nut was.", "zh": "电磁铁底端出厂时拧有一颗螺母。拧下螺母，在原位拧上触控笔尖。" },
         "classes": "note overlay sm",
         "style": "left:120mm; top:60mm; width:60mm;"
       },
@@ -54,20 +54,20 @@
     ],
     "notes": [
       {
-        "h3": { "en": "10 hole pairs for height tuning", "zh": "10 对高度调节孔" },
-        "body": { "en": "The mount has 10 pairs of holes, spaced 1 mm apart. Pick a pair now, and you can later raise or lower the stylus in 1 mm steps.", "zh": "支架上有 10 对孔，间距 1 mm。先选一对安装，以后可按 1 mm 步进调高或调低触控笔。" },
+        "h3": { "en": "Ten hole pairs for height tuning", "zh": "十对高度调节孔" },
+        "body": { "en": "The mount has 10 pairs of holes, 1 mm apart. Pick one pair now. Later you can raise or lower the stylus in 1 mm steps.", "zh": "支架上有十对孔，间距 1 mm。先选一对安装。以后可每次 1 mm 调高或调低触控笔。" },
         "classes": "note overlay sm",
         "style": "left:50mm; top:20mm; width:80mm;"
       },
       {
         "h3": { "en": "Route the power leads", "zh": "电源线走线" },
-        "body": { "en": "As indicated, feed the solenoid's +/− leads into the rectangular hole on the mount side, then run them up and out through the rectangular hole at the top.", "zh": "按图所示，电磁铁的正负极引线从支架侧面的方孔穿入，向上从顶部方孔引出。" },
+        "body": { "en": "1. Feed the +/− leads of the solenoid into the rectangular hole in the side of the mount, as shown. 2. Run the leads up and out through the rectangular hole at the top.", "zh": "1. 按图把电磁铁的正负极引线从支架侧面的方孔穿入。2. 向上从顶部方孔引出。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:60mm; width:60mm;"
       },
       {
         "h3": { "en": "Ground the solenoid", "zh": "电磁铁接地" },
-        "body": { "en": "Clamp the ground wire's bare copper between the solenoid housing and the mount, then tighten a screw to pin it. This grounds the solenoid. Run the ground wire out through the other rectangular hole below to join the power leads.", "zh": "把接地线的裸铜夹在电磁铁外壳和支架之间，拧上螺栓压紧，电磁铁即接地。接地线从下方另一个方孔穿出，与电源线汇合。" },
+        "body": { "en": "1. Clamp the bare copper of the ground wire between the solenoid housing and the mount. 2. Tighten one of the two mount screws to pin it. 3. Run the ground wire out through the other rectangular hole below to join the power leads.", "zh": "1. 把接地线剥出的铜线夹在电磁铁外壳和支架之间。2. 拧上螺栓压紧。3. 接地线从下方另一个方孔穿出，与电源线汇合。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:110mm; width:60mm;"
       }
@@ -94,8 +94,8 @@
     ],
     "notes": [
       {
-        "h3": { "en": "Mount the solenoid to the clamp", "zh": "把电磁铁装到夹具上" },
-        "body": { "en": "Six screws hold the solenoid assembly to the clamp. To adjust the stylus height later, undo them and refit at a different hole pair.", "zh": "电磁铁总成用六颗螺栓固定在夹具上。以后调整触控笔高度时，松开螺栓，换一对孔重新安装。" },
+        "h3": { "en": "Install the solenoid on the clamp", "zh": "把电磁铁装到夹具上" },
+        "body": { "en": "Six screws hold the solenoid assembly to the clamp. To change the stylus height later, move the assembly to a different hole pair.", "zh": "六颗螺栓把电磁铁组件固定在夹具上。以后要调整触控笔高度，就把组件换到另一对孔上。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:120mm; width:60mm;"
       }

@@ -4,7 +4,7 @@
     "page": "wiring",
     "secnum": { "en": "SECTION 10", "zh": "第 10 节" },
     "h1": { "en": "Wiring", "zh": "接线" },
-    "lede": { "en": "Connect the control board's stepper driver outputs to the motors. Wire the solenoid to the spindle output, and ground it.", "zh": "把控制板的步进驱动输出接到电机，电磁铁接到主轴（Spindle）输出，并接地。" }
+    "lede": { "en": "Connect the stepper driver outputs of the control board to the motors. Connect the solenoid to the Spindle output. Ground the solenoid.", "zh": "把控制板的步进电机驱动输出接到电机。把电磁铁接到主轴（Spindle）输出，并接地。" }
   },
   {
     "type": "tall-left",
@@ -24,7 +24,7 @@
       },
       {
         "h3": { "en": "Mind the orientation", "zh": "注意方向" },
-        "body": { "en": "Match each driver's pin labels to the board silkscreen before pressing it home. A reversed TMC2209 can burn out on power-up.", "zh": "压入前核对每个驱动的引脚标识与板上丝印是否一致。TMC2209 装反，上电时可能烧毁。" },
+        "body": { "en": "Do not install a TMC2209 reversed. It can burn out on power-up. Before you press a driver home, make sure that its pin labels match the silkscreen.", "zh": "不要把 TMC2209 装反。否则上电时可能烧毁。压入前，确认每个驱动的引脚标识与板上丝印一致。" },
         "classes": "note overlay sm",
         "style": "left:150mm; top:100mm; width:90mm;"
       },
@@ -36,7 +36,7 @@
       },
       {
         "h3": { "en": "Heatsink", "zh": "散热片" },
-        "body": { "en": "TMC2209 driver modules typically include a heatsink that can be stuck onto the top of the driver chip.", "zh": "TMC2209 驱动模块通常自带散热片，可贴在驱动芯片顶部。" },
+        "body": { "en": "TMC2209 driver modules usually include a heatsink. You can stick it on top of the driver chip.", "zh": "TMC2209 驱动模块通常自带散热片。可以贴在驱动芯片顶部。" },
         "classes": "note overlay sm",
         "style": "left:60mm; bottom:32mm; width:90mm;"
       }
@@ -90,19 +90,19 @@
     "notes": [
       {
         "h3": { "en": "Connections", "zh": "接线对应" },
-        "body": { "en": "The board uses standard GRBL axis outputs, remapped as follows: the X-axis motor driver drives Motor B, the Y1-axis motor driver drives Motor A, and the Spindle output drives the solenoid (in place of a spindle).", "zh": "控制板使用标准 GRBL 轴输出，映射如下：X 轴驱动接电机 B，Y1 轴驱动接电机 A，主轴（Spindle）输出接电磁铁（代替主轴）。" },
+        "body": { "en": "The board uses standard GRBL axis outputs, remapped as follows. The X-axis stepper driver drives Motor B. The Y1-axis stepper driver drives Motor A. The Spindle output drives the solenoid.", "zh": "控制板使用标准 GRBL 轴输出，映射如下：X 轴步进电机驱动接电机 B。Y1 轴步进电机驱动接电机 A。主轴（Spindle）输出接电磁铁。" },
         "classes": "note overlay sm",
         "style": "left:150mm; top:110mm; width:110mm;"
       },
       {
         "h3": { "en": "No polarity", "zh": "无需分极性" },
-        "body": { "en": "The Spindle output (to the solenoid) is not polarity-sensitive. Either lead can go to either terminal.", "zh": "接电磁铁的主轴（Spindle）输出不分极性，两根引线可任意接。" },
+        "body": { "en": "Connect either solenoid lead to either Spindle terminal.", "zh": "电磁铁两根引线可任意接主轴（Spindle）端子。" },
         "classes": "note overlay sm",
         "style": "left:16mm; top:30mm; width:100mm;"
       },
       {
         "h3": { "en": "Motor cable connectors", "zh": "电机接线端子" },
-        "body": { "en": "Motor side: 6-pin PH2.0 (2.0 mm pitch), with two pins empty and only four used. Board side: 4-pin XH2.54 (2.54 mm pitch). The connector is keyed and fits in one orientation only. Align the key on the plug with the notch on the socket. Do not force it in.", "zh": "电机侧为 6 针 PH2.0（2.0 mm 间距），2 针空置，只用 4 针。控制板侧为 4 针 XH2.54（2.54 mm 间距）。端子带防呆结构，仅能单向插入。请将插头凸起对准插座缺口，切勿强行插入。" },
+        "body": { "en": "Motor side: 6-pin PH2.0 (2.0 mm pitch), with 2 pins empty and only 4 used. Board side: 4-pin XH2.54 (2.54 mm pitch). Each connector is keyed and fits in one orientation only. Align the key on the plug with the notch on the socket. Do not force the plug in.", "zh": "电机侧为 6 针 PH2.0（2.0 mm 间距），两针空置，只用四针。控制板侧为 4 针 XH2.54（2.54 mm 间距）。端子带防呆结构，仅能单向插入。把插头凸起对准插座缺口。切勿强行插入。" },
         "classes": "note overlay sm",
         "style": "left:30mm; top:145mm; width:110mm;"
       }
@@ -126,19 +126,19 @@
     "notes": [
       {
         "h3": { "en": "Extend the leads", "zh": "接长引线" },
-        "body": { "en": "The solenoid's stock leads don't reach the control board. Splice extra hookup wire onto both the 12 V and GND leads.", "zh": "电磁铁原装引线够不到控制板，12 V 和 GND 两根引线各接长一段导线。" },
+        "body": { "en": "The solenoid's stock leads do not reach the control board. Splice lead wire onto both the 12 V and GND leads.", "zh": "电磁铁原装引线够不到控制板。给 12 V 和 GND 两根引线各接长一段导线。" },
         "classes": "note overlay sm",
         "style": "left:16mm; top:30mm; width:100mm;"
       },
       {
         "h3": { "en": "Keep the stock leads under 50 mm", "zh": "原装引线不超过 50 mm" },
-        "body": { "en": "Cut the solenoid's stock leads back to 50 mm or less before splicing, so the joints sit clear of where the cable bends most. A joint that flexes with every gesture fatigues and snaps.", "zh": "接长前先把原装引线剪到 50 mm 以内，使接头避开线缆弯曲最大的位置。接头若随每次动作弯折，会疲劳断裂。" },
+        "body": { "en": "Before you splice, cut the solenoid's stock leads back to 50 mm or less. The joints then sit clear of where the cable bends most. A joint that flexes with every gesture fatigues and snaps.", "zh": "接长前，先把原装引线剪到 50 mm 以内。这样接头就避开了线缆弯曲最厉害的位置。接头若随每次动作弯折，会疲劳断裂。" },
         "classes": "note overlay sm",
         "style": "left:140mm; top:25mm; width:100mm;"
       },
       {
-        "h3": { "en": "Stagger the splices", "zh": "错开接头" },
-        "body": { "en": "Solder each joint and cover it with heat-shrink. Offset the two splices about 10 mm so the insulated joints don't sit side by side.", "zh": "每个接头焊接后套热缩管，两个接头错开约 10 mm，避免并排紧挨。" },
+        "h3": { "en": "Stagger the joints", "zh": "错开接头" },
+        "body": { "en": "Offset the two joints by about 10 mm so that they do not sit side by side. 1. Solder each joint. 2. Cover it with heat shrink tubing.", "zh": "两个接头错开约 10 mm，避免并排紧挨。1. 焊接每个接头。2. 套热缩管。" },
         "classes": "note overlay sm",
         "style": "left:100mm; bottom:40mm; width:120mm;"
       }
@@ -161,31 +161,31 @@
     "notes": [
       {
         "h3": { "en": "Ground the stylus", "zh": "给触控笔接地" },
-        "body": { "en": "The stylus rides on the solenoid's iron core, and the core is tied to the housing through the metal return spring, so grounding the housing grounds the core, and the tip with it. Give it a real ground reference. Do not use the control board's GND.", "zh": "触控笔装在电磁铁的铁芯上，铁芯通过金属回位弹簧与外壳相连，外壳接地后，铁芯和笔尖随之接地。要接到真正的接地点，不要用控制板的 GND。" },
+        "body": { "en": "The stylus rides on the solenoid's iron core. The metal return spring ties the core to the housing. Ground the housing, and the core and the stylus tip are grounded with it. Do not use the control board's GND.", "zh": "触控笔装在电磁铁的铁芯上。铁芯通过金属回位弹簧与外壳相连。外壳接地后，铁芯和触控笔尖随之接地。不要用控制板的 GND。" },
         "classes": "note overlay sm",
         "style": "left:130mm; top:22mm; width:150mm; max-width:150mm;"
       },
       {
         "h3": { "en": "Why it matters", "zh": "为什么要接地" },
-        "body": { "en": "A capacitive screen senses a touch through capacitive coupling to ground. A finger works because the body is a large conductor tied to earth; the arm's stylus couples to earth too weakly, so a tap shifts the screen's charge distribution only slightly, and the phone registers the touch unreliably. Tie the stylus to a solid ground to restore that coupling and steady the touch.", "zh": "电容屏通过触摸物与大地的电容耦合感应触摸。手指能触发屏幕，是因为人体是与大地相连的大导体；机械臂上的触控笔与大地耦合太弱，点击时屏幕的电荷分布变化很小，识别就不稳定。把触控笔接到可靠的地，恢复耦合，触摸识别即可稳定。" },
+        "body": { "en": "A capacitive screen senses a touch through capacitive coupling to ground. A finger works because the body is a large conductor tied to earth. An ungrounded stylus couples to earth too weakly. A tap then shifts the screen's charge distribution only slightly, and the phone registers the touch unreliably. A verified ground restores that coupling and steadies the touch.", "zh": "电容屏通过触摸物与大地的电容耦合感应触摸。手指能触发屏幕，是因为人体是与大地相连的大导体。未接地的触控笔与大地的耦合太弱。点击时屏幕的电荷分布变化很小，识别就不稳定。接到可靠的接地点，耦合恢复，触摸识别即可稳定。" },
         "classes": "note overlay sm",
         "style": "left:130mm; top:45mm; width:150mm; max-width:150mm;"
       },
       {
         "h3": { "en": "How to ground it", "zh": "接地方法" },
-        "body": { "en": "Connect the housing to the power supply's common ground. The simplest option is to clip the wire to bare metal on a desktop PC chassis that is grounded through a three-prong outlet. The chassis reaches earth through the mains, giving a stable reference.", "zh": "把外壳接到电源的公共地。最简单的办法是找一台经三脚插座接地的台式电脑，把线夹在机箱的裸露金属上。机箱经市电地线连到大地，可提供稳定的接地参考。" },
+        "body": { "en": "Never put the ground wire into a wall socket. Connect the housing to earth ground. The simplest option is a desktop PC chassis grounded through a three-prong outlet. Clip the wire to bare metal on the chassis. The chassis reaches earth through the mains and gives a stable reference.", "zh": "切勿把接地线插入墙壁插座。把外壳接到大地。最简单的办法是接到一台经三脚插座接地的台式电脑：把接地线夹在机箱裸露的金属上。机箱经市电地线连到大地，接地参考稳定。" },
         "classes": "note overlay sm",
         "style": "left:130mm; top:82mm; width:150mm; max-width:150mm;"
       },
       {
         "h3": { "en": "Three wires", "zh": "三根线" },
-        "body": { "en": "Three wires run from the solenoid: positive (+), negative (−), and ground. Use spiral wrap to bind all three wires together with the Teflon tube into one bundle, and run it up to the control board holder, then connect + and − to the control board's Spindle terminal and the ground wire to the power supply's common ground.", "zh": "电磁铁引出三根线：正极（+）、负极（−）和接地线。用螺旋缠绕带把三根线和特氟龙管缠成一束，引到控制板支架，正、负极接控制板的主轴（Spindle）端子，接地线接电源的公共地。" },
+        "body": { "en": "Three wires run from the solenoid: positive (+), negative (−), and ground. 1. Bind the ground wire into the bundle with the + and − leads. 2. Run the bundle up to the control board holder. 3. Connect + and − to the control board's Spindle terminals.", "zh": "电磁铁引出三根线：正极（+）、负极（−）和接地线。1. 把接地线和正负极引线一起缠入线束。2. 把线束引到控制板支架。3. 把正、负极引线接到控制板的主轴（Spindle）端子。" },
         "classes": "note overlay sm",
         "style": "left:130mm; top:112mm; width:150mm; max-width:150mm;"
       },
       {
         "h3": { "en": "Warning", "zh": "警告" },
-        "body": { "en": "Never put the ground wire into a wall socket. Mains voltage (220 V/120 V) is lethal. Touching the live terminal instead of earth can cause a fatal shock and instantly destroy your phone and equipment. Connect only to a verified ground point.", "zh": "切勿把接地线插入墙壁插座。市电（220 V/120 V）足以致命：接到火线而不是地线，可能造成致命电击，并瞬间烧毁手机和设备。只能接确认可靠的接地点。" },
+        "body": { "en": "Never put the ground wire into a wall socket. Mains voltage (220 V/120 V) is lethal. Contact with the live terminal instead of earth causes a fatal shock. It also destroys the phone and the equipment instantly. Connect only to a verified ground point.", "zh": "切勿把接地线插入墙壁插座。市电（220 V/120 V）足以致命。接地线一旦碰到火线，人会触电，手机和设备也会瞬间烧毁。只能接确认可靠的接地点。" },
         "classes": "note overlay sm",
         "style": "left:130mm; top:150mm; width:150mm; max-width:150mm; display:flex; gap:4mm; align-items:flex-start;",
         "icon": "info"
