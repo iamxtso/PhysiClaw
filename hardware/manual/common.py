@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import json
+import re
 import time
 from collections.abc import Iterator
 from pathlib import Path
@@ -34,6 +35,22 @@ def loc(value: Any, lang: str) -> str:
     if isinstance(value, dict):
         return value.get(lang) or value.get("en", "")
     return value
+
+
+# A number stays on one line with the word after it ("2 mm", "4 screws"):
+# the space becomes a non-breaking space. Applied to text nodes only, so
+# attributes and inline CSS are never touched.
+_QUANTITY_GAP = re.compile(r"(?<=\d) (?=[^\W\d_]|°)")
+_TEXT_NODE = re.compile(r">([^<]*)<")
+
+
+def keep_quantities_together(markup: str) -> str:
+    """``markup`` with every number joined to the word after it. Pass the
+    body markup, not a whole document: a ``<style>`` or ``<script>`` block
+    would be rewritten too."""
+    return _TEXT_NODE.sub(
+        lambda m: f">{_QUANTITY_GAP.sub(chr(0xA0), m.group(1))}<", markup
+    )
 
 
 def manual_version() -> str:

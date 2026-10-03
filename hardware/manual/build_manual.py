@@ -52,6 +52,7 @@ from hardware.manual.common import (
     URL_MARK,
     _rowspans,
     _step,
+    keep_quantities_together,
     load_pages,
     loc,
     manual_version,
@@ -515,7 +516,9 @@ def cover_title(pages: list[dict], ctx: Ctx) -> str:
 
 def render_document(pages: list[dict], css: str, ctx: Ctx) -> str:
     """Assemble the full HTML document for one language."""
-    sections = "\n".join(RENDERERS[p["type"]](p, ctx) for p in pages)
+    sections = keep_quantities_together(
+        "\n".join(RENDERERS[p["type"]](p, ctx) for p in pages)
+    )
     src = cover_render_src(pages, ctx)
     preload = ctx.assets.preload(src) if src else ""
     return (

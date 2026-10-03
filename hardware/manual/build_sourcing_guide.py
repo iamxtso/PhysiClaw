@@ -86,6 +86,7 @@ from hardware.manual.common import (
     VENDOR_FILE,
     _rowspans,
     _step,
+    keep_quantities_together,
     load_pages,
     loc,
     manual_version,
@@ -616,6 +617,7 @@ def render_document(rows: list[dict], entries: list[dict], css: str, lang: str) 
         f'<p class="disclaimer">{ui("disclaimer", lang)}</p></div>'
         f"{checklist}{render_table(rows, entries, lang)}</div>"
     )
+    body = keep_quantities_together(body)
     # Bought marks and the highlight preference persist per manual version
     # (a revision starts clean); the EN and ZH files share the key, so state
     # carries across languages. The prefix rides along so the JS stale-key

@@ -46,3 +46,31 @@ def test_load_pages_concatenates_content_files_in_filename_order(tmp_path, monke
     (tmp_path / "00_front.json").write_text('[{"page": "front"}]')
 
     assert common.load_pages() == [{"page": "front"}, {"page": "a"}]
+
+
+NBSP = "\u00a0"
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("sits 2 mm clear", f"sits 2{NBSP}mm clear"),
+        ("4 screws", f"4{NBSP}screws"),
+        ("12 V 2 A", f"12{NBSP}V 2{NBSP}A"),
+        ("100 µm", f"100{NBSP}µm"),
+        ("90 °C", f"90{NBSP}°C"),
+        ("留 2 mm。", f"留 2{NBSP}mm。"),
+        ("2 到 3 小时", f"2{NBSP}到 3{NBSP}小时"),
+        ("M3×8", "M3×8"),
+        ("0 0 1.5mm", "0 0 1.5mm"),
+    ],
+)
+def test_keep_quantities_together_joins_a_number_to_the_word_after_it(text, expected):
+    assert common.keep_quantities_together(f"<p>{text}</p>") == f"<p>{expected}</p>"
+
+
+def test_keep_quantities_together_leaves_attributes_and_inline_css_alone():
+    markup = '<div style="margin: 0 auto; left:110mm"><img alt="4 parts">2 mm</div>'
+    assert common.keep_quantities_together(markup) == (
+        f'<div style="margin: 0 auto; left:110mm"><img alt="4 parts">2{NBSP}mm</div>'
+    )
