@@ -160,6 +160,7 @@ The subcommands — each forwarding its flags to the stage it wraps:
 | `sourcing` | sourcing guide → `output/sourcing/` |
 | `drawing` | extrusion tech drawing (cut & drill; EN + ZH, one A4 page each; `--pdf`) → `output/drawing/` |
 | `mark` / `replay` | annotate step SVGs / replay saved patches |
+| `refit <json> --parts …` | recompute a patch's highlights as the exact silhouettes of the named parts (by label prefix), then replay |
 | `camera` | FreeCAD camera view → `Camera()` literal |
 
 Geometry subcommands need `--group cad`; `check`, `manual`, `sourcing` and `drawing`
