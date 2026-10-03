@@ -123,7 +123,10 @@
             "en": "T-nut",
             "zh": "T 型螺母"
           },
-          "spec": { "en": "Drop-In M3", "zh": "船形螺母 M3" },
+          "spec": {
+            "en": "Drop-In M3",
+            "zh": "船形螺母 M3"
+          },
           "qty": "12"
         }
       ]
@@ -226,7 +229,10 @@
             "en": "XY joint (left)",
             "zh": "XY 连接件（左）"
           },
-          "spec": { "en": "SLS/MJF 3D Print", "zh": "SLS/MJF 3D 打印" },
+          "spec": {
+            "en": "SLS/MJF 3D Print",
+            "zh": "SLS/MJF 3D 打印"
+          },
           "qty": "1"
         },
         {
@@ -234,7 +240,10 @@
             "en": "XY joint (right)",
             "zh": "XY 连接件（右）"
           },
-          "spec": { "en": "SLS/MJF 3D Print", "zh": "SLS/MJF 3D 打印" },
+          "spec": {
+            "en": "SLS/MJF 3D Print",
+            "zh": "SLS/MJF 3D 打印"
+          },
           "qty": "1"
         },
         {
@@ -299,7 +308,10 @@
             "en": "T-nut",
             "zh": "T 型螺母"
           },
-          "spec": { "en": "Slide-In M5", "zh": "滑块螺母 M5" },
+          "spec": {
+            "en": "Slide-In M5",
+            "zh": "滑块螺母 M5"
+          },
           "qty": "2"
         }
       ]
@@ -421,7 +433,10 @@
             "en": "T-nut",
             "zh": "T 型螺母"
           },
-          "spec": { "en": "Drop-In M3", "zh": "船形螺母 M3" },
+          "spec": {
+            "en": "Drop-In M3",
+            "zh": "船形螺母 M3"
+          },
           "qty": "4"
         }
       ]
@@ -499,7 +514,10 @@
             "en": "Idler",
             "zh": "惰轮"
           },
-          "spec": { "en": "GT2 20T, smooth", "zh": "GT2 20T，光面" },
+          "spec": {
+            "en": "GT2 20T, smooth",
+            "zh": "GT2 20T，光面"
+          },
           "qty": "1"
         },
         {
@@ -622,7 +640,10 @@
             "en": "Idler",
             "zh": "惰轮"
           },
-          "spec": { "en": "GT2 20T, toothed", "zh": "GT2 20T，带齿" },
+          "spec": {
+            "en": "GT2 20T, toothed",
+            "zh": "GT2 20T，带齿"
+          },
           "qty": "1"
         },
         {
@@ -663,8 +684,7 @@
         "src": "linear_43_idler_lj2_assembled_cam0_zhsr.svg"
       }
     ],
-    "notes": [
-    ],
+    "notes": [],
     "bom": {
       "label": {
         "en": "Bill of materials",
@@ -725,7 +745,10 @@
             "en": "Idler",
             "zh": "惰轮"
           },
-          "spec": { "en": "GT2 20T, smooth", "zh": "GT2 20T，光面" },
+          "spec": {
+            "en": "GT2 20T, smooth",
+            "zh": "GT2 20T，光面"
+          },
           "qty": "1"
         },
         {
@@ -766,8 +789,7 @@
         "src": "linear_45_idler_rj1_assembled_cam0_xriv.svg"
       }
     ],
-    "notes": [
-    ],
+    "notes": [],
     "bom": {
       "label": {
         "en": "Bill of materials",
@@ -828,7 +850,10 @@
             "en": "Idler",
             "zh": "惰轮"
           },
-          "spec": { "en": "GT2 20T, toothed", "zh": "GT2 20T，带齿" },
+          "spec": {
+            "en": "GT2 20T, toothed",
+            "zh": "GT2 20T，带齿"
+          },
           "qty": "1"
         },
         {
