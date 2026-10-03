@@ -40,7 +40,9 @@ from hardware.assembly.mark.validate import validate_shapes
 from hardware.assembly.projection import camera_view
 from hardware.parts.standard.t_nut import HALF_PROFILES
 
-STEM_RE = re.compile(r"^(?P<module>.+)_(?P<variant>exploded|assembled)_cam(?P<cam>\d+)$")
+STEM_RE = re.compile(
+    r"^(?P<module>.+)_(?P<variant>exploded|assembled)_cam(?P<cam>\d+)$"
+)
 CURVE_STEP = 0.3  # mm between samples along a curved projected edge
 TOLERANCE = 0.1  # mm — simplify the outline to this (invisible at print scale)
 DECIMALS = 3  # stored coordinate precision, mm
@@ -60,8 +62,16 @@ def _edges(shape: Shape, cam_pos, up, look_at) -> list[LineString]:
     visible, _ = shape.project_to_viewport(cam_pos, up, look_at=look_at)
     out = []
     for e in visible:
-        n = 2 if e.geom_type == GeomType.LINE else max(3, int(e.length / CURVE_STEP) + 1)
-        out.append(LineString([(p.X, p.Y) for p in (e.position_at(i / (n - 1)) for i in range(n))]))
+        n = (
+            2
+            if e.geom_type == GeomType.LINE
+            else max(3, int(e.length / CURVE_STEP) + 1)
+        )
+        out.append(
+            LineString(
+                [(p.X, p.Y) for p in (e.position_at(i / (n - 1)) for i in range(n))]
+            )
+        )
     return out
 
 
@@ -91,14 +101,18 @@ def silhouette(shape: Shape, cam_pos, up, look_at) -> Polygon:
     if isinstance(region, MultiPolygon):
         region = max(region.geoms, key=lambda g: g.area)
     if region.is_empty:
-        raise ValueError(f"{label}: its visible edges enclose no region from this camera")
+        raise ValueError(
+            f"{label}: its visible edges enclose no region from this camera"
+        )
     return Polygon(region.exterior)
 
 
 def _root_points(poly: Polygon) -> list[list[float]]:
     """Projected (x, y) → SVG root coordinates: ExportSVG flips y."""
     poly = poly.simplify(TOLERANCE)
-    return [[round(x, DECIMALS), round(-y, DECIMALS)] for x, y in poly.exterior.coords[:-1]]
+    return [
+        [round(x, DECIMALS), round(-y, DECIMALS)] for x, y in poly.exterior.coords[:-1]
+    ]
 
 
 def refit(patch: Path, parts: list[str] | None) -> int:
@@ -124,13 +138,21 @@ def refit(patch: Path, parts: list[str] | None) -> int:
             if getattr(c, "label", "").startswith(tuple(wanted))
         ]
         if not chosen:
-            raise ValueError(f"{patch.name}: no child labelled {wanted} in {asm.compound_label}")
+            raise ValueError(
+                f"{patch.name}: no child labelled {wanted} in {asm.compound_label}"
+            )
         style = {k: v for k, v in op["shapes"][0].items() if k not in ("type", "geom")}
         shapes = [
-            {"type": "polygon", "geom": {"points": _root_points(silhouette(c, cam_pos, up, look_at))}, **style}
+            {
+                "type": "polygon",
+                "geom": {"points": _root_points(silhouette(c, cam_pos, up, look_at))},
+                **style,
+            }
             for c in chosen
         ]
-        entry = make_entry(op["id"], op["preop"], validate_shapes(shapes), op["viewBox"])
+        entry = make_entry(
+            op["id"], op["preop"], validate_shapes(shapes), op["viewBox"]
+        )
         entry["parts"] = list(wanted)
         op.clear()
         op.update(entry)
@@ -150,7 +172,10 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv[1:])
     try:
         if not refit(args.patch.resolve(), args.parts):
-            print(f"{args.patch.name}: no op has parts to refit (pass --parts)", file=sys.stderr)
+            print(
+                f"{args.patch.name}: no op has parts to refit (pass --parts)",
+                file=sys.stderr,
+            )
             return 2
     except ValueError as exc:
         print(f"refit: {exc}", file=sys.stderr)
