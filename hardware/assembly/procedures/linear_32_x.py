@@ -1,5 +1,5 @@
 """Linear X rail sub-assembly (short) — MGN9H 150 mm guideway with
-M3 × 10 FHCS in the rail's mounting holes and hammer M3 T-nuts
+M3 × 8 BHCS in the rail's mounting holes and hammer M3 T-nuts
 hanging loosely from each shank tip, ready to engage.
 
 Same construction as linear_10_y (LI10Y) — only the rail length,

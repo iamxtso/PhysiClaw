@@ -3,7 +3,7 @@
 sub-assemblies on the long extrusions' slot faces, one on long_left
 and one on long_right.
 
-Each LI10Y already bundles its own MGN9H + 6 M3 × 10 FHCS + 6 hammer
+Each LI10Y already bundles its own MGN9H + 6 M3 × 8 BHCS + 6 hammer
 M3 T-nuts (built in the rail's native frame). This step just places
 each instance onto the corresponding extrusion:
 

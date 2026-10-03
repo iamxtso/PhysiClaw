@@ -23,10 +23,13 @@ rail_half_profile = (
     (0, 6.5),
 )
 
-# Rail mounting holes — M3 clearance through-hole + counterbore on top face.
+# Rail mounting holes — M3 clearance through-hole + flat-bottom counterbore
+# on the top face, sized for a cylindrical-head M3 screw (HIWIN's rail bolt
+# is an M3 × 8 SHCS; the build uses an M3 × 8 BHCS for its 2 mm hex key).
 rail_hole_dia = 3.5 * MM  # d (M3 close)
 rail_cbore_dia = 6 * MM  # D
 rail_cbore_depth = 3.5 * MM  # h
+rail_cbore_floor_z = rail_height - rail_cbore_depth  # the screw's underhead seat
 rail_hole_pitch = 20 * MM  # P
 rail_cbore_chamfer = 0.1 * MM  # break the cbore rim
 
