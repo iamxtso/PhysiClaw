@@ -622,10 +622,10 @@
           "en": "M3×8",
           "zh": "M3×8"
         },
-        "qty": "8",
+        "qty": "24",
         "desc": {
-          "en": "Belt clamps & stylus",
-          "zh": "同步带夹具、触控笔架"
+          "en": "Rails, belt clamps & stylus",
+          "zh": "导轨、同步带夹具、触控笔架"
         }
       },
       {
@@ -762,10 +762,10 @@
           "en": "M3×10",
           "zh": "M3×10"
         },
-        "qty": "26",
+        "qty": "10",
         "desc": {
-          "en": "Gantry & stylus",
-          "zh": "龙门架、触控笔"
+          "en": "XY joints & solenoid mount",
+          "zh": "XY 连接件、电磁铁支架"
         }
       },
       {

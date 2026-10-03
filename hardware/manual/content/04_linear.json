@@ -76,8 +76,8 @@
           "zh": "先让 T 型螺母挂着"
         },
         "body": {
-          "en": "1. Thread an M3×10 FHCS into every other hole and let its drop-in T-nut hang on the screw tip. 2. Lower the whole rail onto the extrusion. 3. Tighten the screws to draw the T-nuts up snug.",
-          "zh": "1. 每隔一个孔拧入一颗 M3×10 沉头螺栓，船形螺母挂在螺栓末端。2. 把导轨放入型材槽。3. 拧紧螺栓，把螺母拉起夹紧。"
+          "en": "1. Thread an M3×8 BHCS into every other hole and let its drop-in T-nut hang on the screw tip. 2. Lower the whole rail onto the extrusion. 3. Tighten the screws to draw the T-nuts up snug.",
+          "zh": "1. 每隔一个孔拧入一颗 M3×8 半圆头螺栓，船形螺母挂在螺栓末端。2. 把导轨放入型材槽。3. 拧紧螺栓，把螺母拉起夹紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:80mm; width:74mm;"
@@ -112,10 +112,10 @@
         },
         {
           "component": {
-            "en": "FHCS",
-            "zh": "沉头螺栓"
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
           },
-          "spec": "M3×10",
+          "spec": "M3×8",
           "qty": "12"
         },
         {
@@ -422,10 +422,10 @@
         },
         {
           "component": {
-            "en": "FHCS",
-            "zh": "沉头螺栓"
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
           },
-          "spec": "M3×10",
+          "spec": "M3×8",
           "qty": "4"
         },
         {
