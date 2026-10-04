@@ -11,8 +11,8 @@
       "zh": "框架"
     },
     "lede": {
-      "en": "Four 2040 aluminum extrusions form the base frame, and every other part mounts onto it. Make sure that all four corners are square: they are the foundation for accurate motion later.",
-      "zh": "四根 2040 铝型材拼成底座框架，其余零件都装在框架上。确认框架四角成直角。方正的框架是后续运动精度的基础。"
+      "en": "Four aluminum 2040 extrusions form the base frame. Every other part is installed on it. Make sure that all four corners are square. They are the foundation for accurate motion later.",
+      "zh": "四根 2040 铝型材组成底座框架。其余零件都装在框架上。确认框架四角成直角。方正的框架是后续运动精度的基础。"
     }
   },
   {
@@ -33,12 +33,12 @@
     "notes": [
       {
         "h3": {
-          "en": "Preload the T-nuts",
-          "zh": "先装 T 型螺母"
+          "en": "Load the T-nuts first",
+          "zh": "先装滑块螺母"
         },
         "body": {
           "en": "Before you square the frame, slide every T-nut into its slot.",
-          "zh": "校正框架方正前，先把每颗 T 型螺母滑入型材槽。"
+          "zh": "校正框架四角前，先把每颗滑块螺母滑入型材槽。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; bottom:70mm; width:80mm;"
@@ -107,19 +107,19 @@
         },
         "body": {
           "en": "Top, bottom, left, and right throughout this manual refer to this view.",
-          "zh": "本手册中的上、下、左、右均以这个视角为准。"
+          "zh": "本手册中的上、下、左、右均以本图视角为准。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:40mm; width:80mm;"
       },
       {
         "h3": {
-          "en": "Mind the placement",
-          "zh": "注意位置"
+          "en": "Short extrusion on top",
+          "zh": "短型材放在顶部"
         },
         "body": {
           "en": "Put the short extrusion with the 4 slide-in T-nuts on top.",
-          "zh": "把带四个滑块螺母的短型材放在顶部。"
+          "zh": "把带 4 颗滑块螺母的短型材放在顶部。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:60mm; width:80mm;"
@@ -131,7 +131,7 @@
         },
         "body": {
           "en": "Turn the counterbored ends of the long extrusions outward. Align each counterbore with the end hole of the short extrusion.",
-          "zh": "长型材的沉孔开口朝外。每个沉孔对准短型材端面的孔。"
+          "zh": "把长型材的沉孔端朝外。每个沉孔对准短型材端面螺纹孔。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:90mm; width:80mm;"
@@ -139,11 +139,11 @@
       {
         "h3": {
           "en": "Square before final tightening",
-          "zh": "先校方正，再拧紧"
+          "zh": "先校正，再拧紧"
         },
         "body": {
           "en": "1. Drop each M6×20 SHCS through the counterbore into the end hole of the short extrusion. 2. Tighten all 8 until snug. 3. Square the frame on a flat surface. 4. Tighten fully.",
-          "zh": "1. 把每颗 M6×20 圆柱头螺栓穿过长型材沉孔。2. 全部拧入短型材端面螺纹孔，拧到贴合。3. 在平整台面上校正框架方正。4. 全部拧紧。"
+          "zh": "1. 把每颗 M6×20 圆柱头螺栓穿过长型材沉孔。2. 全部拧入短型材端面螺纹孔，拧到贴合。3. 在平整台面上把框架校正至四角垂直。4. 全部拧紧。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:120mm; width:80mm;"
@@ -191,8 +191,8 @@
           "zh": "框架加固"
         },
         "body": {
-          "en": "One flat bracket reinforces each corner. 1. Put an M5×10 BHCS through the bracket. 2. Thread a drop-in T-nut on loosely. 3. Drop the assembly into the assembled frame. 4. Tighten the screw.",
-          "zh": "1. 把 M5×10 半圆头螺栓穿过连接板。2. 拧上船形螺母，暂不拧紧。3. 把连接板连同螺母放入拼好的框架。4. 拧紧螺栓。"
+          "en": "One flat bracket reinforces each corner. 1. Put 2 M5×10 BHCS through the bracket. 2. Thread a drop-in T-nut loosely onto each. 3. Put the bracket with its nuts into the frame corner. 4. Tighten both screws.",
+          "zh": "每角用一块一字连接板加固。1. 把 2 颗 M5×10 半圆头螺栓穿过连接板。2. 各拧上船形螺母，暂不拧紧。3. 把连接板连同螺母放入框架转角。4. 拧紧螺栓。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:100mm; width:80mm;"
@@ -260,7 +260,7 @@
           "zh": "支脚朝下"
         },
         "body": {
-          "en": "The bumpers are the feet of the machine. Install them under the 4 corners of the frame.",
+          "en": "The bumpers are the feet of the machine. Install them under the four corners of the frame.",
           "zh": "橡胶脚垫是机器的支脚。装在框架底面四角。"
         },
         "classes": "note overlay sm",
@@ -273,7 +273,7 @@
         },
         "body": {
           "en": "If the bumpers came with their own screws, use those screws. They are the right size.",
-          "zh": "如果脚垫自带螺栓，就用自带的螺栓。尺寸正合适。"
+          "zh": "如果脚垫自带螺栓，直接使用自带螺栓，尺寸相符。"
         },
         "classes": "note overlay sm",
         "style": "left:135mm; top:30mm; width:70mm;"

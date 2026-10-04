@@ -11,8 +11,8 @@
       "zh": "同步带"
     },
     "lede": {
-      "en": "PhysiClaw's CoreXY drive runs on two GT2 belts, A and B. They sit on two stacked planes, so they never cross. The two belts must have equal tension, or the motion is not accurate.",
-      "zh": "PhysiClaw 的 CoreXY 由 A、B 两条 GT2 同步带驱动。两条同步带分别位于上下两层平面，互不交叉。两条同步带的张力必须一致，运动才能准确。"
+      "en": "PhysiClaw's CoreXY stage runs on two GT2 belts, the Motor A belt and the Motor B belt. They run on the upper and lower belt planes, so they never cross. The two belts must have equal tension, or the motion is not accurate.",
+      "zh": "PhysiClaw 的 CoreXY 结构由两条 GT2 同步带驱动：电机 A 的同步带和电机 B 的同步带。两条同步带分别位于上层和下层同步带平面，互不交叉。两条同步带的张力必须一致，运动才能准确。"
     }
   },
   {
@@ -38,12 +38,12 @@
     "notes": [
       {
         "h3": {
-          "en": "Install belt A",
+          "en": "Install the Motor A belt",
           "zh": "装电机 A 的同步带"
         },
         "body": {
           "en": "The Motor A belt is a single open length. Both ends clamp to the X carriage. Keep the belt flat in one plane along the whole path. The teeth run on the pulley and the toothed idlers. The smooth back runs on the smooth idlers.",
-          "zh": "电机 A 的同步带是一整条开口带。两端夹在 X 滑座上。整条同步带全程保持在同一平面。齿面咬合同步轮和带齿的惰轮。平背面贴着光面惰轮。"
+          "zh": "电机 A 的同步带是一整条开口带。两端夹在 X 滑座上。同步带全程保持在同一平面。齿面咬合同步轮和带齿惰轮。背面贴着光面惰轮。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:20mm; width:90mm;"
@@ -54,7 +54,7 @@
           "zh": "夹具自锁"
         },
         "body": {
-          "en": "1. Feed each belt end into the bottom slot of the clamp. 2. Loop it around the post. 3. Fold it back against itself so the teeth mesh. The teeth-on-teeth grip holds the belt with no extra fasteners.",
+          "en": "1. Feed each belt end into the bottom slot of the clamp. 2. Loop it around the post. 3. Fold it back against itself so that the teeth mesh. The teeth-on-teeth grip holds the belt with no extra fasteners.",
           "zh": "1. 把同步带的每一端穿入夹具底部的槽。2. 绕过立柱。3. 折回贴在带身上，让齿与齿咬合。这样即可固定同步带，无需额外紧固件。"
         },
         "classes": "note overlay sm",
@@ -62,12 +62,12 @@
       },
       {
         "h3": {
-          "en": "Tension by sliding the motor",
+          "en": "Slide the motor to tension the belt",
           "zh": "滑动电机张紧同步带"
         },
         "body": {
-          "en": "Leave the two M5 screws of Motor A loose. Clamp both belt ends into the clamp, then slide the motor to pull the belt tight.",
-          "zh": "电机 A 的两颗 M5 螺栓保持松动。把同步带两端夹入夹具，再滑动电机拉紧同步带。"
+          "en": "Keep the 2 M5 screws of Motor A snug, not tight. 1. Clamp both belt ends. 2. Slide the motor to tension the belt.",
+          "zh": "电机 A 的 2 颗 M5 螺栓拧到贴合，暂不拧紧。1. 夹入同步带两端。2. 滑动电机张紧同步带。"
         },
         "classes": "note overlay sm",
         "style": "right:10mm; top:100mm; width:70mm;"
@@ -119,8 +119,8 @@
           "zh": "先夹好同步带，再装夹具"
         },
         "body": {
-          "en": "Before you attach the clamp to the X carriage, make sure that the Motor A belt sits in its bottom slot.",
-          "zh": "把夹具固定到 X 滑座前，确认电机 A 的同步带已卡入夹具底部的槽。"
+          "en": "Before you install the clamp on the X carriage, make sure that the Motor A belt sits in the bottom slot of the clamp.",
+          "zh": "把夹具装到 X 滑座前，确认电机 A 的同步带已卡入夹具底部的槽。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:120mm; width:90mm;"
@@ -128,7 +128,7 @@
       {
         "h3": {
           "en": "Match the Motor B belt length",
-          "zh": "把电机 B 的同步带裁成同样长度"
+          "zh": "把电机 B 的同步带裁成相同长度"
         },
         "body": {
           "en": "Before you put the Motor A belt into its clamp, cut the Motor B belt to the same length.",
@@ -189,12 +189,12 @@
     "notes": [
       {
         "h3": {
-          "en": "Install belt B",
+          "en": "Install the Motor B belt",
           "zh": "装电机 B 的同步带"
         },
         "body": {
-          "en": "Route the Motor B belt on the upper idler plane. It must not cross the Motor A belt. Clamp both ends to the X carriage, the same way as the Motor A belt.",
-          "zh": "把电机 B 的同步带沿上层惰轮平面布置。不能与电机 A 的同步带交叉。两端夹到 X 滑座上，方法与电机 A 的同步带相同。"
+          "en": "Route the Motor B belt on the upper belt plane. It must not cross the Motor A belt. Clamp both ends to the X carriage, the same way as the Motor A belt.",
+          "zh": "把电机 B 的同步带沿上层同步带平面布置，不与电机 A 的同步带交叉。两端同样夹到 X 滑座上。"
         },
         "classes": "note overlay sm",
         "style": "right:60mm; top:20mm; width:100mm;"
@@ -205,8 +205,8 @@
           "zh": "检查同步带"
         },
         "body": {
-          "en": "After you install both belts, push the X carriage by hand through its full travel in every direction. The carriage must move smoothly, with even resistance throughout. That resistance comes only from the motors. Make sure that nothing sticks, interferes, twists, or makes an odd noise, and that the two belts stay on their separate planes.",
-          "zh": "两条同步带装好后，用手推动 X 滑座，沿各个方向走完整个行程。滑座应全程顺畅、阻力均匀。这点阻力只来自电机。确认没有卡滞、干涉、扭转和异常噪声，两条同步带各在自己的平面上。"
+          "en": "After you install both belts, slide the X carriage by hand through its full travel in every direction. The carriage must slide smoothly, with even resistance throughout. That resistance comes only from the motors. Make sure that nothing sticks, interferes, twists, or makes an odd noise. Make sure that the two belts stay on their separate planes.",
+          "zh": "两条同步带装好后，用手推动 X 滑座，沿各个方向走完整个行程。滑座应全程顺畅、阻力均匀。阻力只来自电机。确认没有卡滞、干涉、扭转和异常噪声。确认两条同步带仍各在一层平面内。"
         },
         "classes": "note overlay sm",
         "style": "right:60mm; top:105mm; width:100mm;"
@@ -218,7 +218,7 @@
         },
         "body": {
           "en": "The pulleys are now aligned. If their set screws have no threadlocker yet, apply it now.",
-          "zh": "同步轮已对齐。如果紧定螺钉还没涂螺纹胶，现在涂上。"
+          "zh": "同步轮已对齐。如果紧定螺钉尚未涂螺纹胶，现在涂上。"
         },
         "classes": "note overlay sm",
         "style": "right:60mm; top:155mm; width:100mm;"
@@ -253,8 +253,8 @@
           "zh": "同步带张力"
         },
         "body": {
-          "en": "Tension the two belts equally. Even a small difference skews the gantry. To fine-tune the tension of a belt, move its motor. Then tighten the motor bracket screws fully.",
-          "zh": "两条同步带的张力要一致。张力略有差别，龙门架就会偏斜。要微调某条同步带的张力，就移动对应的电机。然后把电机支架的螺栓拧紧。"
+          "en": "Tension the two belts equally. Even a small difference skews the gantry. To adjust the tension of a belt, slide its motor. Then tighten the motor bracket screws fully.",
+          "zh": "两条同步带的张力要一致。张力略有差别，龙门架就会偏斜。微调张力时，滑动对应的电机。调好后，拧紧电机支架的螺栓。"
         },
         "classes": "note overlay sm",
         "style": "left:152mm; top:30mm; width:112mm;"
@@ -265,7 +265,7 @@
           "zh": "拨动同步带"
         },
         "body": {
-          "en": "Quick check: 1. Move the X carriage fully to the motor side. 2. Pluck the 2 marked belts with a finger. The two belts must feel and sound about the same. The same pitch means about the same tension.",
+          "en": "Quick check: 1. Slide the X carriage fully to the motor side. 2. Pluck the two marked belts with a finger. The two belts must feel and sound about the same. The same pitch means about the same tension.",
           "zh": "快速检查：1. 把 X 滑座推到电机一侧尽头。2. 用手指拨动图中标出的两条同步带。两条同步带的手感和声音应基本相同。音高一致，说明张力大致相等。"
         },
         "classes": "note overlay sm",
@@ -276,10 +276,9 @@
           "en": "75 Hz at 220 mm",
           "zh": "220 mm 处 75 Hz"
         },
-        "h3Class": "normal-case",
         "body": {
-          "en": "Precise check: 1. Park the X carriage at the marked position. 2. Pluck each belt and read its frequency with a tuning app on your phone. 3. Adjust both belts to the same frequency, about 75 Hz.",
-          "zh": "精确检查：1. 把 X 滑座停在标记位置。2. 逐条拨动同步带，用手机调音 App 测量频率。3. 把两条同步带调到同一频率，约 75 Hz。"
+          "en": "Precise check: 1. Park the X carriage at the marked position. 2. Pluck each belt. 3. Read its frequency with a tuning app on your phone. 4. Adjust both belts to the same frequency, about 75 Hz.",
+          "zh": "精确检查：1. 把 X 滑座停在标记位置。2. 逐条拨动同步带。3. 用手机调音 App 测量频率。4. 把两条同步带调到同一频率，约 75 Hz。"
         },
         "classes": "note overlay sm",
         "style": "left:152mm; top:120mm; width:112mm;"

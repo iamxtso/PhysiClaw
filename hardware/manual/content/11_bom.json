@@ -12,7 +12,7 @@
     },
     "lede": {
       "en": "This is the complete parts list for the whole machine. Use it to gather every part before you start assembly.",
-      "zh": "这是整台机器的完整零件清单。组装前，按清单备齐零件。"
+      "zh": "这是整台机器的完整零件清单。装配前，按清单备齐零件。"
     }
   },
   {
@@ -102,8 +102,8 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Phone bed support",
-          "zh": "手机托架支撑"
+          "en": "Phone bed cross-beam",
+          "zh": "手机托架横梁"
         }
       },
       {
@@ -222,7 +222,7 @@
         },
         "qty": "10",
         "desc": {
-          "en": "Redirect the CoreXY belt",
+          "en": "CoreXY belt redirection",
           "zh": "CoreXY 同步带换向"
         }
       },
@@ -242,7 +242,7 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Redirect the CoreXY belt",
+          "en": "CoreXY belt redirection",
           "zh": "CoreXY 同步带换向"
         }
       },
@@ -383,8 +383,8 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Solenoid GND + lead ext.",
-          "zh": "电磁铁接地线、引线延长"
+          "en": "Solenoid ground wire and lead extension",
+          "zh": "电磁铁接地线、接长引线"
         }
       },
       {
@@ -463,8 +463,8 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Motor mounts",
-          "zh": "电机安装支架"
+          "en": "Motor brackets",
+          "zh": "电机支架"
         }
       },
       {
@@ -483,8 +483,8 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Camera arm mount",
-          "zh": "摄像头臂支座"
+          "en": "Camera bracket",
+          "zh": "摄像头底座"
         }
       },
       {
@@ -543,8 +543,8 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Backbone for the solenoid wire so the run holds its shape",
-          "zh": "电磁铁走线的骨架，使线束保持形状"
+          "en": "Stiffens the solenoid lead wires so the bundle holds its shape",
+          "zh": "增加电磁铁引线刚性，使线束保持形状"
         }
       },
       {
@@ -564,7 +564,7 @@
         "qty": "1",
         "desc": {
           "en": "Binds the wire to the tube",
-          "zh": "把导线和管子缠成一束"
+          "zh": "把引线和特氟龙管缠成一束"
         }
       },
       {
@@ -603,8 +603,8 @@
         },
         "qty": "10",
         "desc": {
-          "en": "Motors & stylus",
-          "zh": "电机、触控笔架"
+          "en": "Motors & solenoid mount",
+          "zh": "电机、电磁铁支架"
         },
         "break_before": true
       },
@@ -624,8 +624,8 @@
         },
         "qty": "24",
         "desc": {
-          "en": "Rails, belt clamps & stylus",
-          "zh": "导轨、同步带夹具、触控笔架"
+          "en": "Rails, belt clamps & solenoid mount",
+          "zh": "导轨、同步带夹具、电磁铁支架"
         }
       },
       {
@@ -664,8 +664,8 @@
         },
         "qty": "15",
         "desc": {
-          "en": "Frame, idlers, camera base",
-          "zh": "框架、惰轮、摄像头支架"
+          "en": "Frame, idlers, camera bracket",
+          "zh": "框架、惰轮、摄像头底座"
         }
       },
       {
@@ -684,8 +684,8 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Idler-mount brackets",
-          "zh": "惰轮支座连接板"
+          "en": "Flat brackets at the idler mounts",
+          "zh": "惰轮支座的一字连接板"
         }
       },
       {
@@ -704,8 +704,8 @@
         },
         "qty": "10",
         "desc": {
-          "en": "Frame, phone bed & Motor A mount",
-          "zh": "框架、手机托架、电机 A 安装支架"
+          "en": "Frame, phone bed & Motor A bracket",
+          "zh": "框架、手机托架、电机 A 支架"
         }
       },
       {
@@ -724,8 +724,8 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Motor B mount",
-          "zh": "电机 B 安装支架"
+          "en": "Motor B bracket",
+          "zh": "电机 B 支架"
         }
       },
       {
@@ -784,8 +784,8 @@
         },
         "qty": "6",
         "desc": {
-          "en": "Gantry, control board & tube holder mount",
-          "zh": "龙门架、控制板、导管支架安装"
+          "en": "Gantry, control board holder & tube holder",
+          "zh": "龙门架、控制板支架、导管支架"
         }
       },
       {
@@ -904,8 +904,8 @@
         },
         "qty": "23",
         "desc": {
-          "en": "Frame, idlers, phone bed, control board holder, tube holder, camera base",
-          "zh": "框架、惰轮、手机托架、控制板支架、导管支架、摄像头支架"
+          "en": "Frame, idlers, phone bed, control board holder, tube holder, camera bracket",
+          "zh": "框架、惰轮、手机托架、控制板支架、导管支架、摄像头底座"
         }
       },
       {
@@ -944,8 +944,8 @@
         },
         "qty": "10",
         "desc": {
-          "en": "Stylus holder & control board holder",
-          "zh": "触控笔座、控制板支架"
+          "en": "Solenoid mount & control board holder",
+          "zh": "电磁铁支架、控制板支架"
         }
       },
       {
@@ -1164,8 +1164,8 @@
         },
         "qty": "2",
         "desc": {
-          "en": "Insulate and protect wire splices",
-          "zh": "接头绝缘保护"
+          "en": "Insulate the solder joints",
+          "zh": "焊接接头绝缘"
         }
       }
     ]

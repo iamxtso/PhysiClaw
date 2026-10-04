@@ -11,8 +11,8 @@
       "zh": "电机"
     },
     "lede": {
-      "en": "Two NEMA 17 stepper motors mount on the top extrusions of the frame, one on each side. The motors drive the CoreXY belts, which move the X carriage.",
-      "zh": "两个 42 步进电机装在框架顶部的型材上，左右各一。电机驱动 CoreXY 同步带，带动 X 滑座移动。"
+      "en": "Two NEMA 17 stepper motors sit on the top extrusion of the frame, one at each side. The motors drive the CoreXY belts, which move the X carriage.",
+      "zh": "两台 42 步进电机装在框架顶部的型材上，左右各一。电机驱动 CoreXY 同步带，带动 X 滑座移动。"
     }
   },
   {
@@ -36,12 +36,12 @@
     "notes": [
       {
         "h3": {
-          "en": "Note the motor wire direction",
-          "zh": "注意电机引线的朝向"
+          "en": "Note the connector direction",
+          "zh": "注意接线端子的朝向"
         },
         "body": {
-          "en": "Make sure that the motor wires face as shown. That direction sets the wiring clearance later.",
-          "zh": "确认电机引线朝向与图一致。朝向决定后续布线的空间。"
+          "en": "Make sure that the motor connector faces as shown. That direction sets the wiring clearance later.",
+          "zh": "确认电机接线端子朝向与图一致。朝向决定后续布线的空间。"
         },
         "classes": "note overlay sm",
         "style": "left:130mm; top:130mm; width:80mm;"
@@ -64,8 +64,8 @@
           "zh": "按对角顺序拧紧"
         },
         "body": {
-          "en": "1. Thread all 4 motor screws in finger-tight. 2. Tighten opposite corners in pairs. This pulls the motor flat against the bracket.",
-          "zh": "1. 四颗电机螺栓先用手拧上。2. 按对角成对拧紧。这样电机才能平贴支架。"
+          "en": "1. Thread all 4 motor screws in by hand. 2. Tighten opposite corners in pairs. This pulls the motor flat against the bracket.",
+          "zh": "1. 先用手拧上 4 颗电机螺栓。2. 按对角成对拧紧。这样电机才能平贴支架。"
         },
         "classes": "note overlay sm",
         "style": "left:125mm; top:75mm; width:70mm;"
@@ -161,7 +161,7 @@
           "zh": "螺栓暂不拧紧"
         },
         "body": {
-          "en": "Tighten until snug. Tighten fully after you tension the belt.",
+          "en": "Tighten until snug. After you tension the belt, tighten fully.",
           "zh": "先拧到贴合。同步带张紧后再拧紧。"
         },
         "classes": "note overlay sm",
@@ -206,8 +206,8 @@
           "zh": "右边的电机：左右镜像"
         },
         "body": {
-          "en": "Build it like the left motor, but mirrored. The connector faces right.",
-          "zh": "装法与左边电机相同，但左右镜像。接线端子朝右。"
+          "en": "Install it like the left motor, as a mirror image. The motor connector faces right.",
+          "zh": "安装方式与左边电机相同，但左右镜像。接线端子朝右。"
         },
         "classes": "note overlay sm",
         "style": "left:120mm; top:130mm; width:80mm;"
@@ -291,7 +291,7 @@
           "zh": "电机 B"
         },
         "body": {
-          "en": "The right motor is Motor B, a mirror of the left.",
+          "en": "The right motor is Motor B, the mirror image of the left.",
           "zh": "右边的电机是电机 B，与左边镜像。"
         },
         "classes": "note overlay sm",
@@ -303,7 +303,7 @@
           "zh": "螺栓暂不拧紧"
         },
         "body": {
-          "en": "Tighten until snug. Tighten fully after you tension the belt.",
+          "en": "Tighten until snug. After you tension the belt, tighten fully.",
           "zh": "先拧到贴合。同步带张紧后再拧紧。"
         },
         "classes": "note overlay sm",
@@ -334,11 +334,11 @@
       {
         "h3": {
           "en": "Two heights",
-          "zh": "不同高度"
+          "zh": "两种高度"
         },
         "body": {
-          "en": "The A and B belts sit at different heights. The pulley of Motor A (left) sits in the same plane as the lower idlers. The pulley of Motor B (right) sits in the same plane as the upper idlers. Slide each pulley along its motor shaft into position.",
-          "zh": "A、B 两条同步带高度不同。电机 A 的同步轮（左）与下层惰轮共面。电机 B 的同步轮（右）与上层惰轮共面。把每个同步轮沿电机轴滑到对应的平面。"
+          "en": "The Motor A belt and the Motor B belt sit at different heights. The pulley of Motor A (left) sits on the lower belt plane. The pulley of Motor B (right) sits on the upper belt plane. Slide each pulley along its motor shaft to its plane.",
+          "zh": "电机 A 和电机 B 的同步带高度不同。电机 A 的同步轮（左）位于下层同步带平面。电机 B 的同步轮（右）位于上层同步带平面。把每个同步轮沿电机轴滑到对应的平面。"
         },
         "classes": "note overlay sm",
         "style": "left:40mm; top:15mm; width:90mm;"
@@ -361,7 +361,7 @@
           "zh": "螺纹胶加固"
         },
         "body": {
-          "en": "<p>Make sure that the pulleys and idlers are aligned. Then apply threadlocker to every set screw. A loose pulley throws off motion accuracy. It is the most common issue users report. You can also wait and apply it after you install the belts.</p>",
+          "en": "<p>Make sure that the pulleys and idlers are aligned. Then apply threadlocker to every set screw. A loose pulley makes the motion inaccurate. It is the most common issue users report. You can also apply the threadlocker after you install the belts.</p>",
           "zh": "<p>先确认同步轮和惰轮已对齐，再给每颗紧定螺钉涂螺纹胶。同步轮松动会导致运动失准，是用户反馈最多的问题。也可以等装好同步带后再涂。</p>"
         },
         "classes": "note overlay sm",

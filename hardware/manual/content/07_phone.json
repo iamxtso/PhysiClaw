@@ -37,11 +37,11 @@
       {
         "h3": {
           "en": "Build two cross-beams",
-          "zh": "组装两根横梁"
+          "zh": "装配两根横梁"
         },
         "body": {
-          "en": "You need two identical cross-beams for the bed.",
-          "zh": "托架需要两根相同的横梁。"
+          "en": "Build two identical cross-beams for the bed.",
+          "zh": "为托架装配两根相同横梁。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:88mm; width:90mm;"
@@ -165,8 +165,8 @@
           "zh": "把托架放到横梁上"
         },
         "body": {
-          "en": "1. Lay the 2 cross-beams parallel, slotted faces up. 2. Lower the hanging T-nuts of the bed into the slots. 3. Tighten the screws.",
-          "zh": "1. 两根横梁平行摆放，开槽面朝上。2. 把托架的 T 型螺母放入槽内。3. 拧紧螺栓。"
+          "en": "1. Lay the two cross-beams parallel, slotted faces up. 2. Lower the hanging T-nuts of the bed into the slots. 3. Tighten the screws.",
+          "zh": "1. 把两根横梁平行摆放，开槽面朝上。2. 把托架的 T 型螺母放入槽内。3. 拧紧螺栓。"
         },
         "classes": "note overlay sm",
         "style": "right:16mm; top:140mm; width:60mm;"
@@ -194,8 +194,8 @@
           "zh": "安装手机托架"
         },
         "body": {
-          "en": "It is far easier to work vertically. Stand the frame on end, then slide the T-nuts of each beam into the slots on the underside of the frame.",
-          "zh": "竖直操作方便得多。把框架竖起，再把每根横梁的 T 型螺母滑入框架底面的型材槽。"
+          "en": "It is far easier to work vertically. 1. Stand the frame on end. 2. Slide the T-nuts of each beam into the slots under the frame.",
+          "zh": "框架竖起来操作更方便。1. 把框架竖起。2. 把每根横梁的 T 型螺母滑入框架底面的型材槽。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:22mm; width:90mm;"
@@ -206,8 +206,8 @@
           "zh": "放置手机"
         },
         "body": {
-          "en": "Put a phone on the bed, pushed into the top-left corner. Move the X carriage around and make sure that the stylus tip reaches every part of the screen.",
-          "zh": "把手机放到托架上，推到左上角抵住内角。移动 X 滑座，确认触控笔尖能触及屏幕的每个位置。"
+          "en": "Put a phone on the bed, against the top-left corner. Slide the X carriage over the whole screen. Make sure that the stylus tip reaches every part of the screen.",
+          "zh": "把手机放到托架上，抵住左上角。在整个屏幕范围内推动 X 滑座。确认触控笔尖能触及屏幕的每个位置。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:50mm; width:90mm;"
@@ -218,8 +218,8 @@
           "zh": "调整电磁铁高度"
         },
         "body": {
-          "en": "Set the mounting height of the solenoid so that the stylus tip just makes stable contact with the screen. If the solenoid is too low, it cannot pull in fully. The magnetic force is then too weak to hold the tip down. The tip springs back, and long-press and swipe both fail. If the solenoid is too high, the tip cannot reach the screen, or the contact patch is too small.",
-          "zh": "调整电磁铁的安装高度，使触控笔尖恰好稳定接触屏幕。如果电磁铁过低，就无法完全吸合。吸力不足，压不住笔尖。笔尖弹回，长按和滑动都失败。如果电磁铁过高，笔尖够不到屏幕，或接触面太小。"
+          "en": "Set the solenoid height so that the stylus tip just makes stable contact with the screen. If the solenoid is too low, it cannot pull in fully. The magnetic force is then too weak to hold the tip down. The tip springs back, and long-press and swipe both fail. If the solenoid is too high, the tip cannot reach the screen, or the contact patch is too small.",
+          "zh": "调整电磁铁高度，使触控笔尖恰好稳定接触屏幕。电磁铁过低时无法完全吸合，吸力不足以压住笔尖。笔尖弹回，长按和滑动都会失败。电磁铁过高时，笔尖够不到屏幕，或接触面太小。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:80mm; width:90mm;"

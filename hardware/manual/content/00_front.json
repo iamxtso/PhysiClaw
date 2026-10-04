@@ -11,7 +11,7 @@
     },
     "tag": {
       "en": "We build agents that interact with you in the real world",
-      "zh": "我们打造能在真实世界里与你互动的智能体"
+      "zh": "我们打造能在真实世界中与你互动的智能体"
     }
   },
   {
@@ -140,8 +140,8 @@
           "zh": "PhysiClaw"
         },
         "body": {
-          "en": "PhysiClaw is a physically interactive agent. It operates a phone by tapping on the screen, so it needs hardware to carry out those taps. This manual covers the assembly of that hardware. The hardware has three parts: a CoreXY stage that moves across the X/Y plane, a touch mechanism that presses the screen along the Z axis, and a camera that watches the screen.",
-          "zh": "PhysiClaw 是能与物理世界交互的智能体。它通过点击屏幕操作手机，因此需要一套硬件来执行点击。本手册介绍这套硬件的装配。硬件分为三部分：在 X/Y 平面内移动的 CoreXY 结构、沿 Z 轴按压屏幕的触控机构，以及观察屏幕的摄像头。"
+          "en": "PhysiClaw is a physically interactive agent. It operates a phone by tapping on the screen, so it needs hardware to carry out those taps. This manual covers the assembly of that hardware. The hardware has three parts. A CoreXY stage moves across the X/Y plane. A touch end presses the screen along the Z axis. A camera watches the screen.",
+          "zh": "PhysiClaw 是能与物理世界交互的智能体。它通过点击屏幕操作手机，因此需要一套硬件来执行点击。本手册介绍这套硬件的装配。硬件分为三部分。CoreXY 结构在 X/Y 平面内移动。触控机构沿 Z 轴按压屏幕。摄像头观察屏幕。"
         },
         "classes": "note"
       },
@@ -151,19 +151,19 @@
           "zh": "准备工作"
         },
         "body": {
-          "en": "Read this manual all the way through. Check the parts you bought against the bill of materials to make sure that nothing is missing. Assembly of a PhysiClaw takes about 2 to 3 hours, so set aside enough time.",
-          "zh": "请通读本手册。对照物料清单清点已购零件，确认没有缺漏。组装一台 PhysiClaw 约需 2 到 3 小时，请预留足够时间。"
+          "en": "Read this manual all the way through. Compare the parts you bought with the bill of materials. Make sure that nothing is missing. Assembly of a PhysiClaw takes about 3 hours, so set aside enough time.",
+          "zh": "请通读本手册。对照物料清单清点已购零件。确认没有缺漏。装配一台 PhysiClaw 约需 3 小时，请预留足够时间。"
         },
         "classes": "note"
       },
       {
         "h3": {
-          "en": "Reporting an issue",
+          "en": "Report an issue",
           "zh": "反馈问题"
         },
         "body": {
           "en": "If you find an error in this manual, or have a suggestion, please open an issue on GitHub (<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>). Include the page numbers and a short description. Annotated screenshots are also welcome. We update the manual periodically based on the feedback we get.",
-          "zh": "如果发现本手册有错误，或有改进建议，请到 GitHub 提交 issue（<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>）。请写明相关页码，并简要描述问题。也欢迎附上标注过的截图。我们会根据反馈定期更新手册。"
+          "zh": "如果发现本手册有错误，或有改进建议，请到 GitHub 提交 issue（<a href=\"https://github.com/physiclaw/PhysiClaw/issues\">github.com/physiclaw/PhysiClaw/issues</a>）。请写明相关页码，并简要描述问题。也欢迎附上带标注的截图。我们会根据反馈定期更新手册。"
         },
         "classes": "note"
       }
@@ -205,7 +205,7 @@
         },
         "body": {
           "en": "Cylindrical head, hex drive.",
-          "zh": "圆柱头，用内六角扳手拧。"
+          "zh": "圆柱头，内六角驱动。"
         },
         "ref": {
           "en": "ISO 4762 / DIN 912",
@@ -219,8 +219,8 @@
           "zh": "内六角半圆头螺栓（BHCS）"
         },
         "body": {
-          "en": "Domed head, hex drive. Use it where a low head matters but a flush head is not required.",
-          "zh": "半圆头，用内六角扳手拧。用在螺栓头要矮但不必齐平的位置。"
+          "en": "Domed head, hex drive. Use it where you need a low head but not a flush head.",
+          "zh": "半圆头，内六角驱动。用于需要低螺栓头、但不要求齐平的位置。"
         },
         "ref": {
           "en": "ISO 7380-1",
@@ -235,7 +235,7 @@
         },
         "body": {
           "en": "90° countersunk head, hex drive. The head sits flush with the surface. Use it where nothing can protrude above the part.",
-          "zh": "90° 沉头，用内六角扳手拧。螺栓头与表面齐平。用在不允许凸出零件表面的位置。"
+          "zh": "90° 沉头，内六角驱动。螺栓头与表面齐平。用于零件表面不允许有凸起的位置。"
         },
         "ref": {
           "en": "ISO 10642 / DIN 7991",
@@ -280,7 +280,7 @@
         },
         "body": {
           "en": "A square nut sits in a pocket of the printed part, so that a screw can thread into it.",
-          "zh": "四方螺母嵌在打印件的方槽内。螺栓拧入即可固定。"
+          "zh": "四方螺母嵌在打印件的方槽内，供螺栓拧入。"
         },
         "ref": {
           "en": "DIN 557",
@@ -318,7 +318,7 @@
         },
         "body": {
           "en": "Drops flat into the slot anywhere along its length. A quarter turn then locks it.",
-          "zh": "从型材槽任意位置平放进去。旋转 90° 即卡紧。"
+          "zh": "在型材的任意位置平放入槽内。旋转 90° 即卡紧。"
         }
       },
       {
@@ -344,7 +344,7 @@
         },
         "body": {
           "en": "Toothed wheel that meshes with the toothed side of the belt.",
-          "zh": "带齿轮子，与同步带的齿面啮合。"
+          "zh": "带齿惰轮，与同步带的齿面啮合。"
         },
         "ref": {
           "en": "GT2 · 20T · 5 mm bore · 6 mm belt",
@@ -359,7 +359,7 @@
         },
         "body": {
           "en": "Smooth wheel that rides on the flat back of the belt.",
-          "zh": "光面轮子，贴着同步带的平背面转动。"
+          "zh": "光面惰轮，贴着同步带的平背面滚动。"
         },
         "ref": {
           "en": "5 mm bore · 6 mm belt",
@@ -373,8 +373,8 @@
           "zh": "一字连接板"
         },
         "body": {
-          "en": "Two-hole plate with M5 holes 20 mm apart.",
-          "zh": "两孔平板，M5 孔间距 20 mm。"
+          "en": "2-hole plate with M5 holes 20 mm apart.",
+          "zh": "2 孔平板，M5 孔间距 20 mm。"
         }
       }
     ]
@@ -400,8 +400,8 @@
           "zh": "内六角扳手规格"
         },
         "body": {
-          "en": "Use 2 mm for the M3 BHCS/FHCS. Use 3 mm for the M5 BHCS/FHCS. Use 5 mm for the M6 SHCS. You will use the 2 mm and 3 mm most, so get a good key of each.",
-          "zh": "M3 半圆头/沉头螺栓用 2 mm。M5 半圆头/沉头螺栓用 3 mm。M6 圆柱头螺栓用 5 mm。2 mm 和 3 mm 用得最多，各备一把质量好的。"
+          "en": "Use 2 mm for the M3 BHCS/FHCS. Use 3 mm for the M5 BHCS/FHCS. Use 5 mm for the M6 SHCS. You use the 2 mm and 3 mm most, so get a good key of each.",
+          "zh": "M3 半圆头/沉头螺栓用 2 mm。M5 半圆头/沉头螺栓用 3 mm。M6 圆柱头螺栓用 5 mm。2 mm 和 3 mm 使用最多，各备一把优质扳手。"
         },
         "classes": "note overlay sm",
         "style": "left:152mm; top:108mm; width:120mm;"
@@ -424,8 +424,8 @@
           "zh": "零件打印设置与说明"
         },
         "body": {
-          "en": "PhysiClaw's custom parts are printed by a nylon powder-bed process: Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF), not the more common FDM. The powder-bed process fuses nylon powder layer by layer. The parts come out dense, with no supports and the same strength in every direction. These parts have side holes and overhangs. With FDM the side holes deform and the overhangs sag. Match the specifications below when you order parts.",
-          "zh": "PhysiClaw 的定制件用尼龙粉末床熔融工艺打印，选择性激光烧结（SLS）或多射流熔融（MJF）均可，不是常见的 FDM。粉末床工艺把尼龙粉末逐层熔结。零件致密、无需支撑，各方向强度一致。这些零件带有侧孔和悬空结构。FDM 打印会使侧孔变形、悬空处塌陷。采购时请参照以下规格。"
+          "en": "PhysiClaw's custom parts are printed by a nylon powder-bed process: Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF), not the more common FDM. The powder-bed process fuses nylon powder layer by layer. The parts come out dense, with no supports and the same strength in every direction. These parts have side holes and overhangs. With FDM the side holes deform and the overhangs sag. When you order parts, match the specifications below.",
+          "zh": "PhysiClaw 的定制件用尼龙粉末床熔融工艺打印，选择性激光烧结（SLS）或多射流熔融（MJF）均可，而非常见的 FDM。粉末床工艺把尼龙粉末逐层熔结。零件致密、无需支撑，各方向强度一致。这些零件带有侧孔和悬空结构。FDM 打印会使侧孔变形、悬空处塌陷。下单时请按以下规格。"
         },
         "classes": "note"
       }
@@ -488,7 +488,7 @@
         },
         "v": {
           "en": "Service default",
-          "zh": "默认设置即可"
+          "zh": "按服务商默认"
         }
       },
       {
@@ -519,7 +519,7 @@
           "zh": "文件命名"
         },
         "body": {
-          "en": "A file name that ends in <span class=\"ref\">_x#</span> gives the quantity of that part in the machine. For example, the machine needs 2 of <span class=\"ref\">idler_mount_front_x2.step</span>.",
+          "en": "A file name that ends in <span class=\"ref\">_x#</span> gives the quantity of that part in the machine. For example, the machine needs two of <span class=\"ref\">idler_mount_front_x2.step</span>.",
           "zh": "文件名末尾的 <span class=\"ref\">_x#</span> 表示整机需要的数量。例如 <span class=\"ref\">idler_mount_front_x2.step</span> 需要两个。"
         },
         "classes": "note"

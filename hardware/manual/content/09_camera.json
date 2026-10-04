@@ -41,7 +41,7 @@
           "zh": "1/4-20 英制，不是公制"
         },
         "body": {
-          "en": "The SHCS and hex nut for the gooseneck are 1/4-20, the imperial tripod thread (≈ 6.35 mm). Do not substitute an M6.",
+          "en": "The SHCS and hex nut for the gooseneck are 1/4-20, the imperial tripod thread (≈ 6.35 mm). Do not use an M6 instead.",
           "zh": "金属软管用 1/4-20 圆柱头螺栓和六角螺母。1/4-20 是英制三脚架螺纹（约 6.35 mm）。不要用 M6 代替。"
         },
         "classes": "note overlay sm",
@@ -54,7 +54,7 @@
         },
         "body": {
           "en": "The 1/4-20 SHCS takes a 3/16\" hex key. The 1/4-20 hex nut takes a 7/16\" (or metric 11 mm) open-end wrench. Needle-nose pliers also do the job. There is no need to buy tools for this.",
-          "zh": "1/4-20 圆柱头螺栓用 3/16\" 内六角扳手。1/4-20 六角螺母用 7/16\"（或公制 11 mm）开口扳手。用现有的尖嘴钳也可以。不必专门购买工具。"
+          "zh": "1/4-20 圆柱头螺栓用 3/16\" 内六角扳手。1/4-20 六角螺母用 7/16\"（或公制 11 mm）开口扳手。也可用尖嘴钳代替。无需专门购买工具。"
         },
         "classes": "note overlay sm",
         "style": "left:130mm; top:120mm; width:70mm;"
@@ -194,8 +194,8 @@
           "zh": "拧上摄像头"
         },
         "body": {
-          "en": "Thread the camera's 1/4-20 female socket onto the gooseneck's male stud until it bottoms on the stud collar.",
-          "zh": "把摄像头的 1/4-20 内螺纹接口拧到金属软管的外螺纹螺柱上，直到顶住台肩。"
+          "en": "Thread the camera's 1/4-20 female thread onto the gooseneck's male stud until it stops against the collar.",
+          "zh": "把摄像头的 1/4-20 内螺纹拧到金属软管的外螺纹螺柱上，直到顶住台肩。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:80mm; width:60mm;"
@@ -243,7 +243,7 @@
         },
         "body": {
           "en": "Install the corner bracket in the lower slot of the right extrusion's outer face.",
-          "zh": "把角码装进右侧型材外侧面的下方槽。"
+          "zh": "把角码装进右侧型材外侧面的下方型材槽。"
         },
         "classes": "note overlay sm",
         "style": "right:10mm; top:30mm; width:80mm;"
@@ -275,11 +275,11 @@
       {
         "h3": {
           "en": "Route the USB cable",
-          "zh": "整理 USB 线"
+          "zh": "USB 线走线"
         },
         "body": {
-          "en": "Attach the camera's USB cable along the gooseneck, clear of the belt.",
-          "zh": "把摄像头的 USB 线沿金属软管固定，避免碰到同步带。"
+          "en": "Cable-tie the camera's USB cable along the gooseneck, clear of the belt.",
+          "zh": "用扎带把摄像头的 USB 线沿金属软管固定，避免碰到同步带。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:20mm; width:70mm;"

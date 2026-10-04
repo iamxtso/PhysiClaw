@@ -12,7 +12,7 @@
     },
     "lede": {
       "en": "The control board mounts at the front of the frame. Spiral wrap binds the solenoid's lead wires to a Teflon tube. The tube stiffens the bundle so that it holds its shape, clear of the motors and belts. The tube anchors to the tube holder on the frame and to the X carriage.",
-      "zh": "控制板安装在框架前方。电磁铁导线用螺旋缠绕带与特氟龙管缠成一束。管子增加线束刚性，使线束保持形状，避开电机和同步带。管子两端分别固定在框架上的导管支架和 X 滑座上。"
+      "zh": "控制板安装在框架前方。电磁铁引线用螺旋缠绕带与特氟龙管缠成一束。特氟龙管增加线束刚性，使线束保持形状，避开电机和同步带。管的两端分别固定在框架上的导管支架和 X 滑座上。"
     }
   },
   {
@@ -42,7 +42,7 @@
         },
         "body": {
           "en": "Thread 2 M5 FHCS into the T-nuts. Do not fully tighten until the next step.",
-          "zh": "把两颗 M5 沉头螺栓拧入 T 型螺母。暂不拧紧，下一步再拧紧。"
+          "zh": "把 2 颗 M5 沉头螺栓拧入 T 型螺母。暂不拧紧，下一步再拧紧。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:110mm; width:80mm;"
@@ -144,12 +144,12 @@
     "notes": [
       {
         "h3": {
-          "en": "Attach the control board",
-          "zh": "固定控制板"
+          "en": "Install the control board",
+          "zh": "安装控制板"
         },
         "body": {
           "en": "Use 4 screw–nut pairs. The figure does not show the 2 lower nuts.",
-          "zh": "用四组螺栓和螺母。下方两颗螺母被遮挡，图中未画出。"
+          "zh": "用 4 组螺栓和螺母。下方 2 颗螺母被遮挡，图中未画出。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:120mm; width:90mm;"
@@ -215,7 +215,7 @@
         },
         "body": {
           "en": "Thread 2 M5 FHCS into the T-nuts. Do not fully tighten until the next step.",
-          "zh": "把两颗 M5 沉头螺栓拧入 T 型螺母。暂不拧紧，下一步再拧紧。"
+          "zh": "把 2 颗 M5 沉头螺栓拧入 T 型螺母。暂不拧紧，下一步再拧紧。"
         },
         "classes": "note overlay sm",
         "style": "left:140mm; top:110mm; width:80mm;"
@@ -287,8 +287,8 @@
           "zh": "安装导管支架"
         },
         "body": {
-          "en": "Install it on the top extrusion, beside the control board. Its 4 mm socket anchors the fixed end of the Teflon tube.",
-          "zh": "装在顶部型材上，紧挨控制板。特氟龙管的固定端插入支架的 4 mm 插孔。"
+          "en": "Install it on the top extrusion, beside the control board. Its 4 mm hole holds the fixed end of the Teflon tube.",
+          "zh": "装在顶部型材上，紧邻控制板。特氟龙管的固定端插入支架的 4 mm 孔。"
         },
         "classes": "note overlay sm",
         "style": "left:180mm; top:130mm; width:80mm;"
@@ -317,7 +317,7 @@
         },
         "body": {
           "en": "Cut the tube to about 400 mm. It must reach from the tube holder to the X carriage at its farthest position.",
-          "zh": "把管子截到约 400 mm。管子要能从导管支架到达 X 滑座的最远位置。"
+          "zh": "把特氟龙管截到约 400 mm。长度要能从导管支架到达 X 滑座的最远位置。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:30mm; width:100mm; max-width:100mm;"
@@ -328,8 +328,8 @@
           "zh": "固定电磁铁引线"
         },
         "body": {
-          "en": "Cable-tie the solenoid leads to the tube holder. Otherwise the solenoid's travel shakes the lead wires at the control board terminals. Constant shaking works the contact loose, and the solenoid stops tapping the screen.",
-          "zh": "用扎带把电磁铁引线固定在导管支架上。否则电磁铁一动，控制板端子处的导线就跟着晃。导线反复晃动会使接触松动，电磁铁便无法点击屏幕。"
+          "en": "Cable-tie the solenoid leads to the tube holder. Otherwise the solenoid's travel shakes the lead wires at the control board terminals. Constant shaking works the contact loose, and then the solenoid no longer taps the screen.",
+          "zh": "用扎带把电磁铁引线固定在导管支架上。否则电磁铁动作时会带动控制板端子处的引线晃动。引线反复晃动会使接触松动，电磁铁便无法点击屏幕。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:50mm; width:100mm; max-width:100mm;"
@@ -353,7 +353,7 @@
         },
         "body": {
           "en": "Spiral-wrap the solenoid's lead wires to the Teflon tube along its full length. Do not put the wires inside the tube.",
-          "zh": "用螺旋缠绕带把电磁铁导线沿特氟龙管全长缠成一束。导线不穿入管内。"
+          "zh": "用螺旋缠绕带把电磁铁引线沿特氟龙管全长缠成一束。不要把引线穿入管内。"
         },
         "classes": "note overlay sm",
         "style": "right:30mm; top:110mm; width:100mm; max-width:100mm;"
