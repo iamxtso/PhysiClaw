@@ -279,7 +279,7 @@
         },
         "body": {
           "en": "Cable-tie the camera's USB cable along the gooseneck, clear of the belt.",
-          "zh": "用扎带把摄像头的 USB 线沿金属软管固定，避免碰到同步带。"
+          "zh": "用捆扎带把摄像头的 USB 线沿金属软管固定，避免碰到同步带。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:20mm; width:70mm;"
