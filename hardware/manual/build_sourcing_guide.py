@@ -15,10 +15,10 @@ table — all optional:
   buyer can judge whether a shop's price is reasonable (missing -> em dash);
 - ``inquiry`` — a ready-to-paste message for the shop (one fact per line).
   It has no cell of its own: the part's ``note`` embeds it via the
-  ``{inquiry}`` placeholder as a click-to-copy "询价说明" control (hover
+  ``{inquiry}`` placeholder as a click-to-copy "询价信息" control (hover
   previews the message). Only custom / cut-to-order parts carry one;
   standard parts are bought off the shelf by spec;
-- ``suppliers`` — 供应商 1..3: up to three shops, each ``{name, link?,
+- ``suppliers`` — 商家 1..3: up to three shops, each ``{name, link?,
   product?}``: the name (linked to the shop's ``link`` URL when filled in)
   over the shop's own ``product`` spec. Missing slots render as pending;
   a slot whose name is ``—`` renders as a muted dash (nothing to buy —
@@ -29,7 +29,7 @@ table — all optional:
   dash). Notes are prose and emitted as trusted HTML, the manual's
   convention for content strings (inline ``<a>`` is fine); data fields
   (names, products, refs) are escaped instead. The placeholder ``{inquiry}``
-  renders as the same click-to-copy 询价说明 control as in the supplier
+  renders as the same click-to-copy 询价信息 control as in the supplier
   cells.
 
 The special value ``"Ditto"`` makes a field merge with the row above — the
@@ -86,10 +86,10 @@ from hardware.manual.common import (
     VENDOR_FILE,
     _rowspans,
     _step,
-    keep_quantities_together,
     load_pages,
     loc,
     manual_version,
+    typeset_quantities,
 )
 from hardware.scheme import OUTPUT_DIR as _OUTPUT_ROOT
 
@@ -119,35 +119,33 @@ UI = {
     "h1": {"en": "Sourcing guide", "zh": "采购指南"},
     "lede": {
         "en": "This guide covers every part in the assembly manual's bill "
-        "of materials, with three reference suppliers each.<br>"
+        "of materials, with 3 reference suppliers each.<br>"
         "Reference prices are subtotals for the required quantity "
-        "(not unit prices, shipping excluded). Vendors may adjust "
-        "prices at any time, so use them only as a rough gauge.",
-        "zh": "本指南涵盖装配手册物料清单的全部零件，每项列出三家参考供应商。<br>"
+        "(not unit prices, shipping excluded). Vendors may change "
+        "prices at any time, so treat the prices as a rough guide.",
+        "zh": "本指南涵盖装配手册物料清单的全部零件，每项列出 3 家参考商家。<br>"
         "参考价为所需数量的合计（非单价，不含运费）。"
         "商家随时可能调价，仅作大致参考。",
     },
     "pending": {"en": "to be found", "zh": "待补充"},
     "disclaimer": {
-        "en": "<strong>Disclaimer:</strong> Supplier and product listings in "
-        "this guide are provided for reference only. We are not "
-        "affiliated with, and receive no compensation from, any of the "
-        "vendors listed, and we make no representation or warranty as "
-        "to the quality, pricing, or availability of their products. "
-        "Please verify the specifications and purchase from a vendor "
-        "of your choice. Should any listed product prove "
-        "unsatisfactory, or should you have a reliable vendor to "
-        "recommend, we welcome your feedback and will review and "
-        "update the listings accordingly.",
-        "zh": "<strong>免责声明：</strong>本指南所列供应商及商品链接仅供采购参考。"
+        "en": "<strong>Disclaimer:</strong> The suppliers and product links "
+        "in this guide are for reference only. We are not affiliated "
+        "with any listed vendor and receive no payment from them. We "
+        "make no guarantee about the quality, price, or availability "
+        "of their products. Check the specifications yourself and buy "
+        "from a vendor you trust. If a listed product has a problem, "
+        "or you know a reliable vendor, tell us. We will check and "
+        "update the listing.",
+        "zh": "<strong>免责声明：</strong>本指南所列商家及商品链接仅供采购参考。"
         "我们与所列商家无任何关联或利益关系，"
         "对其商品的质量、价格及供货不作任何保证。"
         "请按规格自行甄选，从您信任的商家购买。"
-        "如所列商品存在问题，或您有可靠的供应商推荐，"
+        "如所列商品存在问题，或您有可靠的商家推荐，"
         "欢迎反馈，我们将核实并更新相应条目。",
     },
-    "inquiry_label": {"en": "Inquiry message", "zh": "询价说明"},
-    "supplier_n": {"en": "Supplier", "zh": "供应商"},
+    "inquiry_label": {"en": "Inquiry message", "zh": "询价信息"},
+    "supplier_n": {"en": "Supplier", "zh": "商家"},
     # Bought-checklist chrome. tally_fmt/tally_done are JS templates
     # ({n} ticked / {t} rows).
     "th_bought": {"en": "Bought", "zh": "已购"},
@@ -353,7 +351,7 @@ def _span_attr(span: int) -> str:
 
 
 def _inquiry_button(message: str, lang: str, flip: bool = False) -> str:
-    """The click-to-copy 询价说明 control: copy icon + label; hovering shows
+    """The click-to-copy 询价信息 control: copy icon + label; hovering shows
     the message in a tooltip, clicking copies it (icon morphs to a check).
     ``flip`` opens the tooltip leftward — for buttons near the table's right
     edge, where it would otherwise be clipped."""
@@ -617,7 +615,7 @@ def render_document(rows: list[dict], entries: list[dict], css: str, lang: str) 
         f'<p class="disclaimer">{ui("disclaimer", lang)}</p></div>'
         f"{checklist}{render_table(rows, entries, lang)}</div>"
     )
-    body = keep_quantities_together(body)
+    body = typeset_quantities(body)
     # Bought marks and the highlight preference persist per manual version
     # (a revision starts clean); the EN and ZH files share the key, so state
     # carries across languages. The prefix rides along so the JS stale-key
