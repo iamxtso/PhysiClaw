@@ -1,11 +1,6 @@
-"""Linear Y rail sub-assembly — one MGN9H 240 mm guideway with six
-M3 × 8 BHCS in the rail's mounting holes and six M3 hammer T-nuts
-ready to engage them.
-
-Hole layout (12 holes at 20 mm pitch on a 240 mm rail):
-  Screws at 1-indexed hole positions 1, 3, 5, 8, 10, 12 — both ends
-  included, symmetric about the centre (40 mm pitch with a 60 mm
-  central span). 6 screws total.
+"""Linear Y rail sub-assembly — one MGN9H 240 mm guideway with an
+M3 × 8 BHCS in every mounting hole (see ``mgn9h.rail_hole_xs`` for
+why every hole) and an M3 hammer T-nut ready to engage each.
 
 Geometry in the rail's native frame (matches MGN9H — rail bottom
 face at native Z = 0, length axis along native X):
@@ -47,7 +42,7 @@ from hardware.assembly.travel_ranges import Y_RAIL_LENGTH
 from hardware.parts.standard.mgn9h import (
     MGN9H,
     rail_cbore_floor_z,
-    rail_hole_pitch,
+    rail_hole_xs,
 )
 from hardware.parts.standard.mgn9h import (
     slider_position as default_slider_position,
@@ -69,23 +64,17 @@ TNUT_LOOSE_ENGAGEMENT = 1  # mm — assembled: shank depth inside the bore at
 SCREW_EXPLODE = 20  # mm — exploded: screws lifted above rail top
 TNUT_EXPLODE = 15  # mm — exploded: t-nuts dropped below loose hang
 
-# 1-indexed rail-hole positions that receive a screw — both ends plus
-# interior, symmetric about the centre (12-hole / 240 mm rail).
-SCREW_HOLE_INDICES = (1, 3, 5, 8, 10, 12)
-
 
 class LI10Y(BaseAssembly):
-    # Subclasses share this build logic and only override the four
+    # Subclasses share this build logic and only override the three
     # class attributes below — ``compound_label`` retargets the
     # STEP / SVG filename, ``rail_length`` swaps in a different MGN9H
-    # length, ``screw_hole_indices`` selects which of the rail's
-    # mounting holes get fastened, and ``slider_position`` (0.0 = -X
-    # end, 1.0 = +X end) moves the slider along the rail.
+    # length (the screws follow its holes), and ``slider_position``
+    # (0.0 = -X end, 1.0 = +X end) moves the slider along the rail.
     # ``_module_stem()`` already derives the output filename from the
     # subclass's own module, so no other override is needed.
     compound_label: str = "linear_10_y"
     rail_length: float = RAIL_LENGTH
-    screw_hole_indices: tuple = SCREW_HOLE_INDICES
     slider_position: float = default_slider_position
     camera = FRONT_LEFT_HIGH
     views = [EXPLODED_CAM0, ASSEMBLED_CAM0]
@@ -96,12 +85,7 @@ class LI10Y(BaseAssembly):
             slider_position=self.slider_position,
         ).build()
 
-        # Reproduce MGN9H's hole grid: GridLocations(rail_hole_pitch,
-        # 0, n_holes, 1) centered on rail native X = 0.
-        n_holes = max(1, int(self.rail_length // rail_hole_pitch))
-        first_hole_x = -((n_holes - 1) * rail_hole_pitch) / 2
-        hole_xs = [first_hole_x + i * rail_hole_pitch for i in range(n_holes)]
-        screw_xs = [hole_xs[i - 1] for i in self.screw_hole_indices]
+        screw_xs = rail_hole_xs(self.rail_length)  # a screw in every hole
 
         tnut_length = TNUT_LENGTHS["hammer"]
 

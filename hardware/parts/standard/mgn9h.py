@@ -33,6 +33,18 @@ rail_cbore_floor_z = rail_height - rail_cbore_depth  # the screw's underhead sea
 rail_hole_pitch = 20 * MM  # P
 rail_cbore_chamfer = 0.1 * MM  # break the cbore rim
 
+
+def rail_hole_xs(rail_length: float) -> list[float]:
+    """Native-X centres of the rail's mounting holes: ``rail_length // pitch``
+    holes at the pitch, centred on the rail. Every hole takes a screw — a
+    miniature rail has no straightness spec of its own, and the screws pull
+    it straight against the slot face, which is why HIWIN, THK and the
+    CoreXY builds on these rails fill every hole."""
+    n_holes = max(1, int(rail_length // rail_hole_pitch))
+    first = -((n_holes - 1) * rail_hole_pitch) / 2
+    return [first + i * rail_hole_pitch for i in range(n_holes)]
+
+
 # ── Slider parameters (HIWIN MGN9H spec) ──────────────────────────────────────
 block_bottom_z = 2 * MM  # H1 (rail base → block bottom)
 block_top_z = 10 * MM  # H (assembly height)
@@ -141,14 +153,14 @@ class MGN9H(BaseStandardPart):
             ]
             chamfer(corners, length=rail_corner_chamfer)
             # Counterbored M3 mounting holes along the rail top face.
-            n_holes = max(1, int(self.rail_length // rail_hole_pitch))
-            with Locations((0, 0, rail_height)):
-                with GridLocations(rail_hole_pitch, 0, n_holes, 1):
-                    CounterBoreHole(
-                        radius=rail_hole_dia / 2,
-                        counter_bore_radius=rail_cbore_dia / 2,
-                        counter_bore_depth=rail_cbore_depth,
-                    )
+            with Locations(
+                *[(x, 0, rail_height) for x in rail_hole_xs(self.rail_length)]
+            ):
+                CounterBoreHole(
+                    radius=rail_hole_dia / 2,
+                    counter_bore_radius=rail_cbore_dia / 2,
+                    counter_bore_depth=rail_cbore_depth,
+                )
             # Chamfer the counterbore top rims.
             cbore_edges = [
                 e

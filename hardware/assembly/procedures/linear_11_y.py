@@ -3,9 +3,9 @@
 sub-assemblies on the long extrusions' slot faces, one on long_left
 and one on long_right.
 
-Each LI10Y already bundles its own MGN9H + 6 M3 × 8 BHCS + 6 hammer
-M3 T-nuts (built in the rail's native frame). This step just places
-each instance onto the corresponding extrusion:
+Each LI10Y already bundles its own MGN9H + an M3 × 8 BHCS and hammer
+M3 T-nut in every rail hole (built in the rail's native frame). This
+step just places each instance onto the corresponding extrusion:
 
   * The rail is centered in the free world-Z range between the two
     corner-mount blocks on each long extrusion — LU/RU
