@@ -54,23 +54,31 @@ NBSP = "\u00a0"
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("sits 2 mm clear", f"sits 2{NBSP}mm clear"),
+        ("sits 2 mm clear", f'sits <span class="unit">2{NBSP}mm</span> clear'),
         ("4 screws", f"4{NBSP}screws"),
         ("12 V 2 A", f"12{NBSP}V 2{NBSP}A"),
-        ("100 µm", f"100{NBSP}µm"),
+        ("100 µm", f'<span class="unit">100{NBSP}µm</span>'),
         ("90 °C", f"90{NBSP}°C"),
-        ("留 2 mm。", f"留 2{NBSP}mm。"),
+        ("留 2 mm。", f'留 <span class="unit">2{NBSP}mm</span>。'),
         ("2 到 3 小时", f"2{NBSP}到 3{NBSP}小时"),
         ("M3×8", "M3×8"),
         ("0 0 1.5mm", "0 0 1.5mm"),
     ],
 )
-def test_keep_quantities_together_joins_a_number_to_the_word_after_it(text, expected):
-    assert common.keep_quantities_together(f"<p>{text}</p>") == f"<p>{expected}</p>"
+def test_typeset_quantities_joins_a_number_to_the_word_after_it(text, expected):
+    assert common.typeset_quantities(f"<p>{text}</p>") == f"<p>{expected}</p>"
 
 
-def test_keep_quantities_together_leaves_attributes_and_inline_css_alone():
+def test_typeset_quantities_leaves_attributes_and_inline_css_alone():
     markup = '<div style="margin: 0 auto; left:110mm"><img alt="4 parts">2 mm</div>'
-    assert common.keep_quantities_together(markup) == (
-        f'<div style="margin: 0 auto; left:110mm"><img alt="4 parts">2{NBSP}mm</div>'
+    assert common.typeset_quantities(markup) == (
+        f'<div style="margin: 0 auto; left:110mm"><img alt="4 parts"><span class="unit">2{NBSP}mm</span></div>'
+    )
+
+
+def test_typeset_quantities_marks_a_unit_symbol_to_keep_its_case_under_capitals():
+    markup = "<h3>75 Hz at 220 mm</h3><p>0.5 mm, 4 screws</p><h3>3 wires</h3>"
+    assert common.typeset_quantities(markup) == (
+        f'<h3><span class="unit">75{NBSP}Hz</span> at <span class="unit">220{NBSP}mm</span></h3>'
+        f'<p><span class="unit">0.5{NBSP}mm</span>, 4{NBSP}screws</p><h3>3{NBSP}wires</h3>'
     )

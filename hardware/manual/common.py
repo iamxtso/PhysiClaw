@@ -37,20 +37,25 @@ def loc(value: Any, lang: str) -> str:
     return value
 
 
-# A number stays on one line with the word after it ("2 mm", "4 screws"):
-# the space becomes a non-breaking space. Applied to text nodes only, so
+# Typography the content files cannot express, applied to text nodes only so
 # attributes and inline CSS are never touched.
-_QUANTITY_GAP = re.compile(r"(?<=\d) (?=[^\W\d_]|°)")
 _TEXT_NODE = re.compile(r">([^<]*)<")
+# A quantity with a unit symbol is wrapped so the stylesheet can exempt it from
+# capitals ("18 mm", not "18 MM"); listed are the symbols with a lower-case letter.
+_UNIT_QUANTITY = re.compile(r"\d+(?:\.\d+)? (?:mm|cm|m|µm|ms|Hz|kHz|kg|g|mA|mAh)\b")
+# A number stays on one line with the word after it ("2 mm", "4 screws").
+_QUANTITY_GAP = re.compile(r"(?<=\d) (?=[^\W\d_]|°)")
 
 
-def keep_quantities_together(markup: str) -> str:
-    """``markup`` with every number joined to the word after it. Pass the
-    body markup, not a whole document: a ``<style>`` or ``<script>`` block
-    would be rewritten too."""
-    return _TEXT_NODE.sub(
-        lambda m: f">{_QUANTITY_GAP.sub(chr(0xA0), m.group(1))}<", markup
-    )
+def _typeset(text: str) -> str:
+    text = _UNIT_QUANTITY.sub(r'<span class="unit">\g<0></span>', text)
+    return _QUANTITY_GAP.sub("\u00a0", text)
+
+
+def typeset_quantities(markup: str) -> str:
+    """``markup`` with every quantity typeset. Pass the body markup, not a
+    whole document: a ``<style>`` or ``<script>`` block would be rewritten."""
+    return _TEXT_NODE.sub(lambda m: f">{_typeset(m.group(1))}<", markup)
 
 
 def manual_version() -> str:
