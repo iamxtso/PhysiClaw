@@ -343,7 +343,7 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Overhead view of the phone screen",
+          "en": "Overhead screen view",
           "zh": "俯拍手机屏幕"
         }
       },
@@ -383,7 +383,7 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Solenoid ground wire and lead extension",
+          "en": "Solenoid ground & leads",
           "zh": "电磁铁接地线、接长引线"
         }
       },
@@ -543,7 +543,7 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Stiffens the solenoid lead wires so the bundle holds its shape",
+          "en": "Stiffens the lead bundle",
           "zh": "增加电磁铁引线刚性，使线束保持形状"
         }
       },
