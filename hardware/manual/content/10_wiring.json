@@ -181,8 +181,8 @@
           "zh": "接线对应"
         },
         "body": {
-          "en": "The board uses standard GRBL axis outputs, remapped as follows. The X-axis stepper driver drives Motor B. The Y1-axis stepper driver drives Motor A. The Spindle output drives the solenoid.",
-          "zh": "控制板使用标准 GRBL 轴输出，映射如下：X 轴步进电机驱动接电机 B。Y1 轴步进电机驱动接电机 A。主轴（Spindle）输出接电磁铁。"
+          "en": "The board uses standard GRBL axis outputs, remapped as follows: the X-axis stepper driver drives Motor B, the Y1-axis stepper driver drives Motor A, and the Spindle output drives the solenoid.",
+          "zh": "控制板使用标准 GRBL 轴输出，映射如下：X 轴步进电机驱动接电机 B，Y1 轴步进电机驱动接电机 A，主轴（Spindle）输出接电磁铁。"
         },
         "classes": "note overlay sm",
         "style": "left:150mm; top:110mm; width:110mm;"
