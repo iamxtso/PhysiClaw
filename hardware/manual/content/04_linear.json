@@ -492,8 +492,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor B idler — sits higher",
-          "zh": "电机 B 的惰轮：在上层"
+          "en": "Motor B idler on the upper plane",
+          "zh": "电机 B 的惰轮在上层"
         },
         "body": {
           "en": "This idler carries the Motor B belt on the left joint. The 9 mm spacer lifts it onto the upper belt plane.",
@@ -618,8 +618,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor A idler — sits lower",
-          "zh": "电机 A 的惰轮：在下层"
+          "en": "Motor A idler on the lower plane",
+          "zh": "电机 A 的惰轮在下层"
         },
         "body": {
           "en": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">Use the toothed idler here, not the smooth one.</p><p>This idler carries the Motor A belt. It has no spacer, so it rides on the lower belt plane.</p>",
@@ -723,8 +723,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor A idler — sits lower",
-          "zh": "电机 A 的惰轮：在下层"
+          "en": "Motor A idler on the lower plane",
+          "zh": "电机 A 的惰轮在下层"
         },
         "body": {
           "en": "This idler carries the Motor A belt on the right joint, in the top hole. It has no spacer, so it rides on the lower belt plane.",
@@ -828,8 +828,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor B idler — sits higher",
-          "zh": "电机 B 的惰轮：在上层"
+          "en": "Motor B idler on the upper plane",
+          "zh": "电机 B 的惰轮在上层"
         },
         "body": {
           "en": "<p style=\"color: var(--accent); font-weight: 600; margin: 0 0 1.5mm;\">Use the toothed idler here, not the smooth one.</p><p>This idler carries the Motor B belt on the right joint. The 9 mm spacer lifts it onto the upper belt plane.</p>",

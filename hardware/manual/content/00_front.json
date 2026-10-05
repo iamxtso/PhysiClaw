@@ -424,7 +424,7 @@
           "zh": "零件打印设置与说明"
         },
         "body": {
-          "en": "PhysiClaw's custom parts are printed by a nylon powder-bed process: Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF), not the more common FDM. The powder-bed process fuses nylon powder layer by layer. The parts come out dense, with no supports and the same strength in every direction. These parts have side holes and overhangs. With FDM the side holes deform and the overhangs sag. When you order parts, match the specifications below.",
+          "en": "PhysiClaw's custom parts are printed by a nylon powder-bed process, either Selective Laser Sintering (SLS) or Multi Jet Fusion (MJF), not the more common FDM. The powder-bed process fuses nylon powder layer by layer. The parts come out dense, with no supports and the same strength in every direction. These parts have side holes and overhangs. With FDM the side holes deform and the overhangs sag. When you order parts, match the specifications below.",
           "zh": "PhysiClaw 的定制件用尼龙粉末床熔融工艺打印，选择性激光烧结（SLS）或多射流熔融（MJF）均可，而非常见的 FDM。粉末床工艺把尼龙粉末逐层熔结。零件致密、无需支撑，各方向强度一致。这些零件带有侧孔和悬空结构。FDM 打印会使侧孔变形、悬空处塌陷。下单时请按以下规格。"
         },
         "classes": "note"

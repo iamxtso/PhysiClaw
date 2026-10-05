@@ -202,8 +202,8 @@
       },
       {
         "h3": {
-          "en": "Right motor — mirror image",
-          "zh": "右边的电机：左右镜像"
+          "en": "Right motor mirrors the left",
+          "zh": "右边电机镜像安装"
         },
         "body": {
           "en": "Install it like the left motor, as a mirror image. The motor connector faces right.",

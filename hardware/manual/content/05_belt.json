@@ -12,7 +12,7 @@
     },
     "lede": {
       "en": "PhysiClaw's CoreXY stage runs on two GT2 belts, the Motor A belt and the Motor B belt. They run on the upper and lower belt planes, so they never cross. The two belts must have equal tension, or the motion is not accurate.",
-      "zh": "PhysiClaw 的 CoreXY 结构由两条 GT2 同步带驱动：电机 A 的同步带和电机 B 的同步带。两条同步带分别位于上层和下层同步带平面，互不交叉。两条同步带的张力必须一致，运动才能准确。"
+      "zh": "PhysiClaw 的 CoreXY 结构由两条 GT2 同步带驱动，即电机 A 的同步带和电机 B 的同步带。两条同步带分别位于上层和下层同步带平面，互不交叉。两条同步带的张力必须一致，运动才能准确。"
     }
   },
   {
@@ -50,11 +50,11 @@
       },
       {
         "h3": {
-          "en": "The clamp self-locks",
+          "en": "The clamp locks itself",
           "zh": "夹具自锁"
         },
         "body": {
-          "en": "1. Feed each belt end into the bottom slot of the clamp. 2. Loop it around the post. 3. Fold it back against itself so that the teeth mesh. The teeth-on-teeth grip holds the belt with no extra fasteners.",
+          "en": "1. Feed each belt end into the bottom slot of the clamp. 2. Loop it around the post. 3. Fold it back against itself so that the teeth mesh. The meshed teeth hold the belt with no extra fasteners.",
           "zh": "1. 把同步带的每一端穿入夹具底部的槽。2. 绕过立柱。3. 折回贴在带身上，让齿与齿咬合。这样即可固定同步带，无需额外紧固件。"
         },
         "classes": "note overlay sm",

@@ -401,8 +401,8 @@
           "zh": "长螺栓拧入惰轮支座"
         },
         "body": {
-          "en": "Split the screws as at the left idler mount: M5×12 into the idler mount, M5×10 into the extrusion slot.",
-          "zh": "螺栓分配与左边的惰轮支座相同：M5×12 拧入惰轮支座，M5×10 拧入型材槽。"
+          "en": "Split the screws as at the left idler mount. M5×12 goes into the idler mount, M5×10 into the extrusion slot.",
+          "zh": "螺栓分配与左边的惰轮支座相同。M5×12 拧入惰轮支座，M5×10 拧入型材槽。"
         },
         "classes": "note overlay sm",
         "style": "left:139mm; top:40mm; width:45mm;"
@@ -485,8 +485,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor A idler — sits lower",
-          "zh": "电机 A 的惰轮：在下层"
+          "en": "Motor A idler on the lower plane",
+          "zh": "电机 A 的惰轮在下层"
         },
         "body": {
           "en": "This idler carries the Motor A belt. It has no spacer, so it rides on the lower belt plane.",
@@ -614,8 +614,8 @@
     "notes": [
       {
         "h3": {
-          "en": "Motor B idler — sits higher",
-          "zh": "电机 B 的惰轮：在上层"
+          "en": "Motor B idler on the upper plane",
+          "zh": "电机 B 的惰轮在上层"
         },
         "body": {
           "en": "This idler carries the Motor B belt. The 9 mm spacer lifts it onto the upper belt plane.",

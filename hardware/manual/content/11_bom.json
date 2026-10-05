@@ -343,7 +343,7 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Overhead phone-screen view",
+          "en": "Overhead view of the phone screen",
           "zh": "俯拍手机屏幕"
         }
       },
@@ -523,7 +523,7 @@
         },
         "qty": "1",
         "desc": {
-          "en": "Screen-tapping tip",
+          "en": "Tip that taps the screen",
           "zh": "点击手机屏幕"
         }
       },

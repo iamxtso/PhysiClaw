@@ -148,7 +148,7 @@
           "zh": "安装控制板"
         },
         "body": {
-          "en": "Use 4 screw–nut pairs. The figure does not show the 2 lower nuts.",
+          "en": "Use 4 screws with nuts. The figure does not show the 2 lower nuts.",
           "zh": "用 4 组螺栓和螺母。下方 2 颗螺母被遮挡，图中未画出。"
         },
         "classes": "note overlay sm",
@@ -328,7 +328,7 @@
           "zh": "固定电磁铁引线"
         },
         "body": {
-          "en": "Cable-tie the solenoid leads to the tube holder. Otherwise the solenoid's travel shakes the lead wires at the control board terminals. Constant shaking works the contact loose, and then the solenoid no longer taps the screen.",
+          "en": "Tie the solenoid leads to the tube holder with a cable tie. Otherwise the solenoid's travel shakes the lead wires at the control board terminals. Constant shaking works the contact loose, and then the solenoid no longer taps the screen.",
           "zh": "用捆扎带把电磁铁引线固定在导管支架上。否则电磁铁动作时会带动控制板端子处的引线晃动。引线反复晃动会使接触松动，电磁铁便无法点击屏幕。"
         },
         "classes": "note overlay sm",
@@ -340,7 +340,7 @@
           "zh": "PTFE 和 FEP"
         },
         "body": {
-          "en": "Use either tube: PTFE (milky white) or FEP (clear).",
+          "en": "Use either tube, PTFE (milky white) or FEP (clear).",
           "zh": "PTFE（乳白色）或 FEP（透明）均可。"
         },
         "classes": "note overlay sm",
@@ -348,11 +348,11 @@
       },
       {
         "h3": {
-          "en": "Spiral-wrap the tube",
+          "en": "Bind the wires with spiral wrap",
           "zh": "螺旋缠绕成束"
         },
         "body": {
-          "en": "Spiral-wrap the solenoid's lead wires to the Teflon tube along its full length. Do not put the wires inside the tube.",
+          "en": "Bind the solenoid's lead wires to the Teflon tube with spiral wrap along its full length. Do not put the wires inside the tube.",
           "zh": "用螺旋缠绕带把电磁铁引线沿特氟龙管全长缠成一束。不要把引线穿入管内。"
         },
         "classes": "note overlay sm",

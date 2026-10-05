@@ -11,7 +11,7 @@
       "zh": "手机托架"
     },
     "lede": {
-      "en": "Two cross-beams mount under the frame and carry the printed phone bed. The phone lies in the bed screen-up, level under the stylus. Its top-left corner sits against the corner of the bed.",
+      "en": "Two cross-beams mount under the frame and carry the printed phone bed. The phone lies in the bed with the screen up, level under the stylus. Its top-left corner sits against the corner of the bed.",
       "zh": "两根横梁装在框架底面，承载 3D 打印的手机托架。手机屏幕朝上放入托架，水平置于触控笔下方。手机左上角抵住托架内角。"
     }
   },
@@ -218,7 +218,7 @@
           "zh": "调整电磁铁高度"
         },
         "body": {
-          "en": "Set the solenoid height so that the stylus tip just makes stable contact with the screen. If the solenoid is too low, it cannot pull in fully. The magnetic force is then too weak to hold the tip down. The tip springs back, and long-press and swipe both fail. If the solenoid is too high, the tip cannot reach the screen, or the contact patch is too small.",
+          "en": "Set the solenoid height so that the stylus tip just makes stable contact with the screen. If the solenoid is too low, it cannot pull in fully. The magnetic force is then too weak to hold the tip down. The tip springs back, so long presses and swipes fail. If the solenoid is too high, the tip cannot reach the screen, or the contact patch is too small.",
           "zh": "调整电磁铁高度，使触控笔尖恰好稳定接触屏幕。电磁铁过低时无法完全吸合，吸力不足以压住笔尖。笔尖弹回，长按和滑动都会失败。电磁铁过高时，笔尖够不到屏幕，或接触面太小。"
         },
         "classes": "note overlay sm",

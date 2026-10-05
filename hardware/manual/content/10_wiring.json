@@ -54,7 +54,7 @@
           "zh": "注意方向"
         },
         "body": {
-          "en": "Do not install a TMC2209 reversed. It can burn out on power-up. Before you press a driver into its header, make sure that its pin labels match the silkscreen.",
+          "en": "Do not install a TMC2209 reversed. It can burn out when the power comes on. Before you press a driver into its header, make sure that its pin labels match the silkscreen.",
           "zh": "不要把 TMC2209 装反。否则上电时可能烧毁。压入前，确认每个驱动的引脚标识与板上丝印一致。"
         },
         "classes": "note overlay sm",
