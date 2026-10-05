@@ -3,7 +3,7 @@
     "part_id": "ext-2040-y",
     "ref": "¥60",
     "inquiry": {
-      "en": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size — 7 pcs, 4 specs:\n1. 2040 black anodized, 345 mm ×2 — M6 counterbores on the 40 mm-wide face, two at each end, 10 mm from the end face\n2. 2040 black anodized, 190 mm ×2 — both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2 — M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
+      "en": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size, 7 pcs in 4 specs:\n1. 2040 black anodized, 345 mm ×2, M6 counterbores on the 40 mm-wide face, two at each end, 10 mm from the end face\n2. 2040 black anodized, 190 mm ×2, both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2, M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
       "zh": "用于 PhysiClaw 组装的欧标铝型材定制切割，共 7 根 4 种规格：\n1. 2040 黑色阳极氧化 345 mm ×2，M6 沉孔开在 40 mm 宽面，每端各开两个，距端面 10 mm\n2. 2040 黑色阳极氧化 190 mm ×2，两端攻丝 M6\n3. 1020 185 mm ×1\n4. 1020 230 mm ×2，距两端 10 mm 开 M5 通孔\n5. 内六角圆柱头螺栓 M6×20 ×8\n请帮忙报价"
     },
     "suppliers": [
@@ -30,7 +30,7 @@
       }
     ],
     "note": {
-      "en": "Custom order — send the {inquiry} together with the <a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_en.pdf\">tech drawing</a> (PDF) to the shop's customer service for a quote.",
+      "en": "Custom order. Send the {inquiry} together with the <a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_en.pdf\">tech drawing</a> (PDF) to the shop's customer service for a quote.",
       "zh": "定制商品，请将{inquiry}和<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_zh.pdf\">加工图纸</a>（PDF）一并发给店铺客服报价。"
     }
   },
@@ -90,7 +90,7 @@
     "part_id": "rail-y",
     "ref": "¥120",
     "inquiry": {
-      "en": "MGN9H miniature linear guide set for a PhysiClaw build — 3 rails + 3 carriages:\nRail 240 mm ×2\nRail 150 mm ×1\nH-type long carriage ×3\nPlease kindly quote.",
+      "en": "MGN9H miniature linear guide set for a PhysiClaw build, 3 rails + 3 carriages:\nRail 240 mm ×2\nRail 150 mm ×1\nH-type long carriage ×3\nPlease kindly quote.",
       "zh": "用于 PhysiClaw 组装的 MGN9H 微型直线导轨套装，共 3 根导轨 + 3 个滑块：\n导轨 240 mm ×2\n导轨 150 mm ×1\nH 型加长滑块 ×3\n请帮忙报价"
     },
     "suppliers": [
@@ -117,8 +117,8 @@
       }
     ],
     "note": {
-      "en": "Custom order — send the {inquiry} to the shop's customer service.<br>MGN9H rails and carriages are precision motion parts. Workmanship and accuracy grades vary noticeably between makers, and prices span a wide range. Choose according to your needs.",
-      "zh": "定制商品，请将{inquiry}发给店铺客服。<br>MGN9H 导轨滑块是精密运动件，各厂商做工和精度等级差异明显，价格区间较大，请按需选择。"
+      "en": "Custom order. Send the {inquiry} to the shop's customer service.<br>MGN9H rails and carriages are precision motion parts. Workmanship and accuracy grades vary noticeably between makers, and prices span a wide range. Choose according to your needs.",
+      "zh": "定制商品，请将{inquiry}发给店铺客服。<br>MGN9H 导轨滑块是精密运动件。各厂商做工和精度等级差异明显，价格区间较大，请按需选择。"
     }
   },
   {
@@ -1242,7 +1242,7 @@
       }
     ],
     "note": {
-      "en": "You need 6. If the shop sells 5-packs, order 2 packs.",
+      "en": "You need 6. If the shop sells packs of 5, order 2 packs.",
       "zh": "共需 6 个。若按 5 个一包出售，买 2 包。"
     }
   },
