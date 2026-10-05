@@ -11,8 +11,8 @@
       "zh": "直线运动"
     },
     "lede": {
-      "en": "PhysiClaw's X/Y motion is a CoreXY stage on three MGN9H rails. The Y axis uses two rails, one on the left and one on the right. One rail spans between them as the X axis. Each of the two XY joints, where the X axis meets a Y rail, carries two idlers. Keep every carriage on its rail: a carriage that slides off spills its balls and is ruined.",
-      "zh": "PhysiClaw 的 X/Y 运动采用 CoreXY 结构，由三根 MGN9H 导轨导向。左右两根导轨用作 Y 轴，横跨其间的一根用作 X 轴。X 轴与 Y 导轨相接的两处是 XY 连接件，每个连接件装两个惰轮。每个滑块都要留在导轨上：滑块一旦滑出导轨，钢珠散落，滑块即报废。"
+      "en": "PhysiClaw's X/Y motion is a CoreXY stage on three MGN9H rails. The Y axis uses two rails, one on the left and one on the right. One rail spans between them as the X axis. Each of the two XY joints, where the X axis meets a Y rail, carries two idlers. Keep every carriage on its rail. A carriage that slides off spills its balls and is ruined.",
+      "zh": "PhysiClaw 的 X/Y 运动采用 CoreXY 结构，由三根 MGN9H 导轨导向。左右两根导轨用作 Y 轴，横跨其间的一根用作 X 轴。X 轴与 Y 导轨相接的两处是 XY 连接件，每个连接件装两个惰轮。每个滑块都要留在导轨上。滑块一旦滑出导轨，钢珠散落，滑块随之损坏。"
     }
   },
   {
@@ -40,8 +40,8 @@
           "zh": "安装滑块"
         },
         "body": {
-          "en": "Some carriages ship on a plastic dummy rail. Do not remove it first: the balls fall out. 1. Align the dummy rail with the end of the rail. 2. Slide the carriage across onto the rail.",
-          "zh": "有些滑块出厂时套在塑料假轨上。不要先抽出假轨，否则钢珠掉出。1. 把假轨与导轨端面对齐。2. 把滑块推入导轨。"
+          "en": "Some carriages ship on a plastic dummy rail. Do not take the carriage off it. The balls can fall out. 1. Align the dummy rail with the end of the rail. 2. Slide the carriage from the dummy rail onto the rail.",
+          "zh": "有些滑块出厂时套在塑料假轨上。不要把滑块从假轨上取下，否则钢珠容易散落。1. 把假轨与导轨端面对齐。2. 把滑块从假轨推入导轨。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:30mm; width:80mm;"
@@ -88,8 +88,8 @@
           "zh": "让滑块留在导轨上"
         },
         "body": {
-          "en": "Keep the carriage on the rail. Do not swap carriages between rails.",
-          "zh": "让滑块始终留在导轨上。不同导轨的滑块不要互换。"
+          "en": "Keep the carriage on the rail at all times. If it slides off, the balls fall out and the carriage is ruined.",
+          "zh": "让滑块始终留在导轨上。滑块一旦滑出导轨，钢珠散落，滑块随之损坏。"
         },
         "classes": "note overlay sm",
         "style": "left:16mm; top:90mm; width:60mm; display:flex; gap:4mm; align-items:flex-start;",

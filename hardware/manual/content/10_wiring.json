@@ -366,7 +366,7 @@
         },
         "body": {
           "en": "Never put the ground wire into a wall outlet. Connect the housing to earth ground. The simplest option is a desktop PC chassis grounded through a three-prong outlet. Clip the wire to bare metal on the chassis. The chassis reaches earth through the mains and gives a stable reference.",
-          "zh": "切勿把接地线插入墙壁插座。把外壳接到大地。最简单的办法是用台式电脑机箱：电脑经三脚插座接地，把接地线夹在机箱裸露的金属上即可。机箱经市电地线连到大地，接地参考稳定。"
+          "zh": "切勿把接地线插入墙壁插座。把外壳接到大地。最简单的办法是用台式电脑机箱。电脑经三脚插座接地，把接地线夹在机箱裸露的金属上即可。机箱经市电地线连到大地，接地参考稳定。"
         },
         "classes": "note overlay sm",
         "style": "left:130mm; top:82mm; width:150mm; max-width:150mm;"
