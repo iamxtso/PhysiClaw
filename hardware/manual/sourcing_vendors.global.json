@@ -1,20 +1,20 @@
 [
   {
     "part_id": "ext-2040-y",
-    "ref": "¥60",
+    "ref": "$25",
     "inquiry": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size, 7 pcs in 4 specs:\n1. 2040 black anodized, 345 mm ×2, M6 counterbores on the 40 mm-wide face, two at each end, 10 mm from the end face\n2. 2040 black anodized, 190 mm ×2, both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2, M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
     "suppliers": [
       {
-        "name": "TDT Aluminum profile",
-        "url": "https://item.taobao.com/item.htm?id=610862084791&skuId=4475647915072"
+        "name": "PMGN",
+        "url": "https://www.aliexpress.us/item/3256808792776211.html"
       },
       {
-        "name": "Zhongda Aluminum profile",
-        "url": "https://item.taobao.com/item.htm?id=569658195210&skuId=4518325341481"
+        "name": "Magic Dragon",
+        "url": "https://www.aliexpress.us/item/3256802521560261.html"
       },
       {
-        "name": "Zhien Aluminum profile",
-        "url": "https://item.taobao.com/item.htm?id=577553756280&skuId=5090964084362"
+        "name": "HighQ",
+        "url": "https://www.aliexpress.us/item/3256806710682237.html"
       }
     ],
     "note": "Custom order. Send the {inquiry} together with the <a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_en.pdf\">tech drawing</a> (PDF) to the shop's customer service for a quote."
