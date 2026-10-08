@@ -61,20 +61,20 @@
   },
   {
     "part_id": "rail-y",
-    "ref": "¥120",
+    "ref": "$40",
     "inquiry": "MGN9H miniature linear guide set for a PhysiClaw build, 3 rails + 3 carriages:\nRail 240 mm ×2\nRail 150 mm ×1\nH-type long carriage ×3\nPlease kindly quote.",
     "suppliers": [
       {
         "name": "HIWIN",
-        "url": "https://item.taobao.com/item.htm?id=668877121156"
+        "url": "https://www.aliexpress.us/item/3256805159136180.html"
       },
       {
-        "name": "LinDeng ",
-        "url": "https://item.taobao.com/item.htm?id=998753624442"
+        "name": "CCQ",
+        "url": "https://www.aliexpress.us/item/3256804722090559.html"
       },
       {
-        "name": "MUH",
-        "url": "https://detail.tmall.com/item.htm?id=681898609711&skuId=5723622205969"
+        "name": "KGT",
+        "url": "https://www.aliexpress.us/item/3256802330641420.html"
       }
     ],
     "note": "Custom order. Send the {inquiry} to the shop's customer service.<br>MGN9H rails and carriages are precision motion parts. Workmanship and accuracy grades vary noticeably between makers, and prices span a wide range. Choose according to your needs."
