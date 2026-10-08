@@ -15,7 +15,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 CONTENT_DIR = Path(__file__).resolve().parent / "content"
-VENDOR_FILE = Path(__file__).resolve().parent / "sourcing_vendors.json"
+VENDOR_FILES = {
+    "zh": Path(__file__).resolve().parent / "sourcing_vendors.cn.json",
+    "en": Path(__file__).resolve().parent / "sourcing_vendors.global.json",
+}
 MANUAL_VERSION_FILE = Path(__file__).resolve().parent / "MANUAL_VERSION"
 
 # The <html lang> attribute value per language.

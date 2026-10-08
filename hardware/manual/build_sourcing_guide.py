@@ -7,9 +7,10 @@ drift from the assembly manual — class, component, spec, qty and application
 render verbatim from those rows, each carrying a short stable ``part_id``
 (e.g. ``rail-y``).
 
-``sourcing_vendors.json`` is an array with one entry per BOM row, in BOM
-order, keyed by ``part_id``. Each entry adds the sourcing columns of the
-table — all optional:
+``sourcing_vendors.cn.json`` supplies the Chinese guide;
+``sourcing_vendors.global.json`` supplies the English guide. Each is an array
+with one entry per BOM row, in BOM order, keyed by ``part_id``. Each entry
+adds the sourcing columns of the table — all optional:
 
 - ``ref`` — 参考价: a rough expected cost for the needed quantity, so the
   buyer can judge whether a shop's price is reasonable (missing -> em dash);
@@ -59,7 +60,7 @@ Run under ``uv`` from the repo root (standard library only, Python 3.12+)::
 
     uv run python -m hardware.manual.build_sourcing_guide              # en + zh
     uv run python -m hardware.manual.build_sourcing_guide --lang en    # English only -> sourcing_guide.html
-    uv run python -m hardware.manual.build_sourcing_guide --scaffold   # sync sourcing_vendors.json with the BOM, then build
+    uv run python -m hardware.manual.build_sourcing_guide --scaffold   # sync both vendor files with the BOM, then build
 
 ``--scaffold`` inserts a bare ``{"part_id": …}`` entry for every BOM row
 missing from the file, reorders entries to BOM order, and reports stale ids;
@@ -72,6 +73,7 @@ import argparse
 import html
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -83,7 +85,7 @@ from hardware.manual.common import (
     CONTENT_DIR,
     HTML_LANG,
     URL_MARK,
-    VENDOR_FILE,
+    VENDOR_FILES,
     _rowspans,
     _step,
     load_pages,
@@ -242,22 +244,22 @@ def load_bom_rows() -> list[dict]:
         )
     ids = [r["part_id"] for r in rows]
     if len(ids) != len(set(ids)):
-        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        dupes = sorted(i for i, count in Counter(ids).items() if count > 1)
         raise BuildError(
             "duplicate part_id(s) in the BOM:\n" + "\n".join(f"    {i}" for i in dupes)
         )
     return rows
 
 
-def load_sourcing_data() -> list[dict]:
-    """Read sourcing_vendors.json (an array, one entry per BOM row),
+def load_sourcing_data(vendor_file: Path) -> list[dict]:
+    """Read a vendor file (an array, one entry per BOM row),
     bootstrapping an empty list on first run."""
-    if not VENDOR_FILE.exists():
+    if not vendor_file.exists():
         return []
-    data = json.loads(VENDOR_FILE.read_text(encoding="utf-8"))
+    data = json.loads(vendor_file.read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise BuildError(
-            f"{VENDOR_FILE.name} must be a JSON array "
+            f"{vendor_file.name} must be a JSON array "
             "(one entry per BOM row, keyed by part_id)"
         )
     return data
@@ -271,10 +273,10 @@ def sync_entries(
     matches a row are dropped and reported. Authored entries pass through
     untouched. Returns ``(synced, added_ids, stale_ids)``."""
     ids = [e.get("part_id") for e in entries]
-    dupes = sorted({i for i in ids if i and ids.count(i) > 1})
+    dupes = sorted(i for i, count in Counter(filter(None, ids)).items() if count > 1)
     if dupes:
         raise BuildError(
-            f"duplicate part_id(s) in {VENDOR_FILE.name}:\n"
+            "duplicate part_id(s) in sourcing entries:\n"
             + "\n".join(f"    {i}" for i in dupes)
         )
     by_id = {e.get("part_id"): e for e in entries}
@@ -290,8 +292,8 @@ def sync_entries(
     return synced, added, stale
 
 
-def write_sourcing_file(entries: list[dict]) -> None:
-    VENDOR_FILE.write_text(
+def write_sourcing_file(entries: list[dict], vendor_file: Path) -> None:
+    vendor_file.write_text(
         json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
@@ -637,28 +639,30 @@ def render_document(rows: list[dict], entries: list[dict], css: str, lang: str) 
 # Build
 # --------------------------------------------------------------------------- #
 def build(langs: list[str], out_dir: Path, scaffold: bool) -> list[Path]:
-    with _step("load bom + sourcing"):
-        rows = load_bom_rows()
-        entries, added, stale = sync_entries(rows, load_sourcing_data())
-    if scaffold or not VENDOR_FILE.exists():
-        write_sourcing_file(entries)
-        print(f"  synced {VENDOR_FILE.name}: +{len(added)} new empty entr(y/ies)")
-    elif added:
-        print(
-            f"  note: {len(added)} BOM row(s) have no sourcing entry "
-            f"(rendered with defaults) — run with --scaffold to add them"
-        )
-    if stale:
-        print(
-            f"  warning: {len(stale)} stale entr(y/ies) no longer match a BOM part_id:"
-        )
-        for i in stale:
-            print(f"    {i}")
-
+    rows = load_bom_rows()
     css = STYLES_CSS.read_text(encoding="utf-8")
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for lang in langs:
+        vendor_file = VENDOR_FILES[lang]
+        with _step(f"load sourcing [{lang}]"):
+            entries, added, stale = sync_entries(rows, load_sourcing_data(vendor_file))
+        if scaffold or not vendor_file.exists():
+            write_sourcing_file(entries, vendor_file)
+            print(f"  synced {vendor_file.name}: +{len(added)} new empty entr(y/ies)")
+        elif added:
+            print(
+                f"  note: {len(added)} BOM row(s) have no sourcing entry in "
+                f"{vendor_file.name} (rendered with defaults) — run with --scaffold to add them"
+            )
+        if stale:
+            print(
+                f"  warning: {vendor_file.name}: {len(stale)} stale entr(y/ies) "
+                "no longer match a BOM part_id:"
+            )
+            for i in stale:
+                print(f"    {i}")
+
         path = out_dir / LANG_FILENAME[lang]
         with _step(f"render html [{lang}]"):
             path.write_text(render_document(rows, entries, css, lang), encoding="utf-8")
@@ -683,7 +687,7 @@ def main() -> None:
     parser.add_argument(
         "--scaffold",
         action="store_true",
-        help="sync sourcing_vendors.json with the BOM (add bare part_id entries) before building",
+        help="sync the selected language vendor files with the BOM (add bare part_id entries) before building",
     )
     args = parser.parse_args()
 

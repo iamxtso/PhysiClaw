@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from hardware.manual import BuildError
@@ -140,3 +142,37 @@ def test_load_bom_rows_with_duplicate_part_ids_raises(monkeypatch):
 
     with pytest.raises(BuildError, match="duplicate part_id"):
         bsg.load_bom_rows()
+
+
+@pytest.mark.parametrize("langs", [["en"], ["zh"], ["en", "zh"]])
+@pytest.mark.parametrize("scaffold", [False, True])
+def test_build_uses_and_scaffolds_only_selected_vendor_files(
+    tmp_path, monkeypatch, langs, scaffold
+):
+    files = {
+        "en": tmp_path / "sourcing_vendors.global.json",
+        "zh": tmp_path / "sourcing_vendors.cn.json",
+    }
+    originals = {}
+    for lang, path in files.items():
+        path.write_text(
+            json.dumps([{"part_id": "p1", "suppliers": [{"name": f"shop-{lang}"}]}])
+        )
+        originals[lang] = path.read_bytes()
+    monkeypatch.setattr(bsg, "VENDOR_FILES", files)
+    monkeypatch.setattr(bsg, "load_bom_rows", lambda: [bom_row("p1"), bom_row("p2")])
+
+    def render(rows, entries, css, lang):
+        assert entries[0]["suppliers"][0]["name"] == f"shop-{lang}"
+        assert entries[1] == {"part_id": "p2"}
+        return lang
+
+    monkeypatch.setattr(bsg, "render_document", render)
+    output = tmp_path / "output"
+    written = bsg.build(langs, output, scaffold=scaffold)
+    assert {p.name for p in written} == {bsg.LANG_FILENAME[lang] for lang in langs}
+    for lang, path in files.items():
+        if scaffold and lang in langs:
+            assert json.loads(path.read_text())[-1] == {"part_id": "p2"}
+        else:
+            assert path.read_bytes() == originals[lang]

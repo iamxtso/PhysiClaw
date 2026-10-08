@@ -77,7 +77,8 @@ hardware/
 │   │                          BOM splits, headless-Chrome PDF)
 │   ├── content/           13 ordered JSON sections (front + 11 chapters + back)
 │   ├── MANUAL_VERSION     The cover's version stamp (single source of truth)
-│   └── sourcing_vendors.json   Supplier data, keyed to BOM rows
+│   ├── sourcing_vendors.cn.json      Suppliers for the Chinese guide, keyed to BOM rows
+│   └── sourcing_vendors.global.json  Suppliers for the English guide, keyed to BOM rows
 │
 └── output/                Generated artifacts (git-ignored)
     ├── step/  svg/  bom/  manual/  sourcing/  drawing/  print_3d/  render/
@@ -193,6 +194,13 @@ pbpaste | make hw-camera          # FreeCAD view → Camera() literal
 make hw-rebuild                   # full rebuild, all stages
 make hw-help                      # list every subcommand
 ```
+
+The sourcing builder reads `sourcing_vendors.cn.json` for `--lang zh` and
+`sourcing_vendors.global.json` for `--lang en`; the default builds both. Each
+file uses the same entry schema and shared BOM `part_id` values, but suppliers
+can be maintained independently. Vendor text is stored as plain Chinese strings
+in the CN file and plain English strings in the global file. `--scaffold` syncs the selected language files
+(or both by default) with the BOM.
 
 > **Photoreal render — WIP.** A separate Blender render of the full machine
 > (`camera_40_frame`) is being reworked; its scripts were cleared and are not
