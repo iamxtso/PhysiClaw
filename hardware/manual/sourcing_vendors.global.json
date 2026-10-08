@@ -42,22 +42,22 @@
   },
   {
     "part_id": "printed-parts",
-    "ref": "¥190",
+    "ref": "$40",
     "suppliers": [
       {
+        "name": "JLC3DP",
+        "url": "https://jlc3dp.com/3d-printing-quote"
+      },
+      {
+        "name": "PCBWay",
+        "url": "https://www.pcbway.com/rapid-prototyping/"
+      },
+      {
         "name": "Wenext",
-        "url": "https://detail.tmall.com/item.htm?id=611650162725"
-      },
-      {
-        "name": "MeiYiCheng",
-        "url": "https://detail.tmall.com/item.htm?id=586246509958"
-      },
-      {
-        "name": "Junyimei",
-        "url": "https://detail.tmall.com/item.htm?id=667925514795"
+        "url": "https://www.wenext.com/3d-printing"
       }
     ],
-    "note": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> (print guide included). Send them to the shop's customer service."
+    "note": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> and unzip. Upload the STEP files for an online quote. Follow the included print guide."
   },
   {
     "part_id": "rail-y",
