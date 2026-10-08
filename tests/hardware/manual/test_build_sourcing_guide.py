@@ -84,7 +84,7 @@ def test_supplier_columns_pads_short_slots_with_none():
     assert [col[0] for col in columns] == [{"name": "shop"}, None, None]
 
 
-# ── clean_taobao_url ──────────────────────────────────────────────────────────
+# ── clean_supplier_url ──────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize(
@@ -107,8 +107,35 @@ def test_supplier_columns_pads_short_slots_with_none():
     ],
     ids=["strips-tracking", "keeps-id-only", "shop-homepage", "non-taobao"],
 )
-def test_clean_taobao_url_keeps_only_identifying_params(url, expected):
-    assert bsg.clean_taobao_url(url) == expected
+def test_clean_supplier_url_keeps_only_identifying_params(url, expected):
+    assert bsg.clean_supplier_url(url) == expected
+
+
+@pytest.mark.parametrize(
+    "domain",
+    ["aliexpress.us", "aliexpress.com", "www.aliexpress.us", "www.aliexpress.com"],
+)
+def test_clean_aliexpress_item_url_removes_query_and_fragment(domain):
+    base = f"https://{domain}/item/3256809048539619.html"
+    assert (
+        bsg.clean_supplier_url(
+            base + "?spm=tracking&sku_id=123&channel=twinner#details"
+        )
+        == base
+    )
+    assert bsg.clean_supplier_url(base) == base
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://www.aliexpress.us/store/123?sort=price",
+        "https://notaliexpress.us/item/123.html?sku_id=456",
+        "https://www.aliexpress.us.example.com/item/123.html?sku_id=456",
+    ],
+)
+def test_clean_supplier_url_leaves_other_links_unchanged(url):
+    assert bsg.clean_supplier_url(url) == url
 
 
 # ── load_bom_rows ─────────────────────────────────────────────────────────────

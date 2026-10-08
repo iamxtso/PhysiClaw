@@ -249,22 +249,22 @@
   },
   {
     "part_id": "camera",
-    "ref": "¥200",
+    "ref": "$35",
     "suppliers": [
       {
         "name": "UGREEN",
-        "product": "4K 8 MP ultra-HD, autofocus",
-        "url": "https://detail.tmall.com/item.htm?id=737764280362&skuId=6258489139501"
+        "product": "4K Webcam",
+        "url": "https://www.aliexpress.us/item/3256809048539619.html"
       },
       {
-        "name": "Hikvision",
-        "product": "8 MP, autofocus",
-        "url": "https://detail.tmall.com/item.htm?id=631167230453&skuId=6226416526048"
+        "name": "EMEET",
+        "product": "Webcam 4K",
+        "url": "https://www.aliexpress.us/item/3256806516418733.html"
       },
       {
-        "name": "Logitech",
-        "product": "C925e HD webcam",
-        "url": "https://detail.tmall.com/item.htm?id=537650209055&skuId=6071259240979"
+        "name": "FIFINE",
+        "product": "K438 4K UHD",
+        "url": "https://www.aliexpress.us/item/3256812496955112.html"
       }
     ],
     "note": "Choose a native 8 MP sensor with autofocus."
