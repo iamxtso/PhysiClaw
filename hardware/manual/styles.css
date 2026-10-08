@@ -117,7 +117,7 @@
     letter-spacing: 0.01em;
     line-height: 1.2;
   }
-  .note h3.normal-case { text-transform: none; }
+  .unit { text-transform: none; }  /* a unit symbol keeps its case under capitals */
   .note p {
     color: var(--ink-soft);
     font-size: 11pt;

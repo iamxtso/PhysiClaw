@@ -1579,6 +1579,7 @@ dependencies = [
 [package.dev-dependencies]
 cad = [
     { name = "build123d" },
+    { name = "shapely" },
 ]
 dev = [
     { name = "freezegun" },
@@ -1613,7 +1614,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-cad = [{ name = "build123d", specifier = ">=0.7" }]
+cad = [
+    { name = "build123d", specifier = ">=0.7" },
+    { name = "shapely", specifier = ">=2.1.2" },
+]
 dev = [
     { name = "freezegun", specifier = ">=1.5" },
     { name = "hypothesis", specifier = ">=6.100" },

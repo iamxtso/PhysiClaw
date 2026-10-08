@@ -2,127 +2,316 @@
   {
     "type": "opener",
     "page": "frame",
-    "secnum": { "en": "SECTION 01", "zh": "第 01 节" },
-    "h1": { "en": "Frame", "zh": "框架" },
-    "lede": { "en": "Four 2040 aluminum extrusions form the base frame, and every other part mounts onto it. Make sure all four corners are square. This is the foundation for accurate motion later on.", "zh": "四根 2040 铝型材拼成底座，其余零件都装在上面。框架四角务必成直角，这是后续运动精度的基础。" }
+    "secnum": {
+      "en": "SECTION 01",
+      "zh": "第 01 节"
+    },
+    "h1": {
+      "en": "Frame",
+      "zh": "框架"
+    },
+    "lede": {
+      "en": "Four aluminum 2040 extrusions form the base frame. Every other part is installed on it. Make sure that all four corners are square. They are the foundation for accurate motion later.",
+      "zh": "四根 2040 铝型材组成底座框架。其余零件都装在框架上。确认框架四角成直角。方正的框架是后续运动精度的基础。"
+    }
   },
   {
     "type": "solo",
     "page": "frame_10",
-    "head": { "title": { "en": "FRAME", "zh": "框架" }, "small": "frame_10" },
+    "head": {
+      "title": {
+        "en": "FRAME",
+        "zh": "框架"
+      },
+      "small": "frame_10"
+    },
     "figures": [
-      { "src": "frame_10_extrusion_tnut_exploded_cam0_rbun.svg" }
+      {
+        "src": "frame_10_extrusion_tnut_exploded_cam0_rbun.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Preload the T-nuts", "zh": "先装 T 型螺母" },
-        "body": { "en": "Slide every T-nut into its slot before squaring the frame.", "zh": "校正框架方正之前，先把每颗 T 型螺母滑进对应的型材槽里。" },
+        "h3": {
+          "en": "Load the T-nuts first",
+          "zh": "先装滑块螺母"
+        },
+        "body": {
+          "en": "Before you square the frame, slide every T-nut into its slot.",
+          "zh": "校正框架四角前，先把每颗滑块螺母滑入型材槽。"
+        },
         "classes": "note overlay sm",
         "style": "right:16mm; bottom:70mm; width:80mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Extrusion 2040", "zh": "2040 铝型材" }, "spec": { "en": "345 mm · CB", "zh": "345 mm · 沉孔" }, "qty": "2" },
-        { "component": { "en": "Extrusion 2040", "zh": "2040 铝型材" }, "spec": "190 mm", "qty": "2" },
-        { "component": { "en": "T-nut", "zh": "T 型螺母" }, "spec": { "en": "Slide-In M5", "zh": "滑块螺母 M5" }, "qty": "8" }
+        {
+          "component": {
+            "en": "Extrusion 2040",
+            "zh": "2040 铝型材"
+          },
+          "spec": {
+            "en": "345 mm · CB",
+            "zh": "345 mm · 沉孔"
+          },
+          "qty": "2"
+        },
+        {
+          "component": {
+            "en": "Extrusion 2040",
+            "zh": "2040 铝型材"
+          },
+          "spec": "190 mm",
+          "qty": "2"
+        },
+        {
+          "component": {
+            "en": "T-nut",
+            "zh": "T 型螺母"
+          },
+          "spec": {
+            "en": "Slide-In M5",
+            "zh": "滑块螺母 M5"
+          },
+          "qty": "8"
+        }
       ]
     }
   },
   {
     "type": "solo",
     "page": "frame_20",
-    "head": { "title": { "en": "FRAME", "zh": "框架" }, "small": "frame_20" },
+    "head": {
+      "title": {
+        "en": "FRAME",
+        "zh": "框架"
+      },
+      "small": "frame_20"
+    },
     "figures": [
-      { "src": "frame_20_SHCS_exploded_cam0_nllz.svg", "style": "object-position: 12% center;" }
+      {
+        "src": "frame_20_SHCS_exploded_cam0_nllz.svg",
+        "style": "object-position: 12% center;"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Direction Convention", "zh": "方向约定" },
-        "body": { "en": "Top, bottom, left, and right throughout this manual refer to this view.", "zh": "本手册里说的上、下、左、右，都以这个视角为准。" },
+        "h3": {
+          "en": "Direction convention",
+          "zh": "方向约定"
+        },
+        "body": {
+          "en": "Top, bottom, left, and right throughout this manual refer to this view.",
+          "zh": "本手册中的上、下、左、右均以本图视角为准。"
+        },
         "classes": "note overlay sm",
         "style": "right:16mm; top:40mm; width:80mm;"
       },
       {
-        "h3": { "en": "Mind the placement", "zh": "注意位置" },
-        "body": { "en": "The short extrusion carrying the four slide-in T-nuts goes on top.", "zh": "带四个滑块螺母的短型材放在最上面。" },
+        "h3": {
+          "en": "Short extrusion on top",
+          "zh": "短型材放在顶部"
+        },
+        "body": {
+          "en": "Put the short extrusion with the 4 slide-in T-nuts on top.",
+          "zh": "把带 4 颗滑块螺母的短型材放在顶部。"
+        },
         "classes": "note overlay sm",
         "style": "right:16mm; top:60mm; width:80mm;"
       },
       {
-        "h3": { "en": "Counterbores face out", "zh": "沉孔朝外" },
-        "body": { "en": "The counterbored ends of the long extrusions face outboard, each counterbore aligned with the short extrusion's end bore.", "zh": "长型材带沉孔的一端朝外，每个沉孔对准短型材端面的孔位。" },
+        "h3": {
+          "en": "Counterbores face out",
+          "zh": "沉孔朝外"
+        },
+        "body": {
+          "en": "Turn the counterbored ends of the long extrusions outward. Align each counterbore with the end hole of the short extrusion.",
+          "zh": "把长型材的沉孔端朝外。每个沉孔对准短型材端面螺纹孔。"
+        },
         "classes": "note overlay sm",
         "style": "right:16mm; top:90mm; width:80mm;"
       },
       {
-        "h3": { "en": "Square before final tightening", "zh": "先校方正，再拧紧" },
-        "body": { "en": "Each M6×20 SHCS drops through the long's counterbore into the short's end hole. Run all 8 in snug, square the frame on a flat surface, then tighten.", "zh": "每颗 M6×20 圆柱头螺栓穿过长型材沉孔，拧进短型材端面的螺纹孔。先把 8 颗都拧到贴合，放到平整台面上校正框架方正，再逐颗拧紧。" },
+        "h3": {
+          "en": "Square before final tightening",
+          "zh": "先校正，再拧紧"
+        },
+        "body": {
+          "en": "1. Drop each M6×20 SHCS through the counterbore into the end hole of the short extrusion. 2. Tighten all 8 until snug. 3. Square the frame on a flat surface. 4. Tighten fully.",
+          "zh": "1. 把每颗 M6×20 圆柱头螺栓穿过长型材沉孔。2. 全部拧入短型材端面螺纹孔，拧到贴合。3. 在平整台面上把框架校正至四角垂直。4. 全部拧紧。"
+        },
         "classes": "note overlay sm",
         "style": "right:16mm; top:120mm; width:80mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "SHCS", "zh": "圆柱头螺栓" }, "spec": "M6×20", "qty": "8" }
+        {
+          "component": {
+            "en": "SHCS",
+            "zh": "圆柱头螺栓"
+          },
+          "spec": "M6×20",
+          "qty": "8"
+        }
       ]
     }
   },
   {
     "type": "tall-left",
     "page": "frame_30",
-    "head": { "title": { "en": "FRAME", "zh": "框架" }, "small": "frame_30 · frame_31" },
+    "head": {
+      "title": {
+        "en": "FRAME",
+        "zh": "框架"
+      },
+      "small": "frame_30 · frame_31"
+    },
     "figures": [
-      { "src": "frame_31_bracket_assembled_cam0_cljs.svg" },
-      { "src": "frame_30_bracket_tnut_exploded_cam0_gslq.svg" }
+      {
+        "src": "frame_31_bracket_assembled_cam0_cljs.svg"
+      },
+      {
+        "src": "frame_30_bracket_tnut_exploded_cam0_gslq.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Reinforce the frame", "zh": "框架加固" },
-        "body": { "en": "One joining plate reinforces each corner. Run an M5×10 BHCS through the plate, start a drop-in T-nut on it loosely, drop the assembly into the closed frame, then tighten.", "zh": "每个角用一块连接板加固。将 M5×10 半圆头螺栓穿过连接板，松松拧上一颗船形螺母，整组放进装好的框架，再拧紧。" },
+        "h3": {
+          "en": "Reinforce the frame",
+          "zh": "框架加固"
+        },
+        "body": {
+          "en": "One flat bracket reinforces each corner. 1. Put 2 M5×10 BHCS through the bracket. 2. Thread a drop-in T-nut loosely onto each. 3. Put the bracket with its nuts into the frame corner. 4. Tighten both screws.",
+          "zh": "每角用一块一字连接板加固。1. 把 2 颗 M5×10 半圆头螺栓穿过连接板。2. 各拧上船形螺母，暂不拧紧。3. 把连接板连同螺母放入框架转角。4. 拧紧螺栓。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:100mm; width:80mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Flat bracket", "zh": "一字连接板" }, "spec": "40 × 18 × 4 mm", "qty": "4" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M5×10", "qty": "8" },
-        { "component": { "en": "T-nut", "zh": "T 型螺母" }, "spec": { "en": "Drop-In M5", "zh": "船形螺母 M5" }, "qty": "8" }
+        {
+          "component": {
+            "en": "Flat bracket",
+            "zh": "一字连接板"
+          },
+          "spec": "40 × 18 × 4 mm",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M5×10",
+          "qty": "8"
+        },
+        {
+          "component": {
+            "en": "T-nut",
+            "zh": "T 型螺母"
+          },
+          "spec": {
+            "en": "Drop-In M5",
+            "zh": "船形螺母 M5"
+          },
+          "qty": "8"
+        }
       ]
     }
   },
   {
     "type": "tall-left",
     "page": "frame_40",
-    "head": { "title": { "en": "FRAME", "zh": "框架" }, "small": "frame_40 · frame_41" },
+    "head": {
+      "title": {
+        "en": "FRAME",
+        "zh": "框架"
+      },
+      "small": "frame_40 · frame_41"
+    },
     "figures": [
-      { "src": "frame_41_bumper_assembled_cam0_hovj.svg" },
-      { "src": "frame_40_bumper_tnut_exploded_cam0_jnva.svg", "style": "object-position: 64% center;" }
+      {
+        "src": "frame_41_bumper_assembled_cam0_hovj.svg"
+      },
+      {
+        "src": "frame_40_bumper_tnut_exploded_cam0_jnva.svg",
+        "style": "object-position: 64% center;"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Feet point down", "zh": "支脚朝下" },
-        "body": { "en": "The bumpers are the machine's feet, mounted under the four corners of the frame.", "zh": "橡胶脚垫用作机器的支脚，装在框架底面的四个角。" },
+        "h3": {
+          "en": "Feet point down",
+          "zh": "支脚朝下"
+        },
+        "body": {
+          "en": "The bumpers are the feet of the machine. Install them under the four corners of the frame.",
+          "zh": "橡胶脚垫是机器的支脚。装在框架底面四角。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:100mm; width:78mm;"
       },
       {
-        "h3": { "en": "Use the screws that come with the bumpers", "zh": "用橡胶脚垫自带的螺栓" },
-        "body": { "en": "If the bumpers you bought came with their own screws, use those. They're the right size.", "zh": "若你买的那款也配了螺栓，就用自带的，尺寸正好合适。" },
+        "h3": {
+          "en": "Bumper screws",
+          "zh": "脚垫螺栓"
+        },
+        "body": {
+          "en": "If the bumpers came with their own screws, use those screws. They are the right size.",
+          "zh": "如果脚垫自带螺栓，直接使用自带螺栓，尺寸相符。"
+        },
         "classes": "note overlay sm",
         "style": "left:135mm; top:30mm; width:70mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Bumper", "zh": "橡胶脚垫" }, "spec": "Ø20 × 22 mm", "qty": "4" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M5×16", "qty": "4" },
-        { "component": { "en": "T-nut", "zh": "T 型螺母" }, "spec": { "en": "Drop-In M5", "zh": "船形螺母 M5" }, "qty": "4" }
+        {
+          "component": {
+            "en": "Bumper",
+            "zh": "橡胶脚垫"
+          },
+          "spec": "Ø20 × 22 mm",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M5×16",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "T-nut",
+            "zh": "T 型螺母"
+          },
+          "spec": {
+            "en": "Drop-In M5",
+            "zh": "船形螺母 M5"
+          },
+          "qty": "4"
+        }
       ]
     }
   }

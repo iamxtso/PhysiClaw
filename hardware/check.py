@@ -13,7 +13,7 @@ What a rename or typo breaks quietly, this catches loudly:
                resolves to a declared view's raw render, one of its patch
                leaves' snapshots, or a hand figure the manual builder
                generates itself (``HAND_FIGURES``).
-  sourcing     ``sourcing_vendors.json`` part_ids match the BOM content
+  sourcing     Both vendor files’ part_ids match the BOM content
                rows one-to-one (no missing, stale, or duplicate ids).
   extrusions   every extrusion the model cuts has a BOM row whose spec
                states that length — the drawing builder's own refusal,
@@ -46,7 +46,7 @@ from hardware.assembly.mark.replay import find_leaves
 from hardware.manual import BuildError
 from hardware.manual.assets import HAND_FIGURES
 from hardware.manual.build_extrusion_drawing import cut_list
-from hardware.manual.common import CONTENT_DIR, VENDOR_FILE
+from hardware.manual.common import CONTENT_DIR, VENDOR_FILES
 from hardware.scheme import (
     FAMILY_PRIORITY,
     PATCH_DIR,
@@ -370,7 +370,7 @@ def _bom_rows(pages_by_file: dict[str, list]) -> tuple[list[dict], int]:
 
 
 def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
-    """The BOM content rows and sourcing_vendors.json must join one-to-one
+    """The BOM content rows and each vendor file must join one-to-one
     on part_id — the same invariants build_sourcing_guide enforces at build
     time (missing/duplicate row ids) plus the sync drift it only reports
     (stale / missing vendor entries)."""
@@ -384,30 +384,32 @@ def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
     if dupes := _duplicates(row_ids):
         findings.append(f"sourcing: duplicate BOM part_id(s): {', '.join(dupes)}")
 
-    if not VENDOR_FILE.exists():
-        findings.append(f"sourcing: {VENDOR_FILE.name} not found")
-        return findings
-    try:
-        entries = json.loads(VENDOR_FILE.read_text(encoding="utf-8"))
-    except ValueError as exc:
-        findings.append(f"sourcing: {VENDOR_FILE.name} is not valid JSON ({exc})")
-        return findings
-    vendor_ids = [e.get("part_id") for e in entries if isinstance(e, dict)]
-    if dupes := _duplicates(vendor_ids):
-        findings.append(
-            f"sourcing: duplicate part_id(s) in {VENDOR_FILE.name}: {', '.join(dupes)}"
-        )
-    row_set = {i for i in row_ids if i}
-    if stale := sorted(set(filter(None, vendor_ids)) - row_set):
-        findings.append(
-            f"sourcing: {VENDOR_FILE.name} has stale part_id(s) with no BOM "
-            f"row: {', '.join(stale)}"
-        )
-    if absent := sorted(row_set - set(vendor_ids)):
-        findings.append(
-            f"sourcing: BOM part_id(s) missing from {VENDOR_FILE.name}: "
-            f"{', '.join(absent)} (run `python -m hardware sourcing --scaffold`)"
-        )
+    row_set = set(filter(None, row_ids))
+    for lang, vendor_file in VENDOR_FILES.items():
+        if not vendor_file.exists():
+            findings.append(f"sourcing: {vendor_file.name} not found")
+            continue
+        try:
+            entries = json.loads(vendor_file.read_text(encoding="utf-8"))
+        except ValueError as exc:
+            findings.append(f"sourcing: {vendor_file.name} is not valid JSON ({exc})")
+            continue
+        vendor_ids = [e.get("part_id") for e in entries if isinstance(e, dict)]
+        if dupes := _duplicates(vendor_ids):
+            findings.append(
+                f"sourcing: duplicate part_id(s) in {vendor_file.name}: {', '.join(dupes)}"
+            )
+        vendor_set = set(vendor_ids)
+        if stale := sorted(set(filter(None, vendor_set)) - row_set):
+            findings.append(
+                f"sourcing: {vendor_file.name} has stale part_id(s) with no BOM "
+                f"row: {', '.join(stale)}"
+            )
+        if absent := sorted(row_set - vendor_set):
+            findings.append(
+                f"sourcing: BOM part_id(s) missing from {vendor_file.name}: "
+                f"{', '.join(absent)} (run `python -m hardware sourcing --lang {lang} --scaffold`)"
+            )
     return findings
 
 

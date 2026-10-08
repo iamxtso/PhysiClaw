@@ -51,7 +51,14 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setattr(check, "PROCEDURES_DIR", procedures)
     monkeypatch.setattr(check, "PATCH_DIR", patches)
     monkeypatch.setattr(check, "CONTENT_DIR", content)
-    monkeypatch.setattr(check, "VENDOR_FILE", manual / "sourcing_vendors.json")
+    monkeypatch.setattr(
+        check,
+        "VENDOR_FILES",
+        {
+            "zh": manual / "sourcing_vendors.cn.json",
+            "en": manual / "sourcing_vendors.global.json",
+        },
+    )
     monkeypatch.setattr(check, "HAND_FIGURES", {"wire_splice.svg": "<svg/>"})
 
     (procedures / "frame_10_base.py").write_text(BASE_PROCEDURE)
@@ -83,9 +90,10 @@ def write_bom(content, manual, rows: list[dict], extrusions=EXTRUSION_ROWS) -> N
     of them."""
     rows = rows + extrusions
     (content / "11_bom.json").write_text(json.dumps([{"type": "bom", "rows": rows}]))
-    (manual / "sourcing_vendors.json").write_text(
-        json.dumps([{"part_id": r["part_id"]} for r in rows if "part_id" in r])
-    )
+    for filename in ("sourcing_vendors.cn.json", "sourcing_vendors.global.json"):
+        (manual / filename).write_text(
+            json.dumps([{"part_id": r["part_id"]} for r in rows if "part_id" in r])
+        )
 
 
 def run_check() -> list[str]:
@@ -343,6 +351,11 @@ def test_manual_content_with_invalid_json_is_flagged(world):
 # ── sourcing ──────────────────────────────────────────────────────────────────
 
 
+@pytest.fixture(params=["sourcing_vendors.cn.json", "sourcing_vendors.global.json"])
+def filename(request):
+    return request.param
+
+
 def test_bom_row_without_part_id_is_flagged(world):
     write_bom(world.content, world.manual, [{"part_id": "p1"}, {"spec": "x"}])
 
@@ -363,40 +376,40 @@ def test_malformed_bom_row_is_flagged_not_crashed(world):
     assert_finding("malformed BOM row(s)")
 
 
-def test_stale_vendor_part_id_is_flagged(world):
-    (world.manual / "sourcing_vendors.json").write_text(
+def test_stale_vendor_part_id_is_flagged(world, filename):
+    (world.manual / filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", "p2", *EXTRUSION_IDS, "gone"]])
     )
 
     assert_finding("stale part_id(s) with no BOM row: gone")
 
 
-def test_bom_row_missing_from_vendors_is_flagged(world):
-    (world.manual / "sourcing_vendors.json").write_text(
+def test_bom_row_missing_from_vendors_is_flagged(world, filename):
+    (world.manual / filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", *EXTRUSION_IDS]])
     )
 
-    assert_finding("missing from sourcing_vendors.json: p2")
+    assert_finding(f"missing from {filename}: p2")
 
 
-def test_missing_vendor_file_is_flagged(world):
-    (world.manual / "sourcing_vendors.json").unlink()
+def test_missing_vendor_file_is_flagged(world, filename):
+    (world.manual / filename).unlink()
 
-    assert_finding("sourcing_vendors.json not found")
-
-
-def test_vendor_file_with_invalid_json_is_flagged(world):
-    (world.manual / "sourcing_vendors.json").write_text("{nope")
-
-    assert_finding("sourcing_vendors.json is not valid JSON")
+    assert_finding(f"{filename} not found")
 
 
-def test_duplicate_vendor_part_ids_are_flagged(world):
-    (world.manual / "sourcing_vendors.json").write_text(
+def test_vendor_file_with_invalid_json_is_flagged(world, filename):
+    (world.manual / filename).write_text("{nope")
+
+    assert_finding(f"{filename} is not valid JSON")
+
+
+def test_duplicate_vendor_part_ids_are_flagged(world, filename):
+    (world.manual / filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", "p1", "p2", *EXTRUSION_IDS]])
     )
 
-    assert_finding("duplicate part_id(s) in sourcing_vendors.json: p1")
+    assert_finding(f"duplicate part_id(s) in {filename}: p1")
 
 
 # ── extrusions ────────────────────────────────────────────────────────────────

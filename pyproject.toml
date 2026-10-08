@@ -54,7 +54,10 @@ Repository = "https://github.com/physiclaw/PhysiClaw"
 Issues = "https://github.com/physiclaw/PhysiClaw/issues"
 
 [dependency-groups]
-cad = ["build123d>=0.7"]
+cad = [
+    "build123d>=0.7",
+    "shapely>=2.1.2",
+]
 dev = [
     "ruff>=0.15.9",
     "pytest>=8",

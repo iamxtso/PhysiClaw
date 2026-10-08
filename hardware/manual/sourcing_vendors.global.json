@@ -1,0 +1,1026 @@
+[
+  {
+    "part_id": "ext-2040-y",
+    "ref": "¥60",
+    "inquiry": "EU-standard aluminum extrusion for a PhysiClaw build, T slot, cut to size, 7 pcs in 4 specs:\n1. 2040 black anodized, 345 mm ×2, M6 counterbores on the 40 mm-wide face, two at each end, 10 mm from the end face\n2. 2040 black anodized, 190 mm ×2, both ends tapped M6\n3. 1020, 185 mm ×1\n4. 1020, 230 mm ×2, M5 through-hole 10 mm from each end\n5. SHCS M6×20 ×8\nPlease kindly quote.",
+    "suppliers": [
+      {
+        "name": "TDT Aluminum profile",
+        "url": "https://item.taobao.com/item.htm?id=610862084791&skuId=4475647915072"
+      },
+      {
+        "name": "Zhongda Aluminum profile",
+        "url": "https://item.taobao.com/item.htm?id=569658195210&skuId=4518325341481"
+      },
+      {
+        "name": "Zhien Aluminum profile",
+        "url": "https://item.taobao.com/item.htm?id=577553756280&skuId=5090964084362"
+      }
+    ],
+    "note": "Custom order. Send the {inquiry} together with the <a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_extrusion_drawing_en.pdf\">tech drawing</a> (PDF) to the shop's customer service for a quote."
+  },
+  {
+    "part_id": "ext-2040-x",
+    "ref": "Ditto",
+    "inquiry": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "ext-1020-x-beam",
+    "ref": "Ditto",
+    "inquiry": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "ext-1020-phone-support",
+    "ref": "Ditto",
+    "inquiry": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "printed-parts",
+    "ref": "¥190",
+    "suppliers": [
+      {
+        "name": "Wenext",
+        "url": "https://detail.tmall.com/item.htm?id=611650162725"
+      },
+      {
+        "name": "MeiYiCheng",
+        "url": "https://detail.tmall.com/item.htm?id=586246509958"
+      },
+      {
+        "name": "Junyimei",
+        "url": "https://detail.tmall.com/item.htm?id=667925514795"
+      }
+    ],
+    "note": "<a href=\"https://github.com/physiclaw/PhysiClaw/releases/latest/download/physiclaw_custom_parts.zip\">Download the STEP files</a> (print guide included). Send them to the shop's customer service."
+  },
+  {
+    "part_id": "rail-y",
+    "ref": "¥120",
+    "inquiry": "MGN9H miniature linear guide set for a PhysiClaw build, 3 rails + 3 carriages:\nRail 240 mm ×2\nRail 150 mm ×1\nH-type long carriage ×3\nPlease kindly quote.",
+    "suppliers": [
+      {
+        "name": "HIWIN",
+        "url": "https://item.taobao.com/item.htm?id=668877121156"
+      },
+      {
+        "name": "LinDeng ",
+        "url": "https://item.taobao.com/item.htm?id=998753624442"
+      },
+      {
+        "name": "MUH",
+        "url": "https://detail.tmall.com/item.htm?id=681898609711&skuId=5723622205969"
+      }
+    ],
+    "note": "Custom order. Send the {inquiry} to the shop's customer service.<br>MGN9H rails and carriages are precision motion parts. Workmanship and accuracy grades vary noticeably between makers, and prices span a wide range. Choose according to your needs."
+  },
+  {
+    "part_id": "rail-x",
+    "ref": "Ditto",
+    "inquiry": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "carriage",
+    "ref": "Ditto",
+    "inquiry": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "pulley",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "20T, 5 mm bore (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=571029008660&skuId=3695816317651"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "20T, 5 mm bore (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=545252492404&skuId=3691748481218"
+      },
+      {
+        "name": "Tongtuo Zhanzhi",
+        "product": "20T, 5 mm bore, 16 mm height (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=559194333476&skuId=4038283182661"
+      }
+    ],
+    "note": "Standard part, same spec from every maker. Buy the cheapest."
+  },
+  {
+    "part_id": "idler-smooth",
+    "ref": "¥25",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "20T, 5 mm bore, smooth (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=572126642416&skuId=3714008004304"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "20T, 5 mm bore, smooth (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=544358606505&skuId=3422244497830"
+      },
+      {
+        "name": "Tongtuo Zhanzhi",
+        "product": "20T, 5 mm bore, smooth (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=559682437946&skuId=3872290557038"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "idler-toothed",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "20T, 5 mm bore, toothed (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=572126642416&skuId=3714008004303"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "20T, 5 mm bore, toothed (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=544358606505&skuId=3422244497837"
+      },
+      {
+        "name": "Tongtuo Zhanzhi",
+        "product": "20T, 5 mm bore, toothed (6 mm belt)",
+        "url": "https://item.taobao.com/item.htm?id=559682437946&skuId=3872290557039"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "belt",
+    "ref": "¥15",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "GT2 6 mm rubber belt, 5 m roll",
+        "url": "https://item.taobao.com/item.htm?id=572171792144&skuId=4454393450696"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "GT2 6 mm rubber timing belt, 5 m roll",
+        "url": "https://item.taobao.com/item.htm?id=544300031449&skuId=5019700795849"
+      },
+      {
+        "name": "Tongtuo Zhanzhi",
+        "product": "GT2 6 mm rubber timing belt, 5 m roll",
+        "url": "https://item.taobao.com/item.htm?id=558903222636&skuId=3869974812267"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "control-board",
+    "ref": "¥100",
+    "suppliers": [
+      {
+        "name": "Makerbase",
+        "product": "MKS DLC32",
+        "url": "https://item.taobao.com/item.htm?id=660133023604&skuId=4759861713260"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "MKS DLC32 V2.1 board",
+        "url": "https://item.taobao.com/item.htm?id=624116243332&skuId=4759128976305"
+      },
+      {
+        "name": "TwoTrees",
+        "product": "MKS DLC32 V2.1 board",
+        "url": "https://item.taobao.com/item.htm?id=652783651566&skuId=4937682023482"
+      }
+    ],
+    "note": "Control board and stepper drivers: same spec from every maker."
+  },
+  {
+    "part_id": "tmc2209",
+    "ref": "¥35",
+    "suppliers": [
+      {
+        "name": "Makerbase",
+        "product": "MKS TMC2209 stepper driver (with heatsink)",
+        "url": "https://item.taobao.com/item.htm?id=660133023604&skuId=5166488233343"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "TT TMC2209 driver",
+        "url": "https://item.taobao.com/item.htm?id=624116243332&skuId=5688178270462"
+      },
+      {
+        "name": "TwoTrees",
+        "product": "2209 V2.0 (with heatsink)",
+        "url": "https://item.taobao.com/item.htm?id=652783651566&skuId=6019775037611"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "psu",
+    "ref": "¥50",
+    "suppliers": [
+      {
+        "name": "UGREEN",
+        "product": "12 V 2 A adapter, 5.5×2.5 mm barrel plug",
+        "url": "https://item.taobao.com/item.htm?id=731915982634&skuId=5937503277169"
+      },
+      {
+        "name": "Samzhe",
+        "product": "12 V 2 A, 5.5×2.1 mm plug, 1.5 m cable",
+        "url": "https://detail.tmall.com/item.htm?id=861594569451&skuId=6078092673551"
+      },
+      {
+        "name": "Pisen",
+        "product": "12 V 2 A adapter, 1.2 m cable",
+        "url": "https://detail.tmall.com/item.htm?id=926498939211&skuId=6116098339184"
+      }
+    ],
+    "note": "Buy a reputable brand. A 5.5×2.5 mm barrel plug fits too."
+  },
+  {
+    "part_id": "camera",
+    "ref": "¥200",
+    "suppliers": [
+      {
+        "name": "UGREEN",
+        "product": "4K 8 MP ultra-HD, autofocus",
+        "url": "https://detail.tmall.com/item.htm?id=737764280362&skuId=6258489139501"
+      },
+      {
+        "name": "Hikvision",
+        "product": "8 MP, autofocus",
+        "url": "https://detail.tmall.com/item.htm?id=631167230453&skuId=6226416526048"
+      },
+      {
+        "name": "Logitech",
+        "product": "C925e HD webcam",
+        "url": "https://detail.tmall.com/item.htm?id=537650209055&skuId=6071259240979"
+      }
+    ],
+    "note": "Choose a native 8 MP sensor with autofocus."
+  },
+  {
+    "part_id": "motor-cable",
+    "ref": "¥2",
+    "suppliers": [
+      {
+        "name": "Tianle",
+        "product": "0.3 m PH2.0-6P to XH-4P cable",
+        "url": "https://item.taobao.com/item.htm?id=807040319382&skuId=5928464937081"
+      },
+      {
+        "name": "Lunqu",
+        "product": "XH2.54 4P to PH2.0 6P stepper motor cable (30 cm)",
+        "url": "https://item.taobao.com/item.htm?id=594099488032&skuId=4330049361960"
+      },
+      {
+        "name": "Linxiang",
+        "product": "XH2.54 4P to PH2.0 6P stepper motor cable (30 cm)",
+        "url": "https://item.taobao.com/item.htm?id=822954691545&skuId=5949725363039"
+      }
+    ],
+    "note": "Optional. The cable bundled with the motor is about 1 m, too long to store neatly. A 30 cm cable is plenty."
+  },
+  {
+    "part_id": "lead-wire",
+    "ref": "¥6",
+    "suppliers": [
+      {
+        "name": "Pengfei",
+        "product": "5 m, 0.3 mm², red — GB full-measure",
+        "url": "https://item.taobao.com/item.htm?id=679174967756&skuId=5710275586172"
+      },
+      {
+        "name": "Aiweimei",
+        "product": "5 m, 0.3 mm², red",
+        "url": "https://detail.tmall.com/item.htm?id=657813674873&skuId=5652917324466"
+      },
+      {
+        "name": "Hongmaisi",
+        "product": "5 m, 0.3 mm², red",
+        "url": "https://item.taobao.com/item.htm?id=668641608310&skuId=6196538982576"
+      }
+    ],
+    "note": "Buy 5 m to leave slack for the ground wire."
+  },
+  {
+    "part_id": "stepper-motor",
+    "ref": "¥50",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "Black high-quality (XH cable)",
+        "url": "https://item.taobao.com/item.htm?id=586441580168&skuId=4946625633271"
+      },
+      {
+        "name": "Dachuan",
+        "product": "NEMA17, 0.45 N·m, 40 mm body",
+        "url": "https://item.taobao.com/item.htm?id=674923594606&skuId=4995409077330"
+      },
+      {
+        "name": "Gaoyang",
+        "product": "NEMA17, 38 mm body, 1000 mm XH2.54 cable",
+        "url": "https://item.taobao.com/item.htm?id=714153589005&skuId=4998215524564"
+      }
+    ]
+  },
+  {
+    "part_id": "solenoid",
+    "ref": "¥15",
+    "suppliers": [
+      {
+        "name": "Langshuo",
+        "product": "LSD-0530B-12V",
+        "url": "https://item.taobao.com/item.htm?id=592528485538&skuId=5295181857221"
+      },
+      {
+        "name": "Elecall",
+        "product": "EML-0530B: 12 V, 6 N, 10 mm stroke",
+        "url": "https://detail.tmall.com/item.htm?id=571034504694&skuId=4521602674575"
+      },
+      {
+        "name": "MITG",
+        "product": "LS-0530B-12V: 0.2–6 N push-pull, 10 mm stroke",
+        "url": "https://detail.tmall.com/item.htm?id=972516011330&skuId=6091561787183"
+      }
+    ],
+    "note": "You must splice the leads longer, and careless handling breaks them easily. Buy one spare."
+  },
+  {
+    "part_id": "flat-bracket",
+    "ref": "¥8",
+    "suppliers": [
+      {
+        "name": "Bangzhai",
+        "product": "2020 series, 2-hole, black",
+        "url": "https://item.taobao.com/item.htm?id=712391133249&skuId=5160114146517"
+      },
+      {
+        "name": "Yuhaotong",
+        "product": "2020, 2-hole, painted black",
+        "url": "https://item.taobao.com/item.htm?id=611152722401&skuId=4298783200415"
+      },
+      {
+        "name": "Xinxinghua",
+        "product": "2020, 2-hole, black (2-pack)",
+        "url": "https://item.taobao.com/item.htm?id=746273984466&skuId=5188576336708"
+      }
+    ]
+  },
+  {
+    "part_id": "motor-bracket",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "NEMA17 motor bracket, black",
+        "url": "https://item.taobao.com/item.htm?id=594071400687&skuId=4282774614351"
+      },
+      {
+        "name": "Yousheng Guangcai",
+        "product": "NEMA17 motor bracket, black",
+        "url": "https://item.taobao.com/item.htm?id=672120132474&skuId=4840246572119"
+      },
+      {
+        "name": "Sanwei Cube",
+        "product": "NEMA17 motor bracket, black",
+        "url": "https://item.taobao.com/item.htm?id=592349548006&skuId=4596541845952"
+      }
+    ]
+  },
+  {
+    "part_id": "corner-bracket",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Shuangzi",
+        "product": "3030, 2-hole single-slot, 26 mm wide, black",
+        "url": "https://item.taobao.com/item.htm?id=860347001929&skuId=5771583005773"
+      },
+      {
+        "name": "Maorong",
+        "product": "3030 round-hole corner bracket, black (3 pcs)",
+        "url": "https://item.taobao.com/item.htm?id=1005971692015&skuId=5997549096414"
+      },
+      {
+        "name": "Dewang",
+        "product": "3030, round holes both sides, black",
+        "url": "https://item.taobao.com/item.htm?id=569803438727&skuId=6230897831983"
+      }
+    ]
+  },
+  {
+    "part_id": "bumper",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "Tianzhuo",
+        "product": "Ø20 top/bottom × 22 mm (10-pack), w/ machine screws",
+        "url": "https://detail.tmall.com/item.htm?id=850698518813&skuId=5653203589906"
+      },
+      {
+        "name": "Dulei",
+        "product": "20×20×22 mm, w/ machine screws",
+        "url": "https://detail.tmall.com/item.htm?id=592188833539&skuId=4078088461124"
+      },
+      {
+        "name": "Jinfenghuang",
+        "product": "20×20×22 mm (10-pack), w/ machine screws",
+        "url": "https://item.taobao.com/item.htm?id=657240920029&skuId=4743630412377"
+      }
+    ]
+  },
+  {
+    "part_id": "stylus-tip",
+    "ref": "¥15",
+    "suppliers": [
+      {
+        "name": "Wenku",
+        "product": "M3 female thread, Ø6.8 fabric head",
+        "url": "https://item.taobao.com/item.htm?id=540696187134&skuId=3710468466331"
+      },
+      {
+        "name": "Yongxing",
+        "product": "M3 female thread, Ø6.8 fabric head (5-pack)",
+        "url": "https://item.taobao.com/item.htm?id=951707635228&skuId=6037112926646"
+      },
+      {
+        "name": "Pasenjie",
+        "product": "M3 female thread, Ø7.0 fabric head (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=652898030762&skuId=5197108428102"
+      }
+    ]
+  },
+  {
+    "part_id": "teflon-tube",
+    "ref": "¥2",
+    "suppliers": [
+      {
+        "name": "Chunshi",
+        "product": "Black, 2 mm ID × 4 mm OD (per metre)",
+        "url": "https://detail.tmall.com/item.htm?id=655172054388&skuId=5856340424371"
+      },
+      {
+        "name": "OUPLI",
+        "product": "2×4 mm (5 m)",
+        "url": "https://detail.tmall.com/item.htm?id=569970454162&skuId=4508365327825"
+      },
+      {
+        "name": "Daoguan",
+        "product": "2×4 mm, 1 m",
+        "url": "https://detail.tmall.com/item.htm?id=20845971530&skuId=4499661631183"
+      }
+    ]
+  },
+  {
+    "part_id": "spiral-wrap",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Ø4 mm, black (20 m)",
+        "url": "https://detail.tmall.com/item.htm?id=615427949338&skuId=4334995916672"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø4 mm, black (20 m)",
+        "url": "https://detail.tmall.com/item.htm?id=668814695975&skuId=4986898195854"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø4 mm, black (20 m)",
+        "url": "https://detail.tmall.com/item.htm?id=854808621205&skuId=5656161788144"
+      }
+    ]
+  },
+  {
+    "part_id": "gooseneck",
+    "ref": "¥8",
+    "suppliers": [
+      {
+        "name": "Feiying",
+        "product": "30 cm gooseneck, 1/4 male/female",
+        "url": "https://item.taobao.com/item.htm?id=856578400006&skuId=5663181169281"
+      },
+      {
+        "name": "Litu",
+        "product": "30 cm gooseneck, 1/4 male/female, w/ 1 nut",
+        "url": "https://item.taobao.com/item.htm?id=955656202854&skuId=6047477731494"
+      },
+      {
+        "name": "Oulin Bosi",
+        "product": "30 cm gooseneck, 1/4 female + 1/4 male",
+        "url": "https://detail.tmall.com/item.htm?id=723765800541&skuId=5200393014254"
+      }
+    ]
+  },
+  {
+    "part_id": "bhcs-m3x6",
+    "ref": "¥25",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "BHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=16979965616&skuId=5241613567720"
+      },
+      {
+        "name": "Guwanji",
+        "product": "BHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=1048175312634&skuId=6073237337873"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "BHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=601878431269&skuId=5751904261691"
+      }
+    ],
+    "note": "Screws are inexpensive, but each size is sold in packs of 20/50/100. Even if you need only a few, you buy the whole pack."
+  },
+  {
+    "part_id": "bhcs-m3x8",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "bhcs-m3x10",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "bhcs-m5x10",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "bhcs-m5x12",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "bhcs-m5x16",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "bhcs-m5x20",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "fhcs-m3x8",
+    "ref": "¥10",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "FHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=17046691882&skuId=5070760537532"
+      },
+      {
+        "name": "Guwanji",
+        "product": "FHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=693377485791&skuId=4920755308732"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "FHCS, M3–M5 per spec and quantity",
+        "url": "https://detail.tmall.com/item.htm?id=601686390456&skuId=5058384094300"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "fhcs-m3x10",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "fhcs-m5x12",
+    "ref": "Ditto",
+    "suppliers": "Ditto",
+    "note": "Ditto"
+  },
+  {
+    "part_id": "shcs-m6x20",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "M6×20, full thread (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=22060492907&skuId=5256984043602"
+      },
+      {
+        "name": "Guwanji",
+        "product": "M6×20 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=534600992151&skuId=5044451193674"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "M6×20 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=684328822068&skuId=5937566337891"
+      }
+    ],
+    "note": "If the custom extrusion order already includes these 8 screws, do not buy them again."
+  },
+  {
+    "part_id": "shcs-unc14-16",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "1/4-20 × 5/8 (30-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=15831362641&skuId=5056818688424"
+      },
+      {
+        "name": "Guwanji",
+        "product": "1/4-20 × 5/8 (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=641602915619&skuId=5179374758354"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "1/4-20 × 5/8 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=617126314161&skuId=5917844858026"
+      }
+    ],
+    "note": "Use with a 3/16\" imperial hex key."
+  },
+  {
+    "part_id": "shoulder-5x10",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Ø5×10×M4 (20-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=629302870354&skuId=5720274725623"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø5×10×M4, 304 stainless (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=651089596067&skuId=5701335813692"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø5×10×M4 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=989320776058&skuId=5953211896803"
+      }
+    ]
+  },
+  {
+    "part_id": "shoulder-5x20",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Ø5×20×M4 (20-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=629302870354&skuId=5720274725628"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø5×20×M4 (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=651089596067&skuId=6112813150976"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø5×20×M4 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=989320776058&skuId=5953211896810"
+      }
+    ],
+    "note": "You need 6. If the shop sells packs of 5, order 2 packs."
+  },
+  {
+    "part_id": "tnut-dropin-m3",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Nickel-plated, EU 2020, M3 (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=602648155862&skuId=6028240481084"
+      },
+      {
+        "name": "Guwanji",
+        "product": "304 stainless, EU 2020, M3 (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=839660050219&skuId=5771557042783"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "EU 2020, M3, nickel-plated (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=998391792202&skuId=6144993723885"
+      }
+    ]
+  },
+  {
+    "part_id": "tnut-dropin-m5",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Nickel-plated, EU 2020, M5 (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=602648155862&skuId=6028240481086"
+      },
+      {
+        "name": "Guwanji",
+        "product": "304 stainless, EU 2020, M5 (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=839660050219&skuId=5771557042785"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "EU 2020, M5, nickel-plated (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=998391792202&skuId=6144993723887"
+      }
+    ]
+  },
+  {
+    "part_id": "tnut-slidein-m5",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Zinc-plated, EU 2020, M5 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=602648155862&skuId=6028240481110"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Nickel-plated slide-in, EU 2020, M5 (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=615760488508&skuId=5750868440086"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Zinc-plated slide-in, EU 2020, M5 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=601878555152&skuId=5916317895782"
+      }
+    ]
+  },
+  {
+    "part_id": "sqnut-m3",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "M3, 5.4×2.4 mm, 304 (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=39362025926&skuId=5494564676452"
+      },
+      {
+        "name": "Guwanji",
+        "product": "M3, 304 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=542282923317&skuId=3422524066282"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "304, M3, 5.4×2.4 mm (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=601243432591&skuId=5918561703451"
+      }
+    ]
+  },
+  {
+    "part_id": "sqnut-m4",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "M4, 7×3 mm, 304 (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=39362025926&skuId=5494564676453"
+      },
+      {
+        "name": "Guwanji",
+        "product": "M4, 304 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=542282923317&skuId=5994345312291"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "304, M4, 7×3 mm (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=601243432591&skuId=5918561703452"
+      }
+    ]
+  },
+  {
+    "part_id": "sqnut-m5",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "M5, 8×4 mm, 304 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=39362025926&skuId=5494564676430"
+      },
+      {
+        "name": "Guwanji",
+        "product": "M5, 304 (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=542282923317&skuId=5994345312292"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "304, M5, 8×3.8 mm (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=601243432591&skuId=5918561703453"
+      }
+    ]
+  },
+  {
+    "part_id": "hexnut-unc14",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "1/4-20 UNC, imperial (50-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=20955552239&skuId=5664372939211"
+      },
+      {
+        "name": "Guwanji",
+        "product": "1/4-20 UNC (20-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=642493938891&skuId=5094407607810"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "1/4-20 UNC, imperial (20-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=601243664282&skuId=5709263519067"
+      }
+    ],
+    "note": "Tighten with an 11 mm open-end wrench."
+  },
+  {
+    "part_id": "shim-5x8x0_5",
+    "ref": "¥3",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "Ø5×8×0.5 mm (200-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=941703196459&skuId=5839868929269"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø5×8×0.5 mm (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=867766340538&skuId=5863163199025"
+      },
+      {
+        "name": "Jianaite",
+        "product": "Ø5×8×0.5 mm (100-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=597917653553&skuId=5919206455674"
+      }
+    ]
+  },
+  {
+    "part_id": "spacer-5x10",
+    "ref": "¥4",
+    "suppliers": [
+      {
+        "name": "TwoTrees",
+        "product": "5 mm ID × 10 mm OD × 9 mm",
+        "url": "https://item.taobao.com/item.htm?id=608843333546&skuId=4447032678855"
+      },
+      {
+        "name": "Kufan",
+        "product": "Spacer 5×10×9 mm (5-pack)",
+        "url": "https://item.taobao.com/item.htm?id=643586054546&skuId=4710482460571"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø5×10×9 mm (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=851546806052&skuId=5815653223547"
+      }
+    ],
+    "note": "If the exact 9 mm height is unavailable, stack shorter spacers to reach 9 mm."
+  },
+  {
+    "part_id": "spacer-6x12x8",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "OPPU",
+        "product": "6.2×12×8 mm (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=719279682169&skuId=5151398852266"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø6×12×8 mm (20-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=914092442727&skuId=5947803851139"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø6×12×8 mm (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=851546806052&skuId=5815653223616"
+      }
+    ],
+    "note": "Height must match the listed spec. The ID and OD can vary: any ID > 5 mm and OD < 20 mm works."
+  },
+  {
+    "part_id": "spacer-6x12x12",
+    "ref": "¥5",
+    "suppliers": [
+      {
+        "name": "OPPU",
+        "product": "6.2×12×12 mm (5-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=719279682169&skuId=5151398852268"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Ø6×12×12 mm (10-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=914092442727&skuId=5947803851143"
+      },
+      {
+        "name": "Tianzhuo",
+        "product": "Ø6×12×12 mm (2-pack)",
+        "url": "https://detail.tmall.com/item.htm?id=851546806052&skuId=5815653223620"
+      }
+    ],
+    "note": "Ditto"
+  },
+  {
+    "part_id": "hex-key",
+    "ref": "¥10",
+    "suppliers": [
+      {
+        "name": "SATA",
+        "product": "Short flat-end, 2/3/5 mm",
+        "url": "https://detail.tmall.com/item.htm?id=718483830822&skuId=5976740613168"
+      },
+      {
+        "name": "Greener",
+        "product": "T-handle flat-end, 2/3/5 mm",
+        "url": "https://detail.tmall.com/item.htm?id=557514119321&skuId=4614839901621"
+      },
+      {
+        "name": "EIGHT",
+        "product": "Standard length, 2/3/5 mm",
+        "url": "https://detail.tmall.com/item.htm?id=605719869164&skuId=4417109167397"
+      }
+    ],
+    "note": "You need 3 hex keys. Buy good-quality 2 mm and 3 mm keys, which you use most. A basic 5 mm key is enough."
+  },
+  {
+    "part_id": "grease",
+    "ref": "¥10",
+    "suppliers": [
+      {
+        "name": "BKD",
+        "product": "White, 268 °C, 350 g (buy 3 get 1 free)",
+        "url": "https://detail.tmall.com/item.htm?id=535528431778&skuId=3246189537196"
+      },
+      {
+        "name": "Yijialin",
+        "product": "White high-temp grease, 100 g, 1 jar",
+        "url": "https://detail.tmall.com/item.htm?id=745296950254&skuId=6085234235052"
+      },
+      {
+        "name": "Chuangke",
+        "product": "Grease, 1 tube",
+        "url": "https://item.taobao.com/item.htm?id=835124349906&skuId=5755178218291"
+      }
+    ]
+  },
+  {
+    "part_id": "threadlocker",
+    "ref": "¥6",
+    "suppliers": [
+      {
+        "name": "Bairuite",
+        "product": "243 (blue, 50 ml)",
+        "url": "https://detail.tmall.com/item.htm?id=815495429995&skuId=5920702171814"
+      },
+      {
+        "name": "Guwanji",
+        "product": "Blue 243, 50 ml, 1 tube",
+        "url": "https://detail.tmall.com/item.htm?id=1053791122137&skuId=6094068880617"
+      },
+      {
+        "name": "LOCTITE",
+        "product": "LOCTITE 243 threadlocker, 10 ml",
+        "url": "https://detail.tmall.com/item.htm?id=652235448903&skuId=5855300089874"
+      }
+    ]
+  },
+  {
+    "part_id": "heat-shrink",
+    "ref": "¥4",
+    "suppliers": [
+      {
+        "name": "Niuxiang",
+        "product": "Assorted colors, 164 pcs (bag), 3:1 shrink",
+        "url": "https://detail.tmall.com/item.htm?id=653659815504&skuId=4887481207761"
+      },
+      {
+        "name": "Xinjia",
+        "product": "8 colors, 164 pcs",
+        "url": "https://item.taobao.com/item.htm?id=652182822333&skuId=4873785482841"
+      },
+      {
+        "name": "Xinxin",
+        "product": "5:1 shrink, 164 pcs (bag), flame-retardant",
+        "url": "https://item.taobao.com/item.htm?id=904644065796&skuId=5931489415648"
+      }
+    ]
+  }
+]

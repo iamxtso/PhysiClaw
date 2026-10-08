@@ -1,6 +1,6 @@
 # When docs/ changes on main, mirror it into the docs-site renderer's tracked
-# ./docs directory and push. docs-site's Vercel Git integration then builds
-# (pnpm build → sync-docs + astro build) and deploys docs.physiclaw.ai.
+# ./docs directory and push. docs-site's Cloudflare Pages Git integration then
+# builds (pnpm build → sync-docs + astro build) and deploys docs.physiclaw.ai.
 #
 # The renderer (physiclaw/docs-site) is a pure consumer — all content + docs.json
 # live here, under docs/. This workflow just keeps the mirror in sync.

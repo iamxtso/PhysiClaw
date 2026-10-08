@@ -55,6 +55,7 @@ from hardware.manual.common import (
     load_pages,
     loc,
     manual_version,
+    typeset_quantities,
 )
 from hardware.manual.icon_svg import (
     BACK_CORNER_SVG,
@@ -105,12 +106,11 @@ def render_note(note: dict, ctx: Ctx) -> str:
     """
     style = f' style="{note["style"]}"' if note.get("style") else ""
     h3_style = f' style="{note["h3Style"]}"' if note.get("h3Style") else ""
-    h3_class = f' class="{note["h3Class"]}"' if note.get("h3Class") else ""
     body = loc(note["body"], ctx.lang)
     # A body already wrapped in block tags (e.g. <p>…</p>) is inserted as-is;
     # a bare run of text gets a single <p> wrapper to match the source markup.
     body_html = body if body.lstrip().startswith("<") else f"<p>{body}</p>"
-    heading = f"<h3{h3_class}{h3_style}>{loc(note['h3'], ctx.lang)}</h3>{body_html}"
+    heading = f"<h3{h3_style}>{loc(note['h3'], ctx.lang)}</h3>{body_html}"
     inner = (
         f"{NOTE_ICONS[note['icon']]}<div>{heading}</div>"
         if note.get("icon")
@@ -515,7 +515,9 @@ def cover_title(pages: list[dict], ctx: Ctx) -> str:
 
 def render_document(pages: list[dict], css: str, ctx: Ctx) -> str:
     """Assemble the full HTML document for one language."""
-    sections = "\n".join(RENDERERS[p["type"]](p, ctx) for p in pages)
+    sections = typeset_quantities(
+        "\n".join(RENDERERS[p["type"]](p, ctx) for p in pages)
+    )
     src = cover_render_src(pages, ctx)
     preload = ctx.assets.preload(src) if src else ""
     return (

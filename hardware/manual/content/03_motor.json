@@ -2,74 +2,168 @@
   {
     "type": "opener",
     "page": "motor",
-    "secnum": { "en": "SECTION 03", "zh": "第 03 节" },
-    "h1": { "en": "Motor", "zh": "电机" },
-    "lede": { "en": "Two NEMA 17 stepper motors mount on the top extrusions of the frame, one on each side. They drive the CoreXY belts, which move the stylus carriage.", "zh": "两个 42 步进电机装在框架顶部的型材上，左右各一，驱动 CoreXY 同步带，带动触控笔滑座移动。" }
+    "secnum": {
+      "en": "SECTION 03",
+      "zh": "第 03 节"
+    },
+    "h1": {
+      "en": "Motor",
+      "zh": "电机"
+    },
+    "lede": {
+      "en": "Two NEMA 17 stepper motors sit on the top extrusion of the frame, one at each side. The motors drive the CoreXY belts, which move the X carriage.",
+      "zh": "两台 42 步进电机装在框架顶部的型材上，左右各一。电机驱动 CoreXY 同步带，带动 X 滑座移动。"
+    }
   },
   {
     "type": "tall-left",
     "page": "motor_10",
-    "head": { "title": { "en": "MOTOR", "zh": "电机" }, "small": "motor_10" },
+    "head": {
+      "title": {
+        "en": "MOTOR",
+        "zh": "电机"
+      },
+      "small": "motor_10"
+    },
     "figures": [
-      { "src": "motor_10_bracket_exploded_cam1.svg" },
-      { "src": "motor_10_bracket_assembled_cam1.svg" }
+      {
+        "src": "motor_10_bracket_exploded_cam1.svg"
+      },
+      {
+        "src": "motor_10_bracket_assembled_cam1.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Note the motor wire direction", "zh": "注意电机引线的朝向" },
-        "body": { "en": "Check which way the motor's wires face and match the orientation shown. That orientation sets the wiring clearance later.", "zh": "看清电机引线朝哪个方向，照图装好。引线朝向决定后面布线能留出多少空间。" },
+        "h3": {
+          "en": "Note the connector direction",
+          "zh": "注意接线端子的朝向"
+        },
+        "body": {
+          "en": "Make sure that the motor connector faces as shown. That direction sets the wiring clearance later.",
+          "zh": "确认电机接线端子朝向与图一致。朝向决定后续布线的空间。"
+        },
         "classes": "note overlay sm",
         "style": "left:130mm; top:130mm; width:80mm;"
       },
       {
-        "h3": { "en": "Only the spacer height matters", "zh": "只有轴套高度有要求" },
-        "body": { "en": "Motor A's spacer must be 8 mm tall.", "zh": "电机 A 的轴套高度必须 8 mm。" },
+        "h3": {
+          "en": "Spacer height for Motor A",
+          "zh": "电机 A 的轴套高度"
+        },
+        "body": {
+          "en": "The spacer of Motor A must be 8 mm tall.",
+          "zh": "电机 A 的轴套高度必须为 8 mm。"
+        },
         "classes": "note overlay sm",
         "style": "left:100mm; top:20mm; width:80mm;"
       },
       {
-        "h3": { "en": "Tighten in a cross pattern", "zh": "按对角顺序拧紧" },
-        "body": { "en": "Run all four motor screws in finger-tight first, then tighten opposite corners in pairs. This pulls the motor flat against the bracket instead of tilting it to one side.", "zh": "先把四颗电机螺栓用手拧上，再两两对角逐步拧紧。这样电机能平贴支架，不会歪向一边。" },
+        "h3": {
+          "en": "Tighten in a cross pattern",
+          "zh": "按对角顺序拧紧"
+        },
+        "body": {
+          "en": "1. Thread all 4 motor screws in by hand. 2. Tighten opposite corners in pairs. This pulls the motor flat against the bracket.",
+          "zh": "1. 先用手拧上 4 颗电机螺栓。2. 按对角成对拧紧。这样电机才能平贴支架。"
+        },
         "classes": "note overlay sm",
         "style": "left:125mm; top:75mm; width:70mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Motor bracket", "zh": "电机支架" }, "spec": "60×42×3", "qty": "1" },
-        { "component": { "en": "Motor", "zh": "电机" }, "spec": { "en": "NEMA 17 stepper, 38 mm height", "zh": "42 步进电机，高度 38 mm" }, "qty": "1" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M3×6", "qty": "4" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M5×16", "qty": "2" },
-        { "component": { "en": "Spacer", "zh": "轴套" }, "spec": "6×12×8", "qty": "2" }
+        {
+          "component": {
+            "en": "Motor bracket",
+            "zh": "电机支架"
+          },
+          "spec": "60×42×3",
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "Motor",
+            "zh": "电机"
+          },
+          "spec": {
+            "en": "NEMA 17 stepper",
+            "zh": "42 步进电机"
+          },
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M3×6",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M5×16",
+          "qty": "2"
+        },
+        {
+          "component": {
+            "en": "Spacer",
+            "zh": "轴套"
+          },
+          "spec": "6×12×8",
+          "qty": "2"
+        }
       ]
     }
   },
   {
     "type": "tall-left",
     "page": "motor_11",
-    "head": { "title": { "en": "MOTOR", "zh": "电机" }, "small": "motor_11" },
+    "head": {
+      "title": {
+        "en": "MOTOR",
+        "zh": "电机"
+      },
+      "small": "motor_11"
+    },
     "variant": "hero",
     "figures": [
-      { "src": "motor_11_frame_exploded_cam1_qued.svg" },
-      { "src": "motor_11_frame_assembled_cam0_aupa.svg" }
+      {
+        "src": "motor_11_frame_exploded_cam1_qued.svg"
+      },
+      {
+        "src": "motor_11_frame_assembled_cam0_aupa.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Motor A", "zh": "电机 A" },
-        "body": { "en": "We refer to the left motor as Motor A.", "zh": "左边这台电机记作电机 A。" },
+        "h3": {
+          "en": "Motor A",
+          "zh": "电机 A"
+        },
+        "body": {
+          "en": "The left motor is Motor A.",
+          "zh": "左边的电机是电机 A。"
+        },
         "classes": "note overlay sm",
         "style": "left:110mm; top:30mm; width:60mm;"
       },
       {
-        "h3": { "en": "Note the wire direction", "zh": "注意引线朝向" },
-        "body": { "en": "Confirm the motor's wires face the direction shown before fixing the bracket.", "zh": "固定支架前，先确认电机引线朝向与图一致。" },
-        "classes": "note overlay sm",
-        "style": "left:110mm; top:60mm; width:60mm;"
-      },
-      {
-        "h3": { "en": "Leave the bolts loose", "zh": "螺栓先别拧紧" },
-        "body": { "en": "Don't fully tighten the motor mount yet. You'll slide it later to tension the belt.", "zh": "电机座先别拧死，后面还要靠滑动电机座来张紧同步带。" },
+        "h3": {
+          "en": "Do not fully tighten the screws",
+          "zh": "螺栓暂不拧紧"
+        },
+        "body": {
+          "en": "Tighten until snug. After you tension the belt, tighten fully.",
+          "zh": "先拧到贴合。同步带张紧后再拧紧。"
+        },
         "classes": "note overlay sm",
         "style": "left:150mm; top:128mm; width:80mm;"
       }
@@ -78,61 +172,140 @@
   {
     "type": "tall-left",
     "page": "motor_20",
-    "head": { "title": { "en": "MOTOR", "zh": "电机" }, "small": "motor_20" },
+    "head": {
+      "title": {
+        "en": "MOTOR",
+        "zh": "电机"
+      },
+      "small": "motor_20"
+    },
     "figures": [
-      { "src": "motor_20_bracket_exploded_cam1.svg" },
-      { "src": "motor_20_bracket_assembled_cam0.svg" }
+      {
+        "src": "motor_20_bracket_exploded_cam1.svg"
+      },
+      {
+        "src": "motor_20_bracket_assembled_cam0.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "A taller spacer here", "zh": "这里用更高的轴套" },
-        "body": { "en": "Motor B's spacer must be 12 mm tall.", "zh": "电机 B 的轴套高度必须 12 mm。" },
+        "h3": {
+          "en": "A taller spacer here",
+          "zh": "这里用更高的轴套"
+        },
+        "body": {
+          "en": "The spacer of Motor B must be 12 mm tall.",
+          "zh": "电机 B 的轴套高度必须为 12 mm。"
+        },
         "classes": "note overlay sm",
         "style": "left:120mm; top:20mm; width:80mm;"
       },
       {
-        "h3": { "en": "Right motor — mirror image", "zh": "右边的电机——左右镜像" },
-        "body": { "en": "Built like the left motor, but mirrored: the cable connector faces right.", "zh": "装法与左边那台一样，只是左右镜像：线缆接头朝右。" },
+        "h3": {
+          "en": "Right motor mirrors the left",
+          "zh": "右边电机镜像安装"
+        },
+        "body": {
+          "en": "Install it like the left motor, as a mirror image. The motor connector faces right.",
+          "zh": "安装方式与左边电机相同，但左右镜像。接线端子朝右。"
+        },
         "classes": "note overlay sm",
         "style": "left:120mm; top:130mm; width:80mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Motor bracket", "zh": "电机支架" }, "spec": "60×42×3", "qty": "1" },
-        { "component": { "en": "Motor", "zh": "电机" }, "spec": { "en": "NEMA 17 stepper, 38 mm height", "zh": "42 步进电机，高度 38 mm" }, "qty": "1" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M3×6", "qty": "4" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M5×20", "qty": "2" },
-        { "component": { "en": "Spacer", "zh": "轴套" }, "spec": "6×12×12", "qty": "2" }
+        {
+          "component": {
+            "en": "Motor bracket",
+            "zh": "电机支架"
+          },
+          "spec": "60×42×3",
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "Motor",
+            "zh": "电机"
+          },
+          "spec": {
+            "en": "NEMA 17 stepper",
+            "zh": "42 步进电机"
+          },
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M3×6",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M5×20",
+          "qty": "2"
+        },
+        {
+          "component": {
+            "en": "Spacer",
+            "zh": "轴套"
+          },
+          "spec": "6×12×12",
+          "qty": "2"
+        }
       ]
     }
   },
   {
     "type": "tall-left",
     "page": "motor_21",
-    "head": { "title": { "en": "MOTOR", "zh": "电机" }, "small": "motor_21" },
+    "head": {
+      "title": {
+        "en": "MOTOR",
+        "zh": "电机"
+      },
+      "small": "motor_21"
+    },
     "variant": "hero",
     "figures": [
-      { "src": "motor_21_frame_exploded_cam1_homb.svg" },
-      { "src": "motor_21_frame_assembled_cam0_poqx.svg" }
+      {
+        "src": "motor_21_frame_exploded_cam1_homb.svg"
+      },
+      {
+        "src": "motor_21_frame_assembled_cam0_poqx.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Motor B", "zh": "电机 B" },
-        "body": { "en": "We refer to the right motor as Motor B.", "zh": "右边这台电机记作电机 B。" },
+        "h3": {
+          "en": "Motor B",
+          "zh": "电机 B"
+        },
+        "body": {
+          "en": "The right motor is Motor B, the mirror image of the left.",
+          "zh": "右边的电机是电机 B，与左边镜像。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:30mm; width:40mm;"
       },
       {
-        "h3": { "en": "Mirror", "zh": "镜像" },
-        "body": { "en": "This is the right motor, a mirror of the left. The cable connector faces right.", "zh": "这是右边那台电机，与左边镜像。线缆接头朝右。" },
-        "classes": "note overlay sm",
-        "style": "left:140mm; top:120mm; width:78mm;"
-      },
-      {
-        "h3": { "en": "Leave the bolts loose", "zh": "螺栓先别拧紧" },
-        "body": { "en": "Snug only. Final torque comes after belt tensioning.", "zh": "先轻轻拧到贴紧就行，等同步带张紧后再拧死。" },
+        "h3": {
+          "en": "Do not fully tighten the screws",
+          "zh": "螺栓暂不拧紧"
+        },
+        "body": {
+          "en": "Tighten until snug. After you tension the belt, tighten fully.",
+          "zh": "先拧到贴合。同步带张紧后再拧紧。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:150mm; width:78mm;"
       }
@@ -141,36 +314,77 @@
   {
     "type": "tall-left",
     "page": "motor_30",
-    "head": { "title": { "en": "MOTOR", "zh": "电机" }, "small": "motor_30" },
+    "head": {
+      "title": {
+        "en": "MOTOR",
+        "zh": "电机"
+      },
+      "small": "motor_30"
+    },
     "variant": "hero",
     "figures": [
-      { "src": "motor_30_pulley_exploded_cam1_wcny.svg" },
-      { "src": "motor_30_pulley_assembled_cam0_ghfe.svg" }
+      {
+        "src": "motor_30_pulley_exploded_cam1_wcny.svg"
+      },
+      {
+        "src": "motor_30_pulley_assembled_cam0_ghfe.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Two heights", "zh": "不同高度" },
-        "body": { "en": "The A and B belts sit at different heights: Motor A's pulley (left) is coplanar with the lower idlers, Motor B's pulley (right) coplanar with the upper idlers. Slide each pulley along its motor shaft into position, then lock it down with the set screw.", "zh": "A、B 两条同步带处在不同高度，电机 A 的同步轮（左）与下层惰轮共面，电机 B 的同步轮（右）与上层惰轮共面。各自沿电机轴滑到位后，把紧定螺钉拧紧固定。" },
+        "h3": {
+          "en": "Two heights",
+          "zh": "两种高度"
+        },
+        "body": {
+          "en": "The Motor A belt and the Motor B belt sit at different heights. The pulley of Motor A (left) sits on the lower belt plane. The pulley of Motor B (right) sits on the upper belt plane. Slide each pulley along its motor shaft to its plane.",
+          "zh": "电机 A 和电机 B 的同步带高度不同。电机 A 的同步轮（左）位于下层同步带平面。电机 B 的同步轮（右）位于上层同步带平面。把每个同步轮沿电机轴滑到对应的平面。"
+        },
         "classes": "note overlay sm",
         "style": "left:40mm; top:15mm; width:90mm;"
       },
       {
-        "h3": { "en": "Set screws", "zh": "紧定螺钉" },
-        "body": { "en": "Tighten one set screw onto the shaft's D-flat first, then tighten the other.", "zh": "先把一颗紧定螺钉对准 D 形切面拧紧，再拧另一颗。" },
+        "h3": {
+          "en": "Set screws",
+          "zh": "紧定螺钉"
+        },
+        "body": {
+          "en": "1. Tighten one set screw onto the D-flat of the shaft. 2. Tighten the other.",
+          "zh": "1. 把一颗紧定螺钉对准 D 形切面拧紧。2. 拧紧另一颗。"
+        },
         "classes": "note overlay sm",
         "style": "left:142mm; top:30mm; width:42mm;"
       },
       {
-        "h3": { "en": "Threadlocker", "zh": "螺纹胶加固" },
-        "body": { "en": "<p>Apply threadlocker to every set screw. A loose pulley throws off motion accuracy and is the single most common issue users report. Before you do, though, make sure the pulleys and idlers are aligned. You can also hold off on the threadlocker and apply it after the belts are installed.</p>", "zh": "<p>每颗紧定螺钉都要上螺纹胶。同步轮松动会导致运动失准，是用户反馈最多的问题，但上胶前务必先把同步轮和惰轮对齐。也可以暂不上胶，等装好同步带后再涂。</p>" },
+        "h3": {
+          "en": "Threadlocker",
+          "zh": "螺纹胶加固"
+        },
+        "body": {
+          "en": "<p>Make sure that the pulleys and idlers are aligned. Then apply threadlocker to every set screw. A loose pulley makes the motion inaccurate. It is the most common issue users report. You can also apply the threadlocker after you install the belts.</p>",
+          "zh": "<p>先确认同步轮和惰轮已对齐，再给每颗紧定螺钉涂螺纹胶。同步轮松动会导致运动失准，是用户反馈最多的问题。也可以等装好同步带后再涂。</p>"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:110mm; width:80mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Pulley", "zh": "同步轮" }, "spec": { "en": "GT2 20T, 6 mm", "zh": "GT2 20T，6 mm" }, "qty": "2" }
+        {
+          "component": {
+            "en": "Pulley",
+            "zh": "同步轮"
+          },
+          "spec": {
+            "en": "GT2 20T, 6 mm",
+            "zh": "GT2 20T，6 mm"
+          },
+          "qty": "2"
+        }
       ]
     }
   }

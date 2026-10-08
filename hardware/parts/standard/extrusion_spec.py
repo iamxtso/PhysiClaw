@@ -48,6 +48,8 @@ slot_w = 6.0  # central through-channel width (X)
 slot_h = 16.4  # central through-channel height (Y)
 slot_lip_under_y = 8.2  # cavity belly top, cell-local — T-nut wings
 # seat here against the slot lip underside
+slot_depth = leg - wedge_vertices[1][0]  # slot face → cavity floor (6.1):
+# a screw through a rail or plate on the face must end above this
 
 # The screw that closes the frame: an SHCS M6 through each long member's
 # counterbore into the short member's tapped end bore (frame_20_SHCS).

@@ -7,18 +7,19 @@ drift from the assembly manual — class, component, spec, qty and application
 render verbatim from those rows, each carrying a short stable ``part_id``
 (e.g. ``rail-y``).
 
-``sourcing_vendors.json`` is an array with one entry per BOM row, in BOM
-order, keyed by ``part_id``. Each entry adds the sourcing columns of the
-table — all optional:
+``sourcing_vendors.cn.json`` supplies the Chinese guide;
+``sourcing_vendors.global.json`` supplies the English guide. Each is an array
+with one entry per BOM row, in BOM order, keyed by ``part_id``. Each entry
+adds the sourcing columns of the table — all optional:
 
 - ``ref`` — 参考价: a rough expected cost for the needed quantity, so the
   buyer can judge whether a shop's price is reasonable (missing -> em dash);
 - ``inquiry`` — a ready-to-paste message for the shop (one fact per line).
   It has no cell of its own: the part's ``note`` embeds it via the
-  ``{inquiry}`` placeholder as a click-to-copy "询价说明" control (hover
+  ``{inquiry}`` placeholder as a click-to-copy "询价信息" control (hover
   previews the message). Only custom / cut-to-order parts carry one;
   standard parts are bought off the shelf by spec;
-- ``suppliers`` — 供应商 1..3: up to three shops, each ``{name, link?,
+- ``suppliers`` — 商家 1..3: up to three shops, each ``{name, link?,
   product?}``: the name (linked to the shop's ``link`` URL when filled in)
   over the shop's own ``product`` spec. Missing slots render as pending;
   a slot whose name is ``—`` renders as a muted dash (nothing to buy —
@@ -29,7 +30,7 @@ table — all optional:
   dash). Notes are prose and emitted as trusted HTML, the manual's
   convention for content strings (inline ``<a>`` is fine); data fields
   (names, products, refs) are escaped instead. The placeholder ``{inquiry}``
-  renders as the same click-to-copy 询价说明 control as in the supplier
+  renders as the same click-to-copy 询价信息 control as in the supplier
   cells.
 
 The special value ``"Ditto"`` makes a field merge with the row above — the
@@ -59,7 +60,7 @@ Run under ``uv`` from the repo root (standard library only, Python 3.12+)::
 
     uv run python -m hardware.manual.build_sourcing_guide              # en + zh
     uv run python -m hardware.manual.build_sourcing_guide --lang en    # English only -> sourcing_guide.html
-    uv run python -m hardware.manual.build_sourcing_guide --scaffold   # sync sourcing_vendors.json with the BOM, then build
+    uv run python -m hardware.manual.build_sourcing_guide --scaffold   # sync both vendor files with the BOM, then build
 
 ``--scaffold`` inserts a bare ``{"part_id": …}`` entry for every BOM row
 missing from the file, reorders entries to BOM order, and reports stale ids;
@@ -72,6 +73,7 @@ import argparse
 import html
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
@@ -83,12 +85,13 @@ from hardware.manual.common import (
     CONTENT_DIR,
     HTML_LANG,
     URL_MARK,
-    VENDOR_FILE,
+    VENDOR_FILES,
     _rowspans,
     _step,
     load_pages,
     loc,
     manual_version,
+    typeset_quantities,
 )
 from hardware.scheme import OUTPUT_DIR as _OUTPUT_ROOT
 
@@ -118,35 +121,33 @@ UI = {
     "h1": {"en": "Sourcing guide", "zh": "采购指南"},
     "lede": {
         "en": "This guide covers every part in the assembly manual's bill "
-        "of materials, with three reference suppliers each.<br>"
+        "of materials, with 3 reference suppliers each.<br>"
         "Reference prices are subtotals for the required quantity "
-        "(not unit prices, shipping excluded). Vendors may adjust "
-        "prices at any time, so use them only as a rough gauge.",
-        "zh": "本指南涵盖装配手册物料清单的全部零件，每项列出三家参考供应商。<br>"
-        "参考价为所需数量的合计金额（非单价，不含运费）。"
-        "商家可能随时调价，仅供衡量大致价格水平。",
+        "(not unit prices, shipping excluded). Vendors may change "
+        "prices at any time, so treat the prices as a rough guide.",
+        "zh": "本指南涵盖装配手册物料清单的全部零件，每项列出 3 家参考商家。<br>"
+        "参考价为所需数量的合计（非单价，不含运费）。"
+        "商家随时可能调价，仅作大致参考。",
     },
     "pending": {"en": "to be found", "zh": "待补充"},
     "disclaimer": {
-        "en": "<strong>Disclaimer:</strong> Supplier and product listings in "
-        "this guide are provided for reference only. We are not "
-        "affiliated with, and receive no compensation from, any of the "
-        "vendors listed, and we make no representation or warranty as "
-        "to the quality, pricing, or availability of their products. "
-        "Please verify the specifications and purchase from a vendor "
-        "of your choice. Should any listed product prove "
-        "unsatisfactory, or should you have a reliable vendor to "
-        "recommend, we welcome your feedback and will review and "
-        "update the listings accordingly.",
-        "zh": "<strong>免责声明：</strong>本指南所列供应商及商品链接仅供采购参考。"
-        "我们与所列商家不存在任何关联或利益关系，"
-        "对其商品的质量、价格及供货情况不作任何保证。"
+        "en": "<strong>Disclaimer:</strong> The suppliers and product links "
+        "in this guide are for reference only. We are not affiliated "
+        "with any listed vendor and receive no payment from them. We "
+        "make no guarantee about the quality, price, or availability "
+        "of their products. Check the specifications yourself and buy "
+        "from a vendor you trust. If a listed product has a problem, "
+        "or you know a reliable vendor, tell us. We will check and "
+        "update the listing.",
+        "zh": "<strong>免责声明：</strong>本指南所列商家及商品链接仅供采购参考。"
+        "我们与所列商家无任何关联或利益关系，"
+        "对其商品的质量、价格及供货不作任何保证。"
         "请按规格自行甄选，从您信任的商家购买。"
-        "如所列商品存在质量问题，或您有优质供应商推荐，"
-        "欢迎向我们反馈，我们将及时核实并更新相关条目。",
+        "如所列商品存在问题，或您有可靠的商家推荐，"
+        "欢迎反馈，我们将核实并更新相应条目。",
     },
-    "inquiry_label": {"en": "Inquiry message", "zh": "询价说明"},
-    "supplier_n": {"en": "Supplier", "zh": "供应商"},
+    "inquiry_label": {"en": "Inquiry message", "zh": "询价信息"},
+    "supplier_n": {"en": "Supplier", "zh": "商家"},
     # Bought-checklist chrome. tally_fmt/tally_done are JS templates
     # ({n} ticked / {t} rows).
     "th_bought": {"en": "Bought", "zh": "已购"},
@@ -243,22 +244,22 @@ def load_bom_rows() -> list[dict]:
         )
     ids = [r["part_id"] for r in rows]
     if len(ids) != len(set(ids)):
-        dupes = sorted({i for i in ids if ids.count(i) > 1})
+        dupes = sorted(i for i, count in Counter(ids).items() if count > 1)
         raise BuildError(
             "duplicate part_id(s) in the BOM:\n" + "\n".join(f"    {i}" for i in dupes)
         )
     return rows
 
 
-def load_sourcing_data() -> list[dict]:
-    """Read sourcing_vendors.json (an array, one entry per BOM row),
+def load_sourcing_data(vendor_file: Path) -> list[dict]:
+    """Read a vendor file (an array, one entry per BOM row),
     bootstrapping an empty list on first run."""
-    if not VENDOR_FILE.exists():
+    if not vendor_file.exists():
         return []
-    data = json.loads(VENDOR_FILE.read_text(encoding="utf-8"))
+    data = json.loads(vendor_file.read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise BuildError(
-            f"{VENDOR_FILE.name} must be a JSON array "
+            f"{vendor_file.name} must be a JSON array "
             "(one entry per BOM row, keyed by part_id)"
         )
     return data
@@ -272,10 +273,10 @@ def sync_entries(
     matches a row are dropped and reported. Authored entries pass through
     untouched. Returns ``(synced, added_ids, stale_ids)``."""
     ids = [e.get("part_id") for e in entries]
-    dupes = sorted({i for i in ids if i and ids.count(i) > 1})
+    dupes = sorted(i for i, count in Counter(filter(None, ids)).items() if count > 1)
     if dupes:
         raise BuildError(
-            f"duplicate part_id(s) in {VENDOR_FILE.name}:\n"
+            "duplicate part_id(s) in sourcing entries:\n"
             + "\n".join(f"    {i}" for i in dupes)
         )
     by_id = {e.get("part_id"): e for e in entries}
@@ -291,8 +292,8 @@ def sync_entries(
     return synced, added, stale
 
 
-def write_sourcing_file(entries: list[dict]) -> None:
-    VENDOR_FILE.write_text(
+def write_sourcing_file(entries: list[dict], vendor_file: Path) -> None:
+    vendor_file.write_text(
         json.dumps(entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
@@ -352,7 +353,7 @@ def _span_attr(span: int) -> str:
 
 
 def _inquiry_button(message: str, lang: str, flip: bool = False) -> str:
-    """The click-to-copy 询价说明 control: copy icon + label; hovering shows
+    """The click-to-copy 询价信息 control: copy icon + label; hovering shows
     the message in a tooltip, clicking copies it (icon morphs to a check).
     ``flip`` opens the tooltip leftward — for buttons near the table's right
     edge, where it would otherwise be clipped."""
@@ -616,6 +617,7 @@ def render_document(rows: list[dict], entries: list[dict], css: str, lang: str) 
         f'<p class="disclaimer">{ui("disclaimer", lang)}</p></div>'
         f"{checklist}{render_table(rows, entries, lang)}</div>"
     )
+    body = typeset_quantities(body)
     # Bought marks and the highlight preference persist per manual version
     # (a revision starts clean); the EN and ZH files share the key, so state
     # carries across languages. The prefix rides along so the JS stale-key
@@ -637,28 +639,30 @@ def render_document(rows: list[dict], entries: list[dict], css: str, lang: str) 
 # Build
 # --------------------------------------------------------------------------- #
 def build(langs: list[str], out_dir: Path, scaffold: bool) -> list[Path]:
-    with _step("load bom + sourcing"):
-        rows = load_bom_rows()
-        entries, added, stale = sync_entries(rows, load_sourcing_data())
-    if scaffold or not VENDOR_FILE.exists():
-        write_sourcing_file(entries)
-        print(f"  synced {VENDOR_FILE.name}: +{len(added)} new empty entr(y/ies)")
-    elif added:
-        print(
-            f"  note: {len(added)} BOM row(s) have no sourcing entry "
-            f"(rendered with defaults) — run with --scaffold to add them"
-        )
-    if stale:
-        print(
-            f"  warning: {len(stale)} stale entr(y/ies) no longer match a BOM part_id:"
-        )
-        for i in stale:
-            print(f"    {i}")
-
+    rows = load_bom_rows()
     css = STYLES_CSS.read_text(encoding="utf-8")
     out_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
     for lang in langs:
+        vendor_file = VENDOR_FILES[lang]
+        with _step(f"load sourcing [{lang}]"):
+            entries, added, stale = sync_entries(rows, load_sourcing_data(vendor_file))
+        if scaffold or not vendor_file.exists():
+            write_sourcing_file(entries, vendor_file)
+            print(f"  synced {vendor_file.name}: +{len(added)} new empty entr(y/ies)")
+        elif added:
+            print(
+                f"  note: {len(added)} BOM row(s) have no sourcing entry in "
+                f"{vendor_file.name} (rendered with defaults) — run with --scaffold to add them"
+            )
+        if stale:
+            print(
+                f"  warning: {vendor_file.name}: {len(stale)} stale entr(y/ies) "
+                "no longer match a BOM part_id:"
+            )
+            for i in stale:
+                print(f"    {i}")
+
         path = out_dir / LANG_FILENAME[lang]
         with _step(f"render html [{lang}]"):
             path.write_text(render_document(rows, entries, css, lang), encoding="utf-8")
@@ -683,7 +687,7 @@ def main() -> None:
     parser.add_argument(
         "--scaffold",
         action="store_true",
-        help="sync sourcing_vendors.json with the BOM (add bare part_id entries) before building",
+        help="sync the selected language vendor files with the BOM (add bare part_id entries) before building",
     )
     args = parser.parse_args()
 

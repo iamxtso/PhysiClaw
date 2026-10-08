@@ -93,6 +93,7 @@ class Profile:
     measured 19.8 × 9.9, but sold as 20 × 10) and ordered with a finish."""
 
     nominal: tuple[float, float]  # width × height
+    size: tuple[float, float]  # the model's section, width × height
     finish: dict | str  # as the BOM orders it; "—" when unspecified
 
     @property
@@ -101,8 +102,12 @@ class Profile:
 
 
 PROFILES = {
-    "2040": Profile(spec.nominal_2040, {"en": "Black anodized", "zh": "黑色阳极氧化"}),
-    "1020": Profile(spec.nominal_1020, "—"),
+    "2040": Profile(
+        spec.nominal_2040,
+        (2 * (spec.cell_offset + spec.leg), 2 * spec.leg),
+        {"en": "Black anodized", "zh": "黑色阳极氧化"},
+    ),
+    "1020": Profile(spec.nominal_1020, (2 * spec.half_x_1020, spec.half_x_1020), "—"),
 }
 
 
@@ -296,7 +301,8 @@ UI: dict[str, dict[str, str]] = {
     "th_qty": {"en": "Qty", "zh": "数量"},
     "th_machining": {"en": "Machining", "zh": "加工要求"},
     "th_application": {"en": "Application", "zh": "用途"},
-    "total": {"en": "Total {pieces} pieces", "zh": "合计 {pieces} 根"},
+    "total_label": {"en": "Total", "zh": "合计"},
+    "total": {"en": "{pieces} pieces", "zh": "{pieces} 根"},
     "section": {"en": "Section 1:1", "zh": "截面 1:1"},
     "face_40": {"en": "40 mm face · 1:2", "zh": "40 mm 宽面 · 1:2"},
     "face_slot": {"en": "Slot face · 1:2", "zh": "槽面 · 1:2"},
@@ -312,8 +318,8 @@ UI: dict[str, dict[str, str]] = {
         "zh": "2. 切口平整垂直，全部去毛刺。",
     },
     "footer": {
-        "en": "Generated from the PhysiClaw CAD model · Rev. {version} · Sheet 1 of 1",
-        "zh": "由 PhysiClaw CAD 模型生成 · 版本 {version} · 第 1 页，共 1 页",
+        "en": "Rev. {version} · Sheet 1 of 1",
+        "zh": "版本 {version} · 第 1 页，共 1 页",
     },
 }
 
@@ -394,6 +400,8 @@ ARROW = 2.4  # dimension arrowhead length, mm
 DIM_GAP = 0.8  # extension line stands off the feature by this
 DIM_OVER = 1.2  # and overshoots the dimension line by this
 NARROW = 9.0  # spans under this get their arrows outside
+DIM_STANDOFF = 5.0  # a face view's dimension lines stand off its plate by this
+VIEW_LABEL_DROP = 6.5  # a view's label baseline below its lowest edge
 
 # Arrowhead markers a dimension line carries.
 ARROW_END = 'marker-end="url(#arrow)"'
@@ -469,16 +477,23 @@ def _dim(
         line(*pt(a1, feat + side * DIM_GAP), *pt(a1, at + side * DIM_OVER)),
         line(*pt(a2, feat + side * DIM_GAP), *pt(a2, at + side * DIM_OVER)),
     ]
-    if a2 - a1 < NARROW:
+    # The value sits centred on the span when it clears the extension lines
+    # by the usual gap; otherwise it goes outside, beyond the end arrow (right
+    # of a horizontal line, above a vertical one), and the arrows go outside
+    # with it so it has a line to sit beside.
+    fits = text_width(label, DIMTEXT_FS) + 2 * DIM_GAP <= a2 - a1
+    if a2 - a1 < NARROW or not fits:
         out.append(line(*pt(a1 - 2 * ARROW, at), *pt(a1, at), "dim", ARROW_END))
         out.append(line(*pt(a2 + 2 * ARROW, at), *pt(a2, at), "dim", ARROW_END))
     else:
         out.append(line(*pt(a1, at), *pt(a2, at), "dim", ARROW_BOTH))
-    mid = (a1 + a2) / 2
-    if vertical:
-        out.append(text(at - 0.9, mid, label, "dimtext mono", rotate=-90))
+    if fits:
+        along, anchor = (a1 + a2) / 2, "middle"
     else:
-        out.append(text(mid, at - 0.9, label, "dimtext mono"))
+        outside = a1 - 2 * ARROW - DIM_GAP if vertical else a2 + 2 * ARROW + DIM_GAP
+        along, anchor = outside, "start"
+    rotate = -90 if vertical else 0
+    out.append(text(*pt(along, at - 0.9), label, "dimtext mono", anchor, rotate))
     return "".join(out)
 
 
@@ -533,23 +548,21 @@ def profile_1020(ox: float, oy: float) -> str:
     )
 
 
-def overall_dims(ox: float, oy: float, w: float, h: float, profile: Profile) -> str:
-    """Width above and height beside a section of model size w × h at 1:1,
-    labelled with the profile's nominal size."""
-    nw, nh = profile.nominal
+def overall_dims(ox: float, oy: float, profile: Profile) -> str:
+    """Width above and height beside a section at 1:1, labelled with the
+    profile's nominal size."""
+    (w, h), (nw, nh) = profile.size, profile.nominal
     return dim_h(ox - w / 2, ox + w / 2, oy - h / 2 - 4, fmt(nw), oy - h / 2) + dim_v(
         ox + w / 2 + 4, oy - h / 2, oy + h / 2, fmt(nh), ox + w / 2
     )
 
 
 def section_2040(ox: float, oy: float) -> str:
-    w, h = 2 * (spec.cell_offset + spec.leg), 2 * spec.leg
-    return profile_2040(ox, oy) + overall_dims(ox, oy, w, h, PROFILES["2040"])
+    return profile_2040(ox, oy) + overall_dims(ox, oy, PROFILES["2040"])
 
 
 def section_1020(ox: float, oy: float) -> str:
-    w, h = 2 * spec.half_x_1020, spec.half_x_1020
-    return profile_1020(ox, oy) + overall_dims(ox, oy, w, h, PROFILES["1020"])
+    return profile_1020(ox, oy) + overall_dims(ox, oy, PROFILES["1020"])
 
 
 def face_plate(x0: float, y0: float, length: float, W: float, profile: Profile) -> str:
@@ -558,23 +571,29 @@ def face_plate(x0: float, y0: float, length: float, W: float, profile: Profile) 
     L = length * ELEV
     return (
         rect(x0, y0, L, W)
-        + dim_h(x0, x0 + L, y0 - 5, fmt(length), y0)
-        + dim_v(x0 + L + 5, y0, y0 + W, fmt(profile.nominal[0]), x0 + L)
+        + dim_h(x0, x0 + L, y0 - DIM_STANDOFF, fmt(length), y0)
+        + dim_v(x0 + L + DIM_STANDOFF, y0, y0 + W, fmt(profile.nominal[0]), x0 + L)
     )
 
 
 def end_offset_dims(x0: float, L: float, y: float, offset: float) -> str:
     """The two 'offset from the end' dimensions under a face view."""
     off = offset * ELEV
-    return dim_h(x0, x0 + off, y + 5, fmt(offset), y) + dim_h(
-        x0 + L - off, x0 + L, y + 5, fmt(offset), y
+    at = y + DIM_STANDOFF
+    return dim_h(x0, x0 + off, at, fmt(offset), y) + dim_h(
+        x0 + L - off, x0 + L, at, fmt(offset), y
     )
 
 
-def face_2040_cb(x0: float, y0: float, length: float, lang: str) -> str:
+# A view in a drawing row: its SVG and the y where its ink ends, which the
+# sheet lays the rows out from.
+Ink = tuple[str, float]
+
+
+def face_2040_cb(x0: float, y0: float, length: float, lang: str) -> Ink:
     """The long 2040's 40 mm face at 1:2: four counterbores, dimensioned
     from the ends and across the width, with the callout."""
-    L, W = length * ELEV, 2 * (spec.cell_offset + spec.leg) * ELEV
+    L, W = length * ELEV, PROFILES["2040"].size[0] * ELEV
     off, pitch = spec.cb_end_offset * ELEV, 2 * spec.cell_offset * ELEV
     rows = (y0 + W / 2 - pitch / 2, y0 + W / 2 + pitch / 2)
     cols = (x0 + off, x0 + L - off)
@@ -595,10 +614,10 @@ def face_2040_cb(x0: float, y0: float, length: float, lang: str) -> str:
             callout_lines(CB, lang),
         )
     )
-    return "".join(parts)
+    return "".join(parts), y0 + W + DIM_STANDOFF + DIM_OVER
 
 
-def detail_counterbore(ox: float, oy: float, lang: str) -> str:
+def detail_counterbore(ox: float, oy: float, lang: str) -> Ink:
     """Section A at 1:1: a cut through one counterbore, looking along the
     extrusion — the 20 mm wall with the head pocket and the through
     shaft."""
@@ -617,7 +636,8 @@ def detail_counterbore(ox: float, oy: float, lang: str) -> str:
     # Two hatched halves, mirrored about the hole axis, so the pocket and
     # the shaft read as the cut between them.
     right = [(2 * ox - x, y) for x, y in reversed(left)]
-    return (
+    label_y = y0 + wall_h + 9.5
+    svg = (
         polygon(left, "cut")
         + polygon(right, "cut")
         + dim_h(ox - pocket_w / 2, ox + pocket_w / 2, y0 - 4, f"Ø{fmt(pocket_w)}", y0)
@@ -629,17 +649,18 @@ def detail_counterbore(ox: float, oy: float, lang: str) -> str:
             y0 + wall_h,
         )
         + dim_v(x0 + wall_w + 4, y0, y0 + pocket_d, fmt(pocket_d), x0 + wall_w)
-        + text(ox, y0 + wall_h + 9.5, ui("detail_a", lang), "label")
+        + text(ox, label_y, ui("detail_a", lang), "label")
     )
+    return svg, label_y
 
 
-def face_2040_tap(x0: float, y0: float, length: float) -> str:
+def face_2040_tap(x0: float, y0: float, length: float) -> Ink:
     """The short 2040's face at 1:2 — cut only, so just the plate."""
-    W = 2 * (spec.cell_offset + spec.leg) * ELEV
-    return face_plate(x0, y0, length, W, PROFILES["2040"])
+    W = PROFILES["2040"].size[0] * ELEV
+    return face_plate(x0, y0, length, W, PROFILES["2040"]), y0 + W
 
 
-def end_2040_tap(ox: float, oy: float, lang: str) -> str:
+def end_2040_tap(ox: float, oy: float, lang: str) -> Ink:
     """The short 2040's end at 1:1 with the two tapped bores called out."""
     parts = [profile_2040(ox, oy)]
     for sx in (-1, 1):
@@ -651,18 +672,19 @@ def end_2040_tap(ox: float, oy: float, lang: str) -> str:
             ox + spec.cell_offset + 2.2,
             oy - 2.2,
             ox + spec.cell_offset + 12,
-            oy - 12,
+            oy - 5,
             callout_lines(TAP, lang),
         )
     )
-    parts.append(text(ox, oy + spec.leg + 6.5, ui("end_view", lang), "label"))
-    return "".join(parts)
+    label_y = oy + spec.leg + VIEW_LABEL_DROP
+    parts.append(text(ox, label_y, ui("end_view", lang), "label"))
+    return "".join(parts), label_y
 
 
-def face_1020(x0: float, y0: float, length: float, lang: str, holes: bool) -> str:
+def face_1020(x0: float, y0: float, length: float, lang: str, holes: bool) -> Ink:
     """A 1020's slot face at 1:2: the slot mouth as two lines, and for the
     phone-bed beam the two vertical end holes with their callout."""
-    L, W = length * ELEV, 2 * spec.half_x_1020 * ELEV
+    L, W = length * ELEV, PROFILES["1020"].size[0] * ELEV
     mouth = 2 * spec.half_vertices_1020[3][0] * ELEV  # the top-face opening
     parts = [
         face_plate(x0, y0, length, W, PROFILES["1020"]),
@@ -674,29 +696,34 @@ def face_1020(x0: float, y0: float, length: float, lang: str, holes: bool) -> st
         for cx in (x0 + off, x0 + L - off):
             parts.append(circle(cx, y0 + W / 2, r))
         parts.append(end_offset_dims(x0, L, y0 + W, spec.end_hole_offset))
+        # Below the plate: above it, the band between the top edge and the
+        # length dimension is too narrow for a line of text.
         parts.append(
             leader(
                 x0 + off + r * 0.7,
-                y0 + W / 2 - r * 0.7,
-                x0 + off + 12,
-                y0 - 2.2,
+                y0 + W / 2 + r * 0.7,
+                x0 + off + 14,
+                y0 + W + 4.5,
                 callout_lines(HOLE, lang),
             )
         )
-    return "".join(parts)
+        return "".join(parts), y0 + W + DIM_STANDOFF + DIM_OVER
+    return "".join(parts), y0 + W
 
 
-def end_1020_hole(ox: float, oy: float, lang: str) -> str:
+def end_1020_hole(ox: float, oy: float, lang: str) -> Ink:
     """The phone-bed beam's end at 1:1, the vertical hole shown hidden
     through the full height so 'through' is unambiguous."""
     h, r = spec.half_x_1020, spec.end_hole_d / 2
-    return (
+    label_y = oy + h / 2 + VIEW_LABEL_DROP
+    svg = (
         profile_1020(ox, oy)
-        + line(ox - r, oy - h / 2 - 1, ox - r, oy + h / 2 + 1, "hidden")
-        + line(ox + r, oy - h / 2 - 1, ox + r, oy + h / 2 + 1, "hidden")
+        + line(ox - r, oy - h / 2, ox - r, oy + h / 2, "hidden")
+        + line(ox + r, oy - h / 2, ox + r, oy + h / 2, "hidden")
         + dim_h(ox - r, ox + r, oy - h / 2 - 4, f"Ø{fmt(spec.end_hole_d)}", oy - h / 2)
-        + text(ox, oy + h / 2 + 6.5, ui("end_view", lang), "label")
+        + text(ox, label_y, ui("end_view", lang), "label")
     )
+    return svg, label_y
 
 
 # --------------------------------------------------------------------------- #
@@ -739,6 +766,13 @@ svg { font-family: "Inter", "Helvetica Neue", "Segoe UI", "PingFang SC", "Hiragi
 .notes-title { font-size: 2.6px; font-weight: 600; }
 """
 
+# Type sizes the layout measures with, mm — mirrored from the CSS above.
+TD_FS = 2.9  # .td
+LABEL_FS = 2.5  # .label
+DIMTEXT_FS = 2.5  # .dimtext
+NOTES_FS = 2.5  # .notes
+FOOT_FS = 2.4  # .foot
+
 DEFS = (
     '<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" '
     f'markerWidth="{n(ARROW)}" markerHeight="{n(ARROW)}" markerUnits="userSpaceOnUse" '
@@ -751,7 +785,6 @@ DEFS = (
 
 # Cut-list column x positions (left edges) across the 281 mm content width.
 COLS = (0.0, 10.0, 34.0, 62.0, 84.0, 98.0, 236.0)
-TD_FS = 2.9  # the cut-list cell font size, mm
 TD_LEAD = 3.3  # line pitch inside a wrapped cell
 
 
@@ -824,11 +857,13 @@ def render_table(
             parts.append(text(x + COLS[5] + 0.6, base + i * TD_LEAD, s, "td", "start"))
         yy += row_h + (len(machining) - 1) * TD_LEAD
         parts.append(line(x, yy, x + w, yy, "rule"))
+    # The count starts flush with the Qty column, its label a space before.
     pieces = sum(it.qty for it in items)
+    count_x, base = x + COLS[4] + 0.6, yy + 3.9
+    label_x = count_x - text_width(" ", TD_FS)
+    parts.append(text(label_x, base, ui("total_label", lang), "td", "end"))
     parts.append(
-        text(
-            x + COLS[4] + 0.6, yy + 3.9, ui("total", lang, pieces=pieces), "td", "start"
-        )
+        text(count_x, base, ui("total", lang, pieces=pieces), "td mono", "start")
     )
     return "".join(parts), yy + 5.0
 
@@ -882,65 +917,88 @@ def render_sheet(items: list[CutItem], lang: str) -> str:
         parts.append(text(x0 + 4, gy + 4.2, ui("section", lang), "label", "start"))
         parts.append(section)
 
-    def row(ry: float, kind: str, label: str, views: str) -> None:
-        parts.append(text(face_x - 2, ry + 3.2, str(number[kind]), "no", "end"))
-        parts.append(text(face_x, ry - 0.5, ui(label, lang), "label", "start"))
-        parts.append(views)
+    # A row: its number and label at ry, its views hung below. The views
+    # report where their ink ends; a row is drawn once at ry = 0 to measure
+    # it, then in place.
+    PLATE = 8  # a face view's plate top below ry
+    rise = 0.5 + LABEL_FS  # the row label's top above ry
 
-    gy = y + 5
-    group(gy, "2040", section_2040(x0 + 30, gy + 20))
-    ry = gy + 3
-    row(
-        ry,
-        CB,
-        "face_40",
-        face_2040_cb(face_x, ry + 8, length[CB], lang)
-        + detail_counterbore(x0 + w - 21, ry + 15, lang),
-    )
-    ry = gy + 40
-    row(
-        ry,
-        TAP,
-        "face_40",
-        face_2040_tap(face_x, ry + 8, length[TAP])
-        + end_2040_tap(x0 + w - 60, ry + 14, lang),
-    )
-    y = gy + 71
-    parts.append(line(x0, y, x0 + w, y, "rule"))
+    def row(ry: float, kind: str, label: str, views: list[Ink]) -> Ink:
+        svg = (
+            text(face_x - 2, ry + 3.2, str(number[kind]), "no", "end")
+            + text(face_x, ry - 0.5, ui(label, lang), "label", "start")
+            + "".join(svg for svg, _ in views)
+        )
+        return svg, max(end for _, end in views)
 
-    gy = y + 5
-    group(gy, "1020", section_1020(x0 + 30, gy + 16))
-    ry = gy + 1
-    row(
-        ry,
-        PLAIN,
-        "face_slot",
-        face_1020(face_x, ry + 8, length[PLAIN], lang, holes=False),
-    )
-    ry = gy + 22
-    row(
-        ry,
-        HOLE,
-        "face_slot",
-        face_1020(face_x, ry + 8, length[HOLE], lang, holes=True)
-        + end_1020_hole(x0 + w - 60, ry + 12, lang),
-    )
+    rows = [
+        (
+            CB,
+            "face_40",
+            lambda ry: [
+                face_2040_cb(face_x, ry + PLATE, length[CB], lang),
+                detail_counterbore(x0 + w - 21, ry + 15, lang),
+            ],
+        ),
+        (
+            TAP,
+            "face_40",
+            lambda ry: [
+                face_2040_tap(face_x, ry + PLATE, length[TAP]),
+                end_2040_tap(x0 + w - 60, ry + 12, lang),
+            ],
+        ),
+        (
+            PLAIN,
+            "face_slot",
+            lambda ry: [
+                face_1020(face_x, ry + PLATE, length[PLAIN], lang, holes=False)
+            ],
+        ),
+        (
+            HOLE,
+            "face_slot",
+            lambda ry: [
+                face_1020(face_x, ry + PLATE, length[HOLE], lang, holes=True),
+                end_1020_hole(x0 + w - 60, ry + 12, lang),
+            ],
+        ),
+    ]
+    heights = [rise + row(0, kind, label, make(0))[1] for kind, label, make in rows]
 
-    # Technical notes, in the free space under the 1020 section.
-    ny = gy + 30
-    parts.append(text(x0 + 4, ny, ui("notes", lang), "notes-title", "start"))
-    for key in ("note_tol", "note_deburr"):
-        for line_ in wrap(ui(key, lang), 52, 2.5):
-            ny += 3.4
-            parts.append(text(x0 + 4, ny, line_, "notes", "start"))
-
-    # Footer strip.
-    fy = PAGE_H - MARGIN - 4.5
-    parts.append(line(x0, fy - 4, x0 + w, fy - 4, "rule"))
+    # The footer is one line in the bottom-right corner.
+    pad = 1.5
+    fy = PAGE_H - MARGIN - pad
     parts.append(
-        text(x0 + 4, fy, ui("footer", lang, version=manual_version()), "foot", "start")
+        text(
+            x0 + w - 4, fy, ui("footer", lang, version=manual_version()), "foot", "end"
+        )
     )
-    parts.append(text(x0 + w - 4, fy, URL_MARK, "foot", "end"))
+
+    # The rows share the band between the cut list and the footer with equal
+    # gaps. The rule between the two profiles splits the gap before row 3,
+    # and each profile's heading sits level with its first row's label.
+    gap = (fy - FOOT_FS - pad - y - sum(heights)) / 5
+    if gap < 1:
+        raise BuildError(f"drawing rows overflow the sheet (gap {gap:.1f} mm)")
+    ry = y + gap + rise
+    for i, ((kind, label, make), height) in enumerate(zip(rows, heights)):
+        if i == 0:
+            group(ry - 0.5, "2040", section_2040(x0 + 30, ry + 19.5))
+        elif i == 2:
+            rule = ry - rise - gap / 2
+            parts.append(line(x0, rule, x0 + w, rule, "rule"))
+            group(ry - 0.5, "1020", section_1020(x0 + 30, ry + 15.5))
+            notes_y = ry + 34.5  # under the 1020 section, in the left column
+        parts.append(row(ry, kind, label, make(ry))[0])
+        ry += height + gap
+
+    # Technical notes.
+    parts.append(text(x0 + 4, notes_y, ui("notes", lang), "notes-title", "start"))
+    for key in ("note_tol", "note_deburr"):
+        for line_ in wrap(ui(key, lang), 52, NOTES_FS):
+            notes_y += 3.4
+            parts.append(text(x0 + 4, notes_y, line_, "notes", "start"))
 
     return (
         f'<svg class="sheet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {n(PAGE_W)} {n(PAGE_H)}" '

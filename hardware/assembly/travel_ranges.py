@@ -14,10 +14,6 @@ and nothing else — the rail, frame (length and width), beam, and phone-bed
 lengths follow, and the belt path, motor / idler / pulley-mount positions,
 and T-nut seats all derive downstream and re-adapt on rebuild. (Note: X
 travel widens the frame and phone bed; Y travel lengthens the frame.)
-
-Caveat: a travel change alters the rail's mounting-hole count
-(holes = rail_length // 20 mm). If that count changes, update the
-``screw_hole_indices`` in ``linear_10_y`` (Y) / ``linear_32_x`` (X).
 """
 
 # ── BASE knobs — the only values you normally change ─────────────────────────

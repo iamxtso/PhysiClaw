@@ -8,13 +8,17 @@ from __future__ import annotations
 
 import contextlib
 import json
+import re
 import time
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Callable
 
 CONTENT_DIR = Path(__file__).resolve().parent / "content"
-VENDOR_FILE = Path(__file__).resolve().parent / "sourcing_vendors.json"
+VENDOR_FILES = {
+    "zh": Path(__file__).resolve().parent / "sourcing_vendors.cn.json",
+    "en": Path(__file__).resolve().parent / "sourcing_vendors.global.json",
+}
 MANUAL_VERSION_FILE = Path(__file__).resolve().parent / "MANUAL_VERSION"
 
 # The <html lang> attribute value per language.
@@ -34,6 +38,27 @@ def loc(value: Any, lang: str) -> str:
     if isinstance(value, dict):
         return value.get(lang) or value.get("en", "")
     return value
+
+
+# Typography the content files cannot express, applied to text nodes only so
+# attributes and inline CSS are never touched.
+_TEXT_NODE = re.compile(r">([^<]*)<")
+# A quantity with a unit symbol is wrapped so the stylesheet can exempt it from
+# capitals ("18 mm", not "18 MM"); listed are the symbols with a lower-case letter.
+_UNIT_QUANTITY = re.compile(r"\d+(?:\.\d+)? (?:mm|cm|m|µm|ms|Hz|kHz|kg|g|mA|mAh)\b")
+# A number stays on one line with the word after it ("2 mm", "4 screws").
+_QUANTITY_GAP = re.compile(r"(?<=\d) (?=[^\W\d_]|°)")
+
+
+def _typeset(text: str) -> str:
+    text = _UNIT_QUANTITY.sub(r'<span class="unit">\g<0></span>', text)
+    return _QUANTITY_GAP.sub("\u00a0", text)
+
+
+def typeset_quantities(markup: str) -> str:
+    """``markup`` with every quantity typeset. Pass the body markup, not a
+    whole document: a ``<style>`` or ``<script>`` block would be rewritten."""
+    return _TEXT_NODE.sub(lambda m: f">{_typeset(m.group(1))}<", markup)
 
 
 def manual_version() -> str:

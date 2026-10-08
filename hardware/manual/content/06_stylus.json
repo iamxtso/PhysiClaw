@@ -2,41 +2,92 @@
   {
     "type": "opener",
     "page": "stylus",
-    "secnum": { "en": "SECTION 06", "zh": "第 06 节" },
-    "h1": { "en": "Touch end", "zh": "触控机构" },
-    "lede": { "en": "Mount the capacitive stylus tip onto the push-pull solenoid, then install the two together onto the X carriage.", "zh": "把电容触控笔尖装到推拉式电磁铁上，再一起装到 X 滑座上。" }
+    "secnum": {
+      "en": "SECTION 06",
+      "zh": "第 06 节"
+    },
+    "h1": {
+      "en": "Touch end",
+      "zh": "触控机构"
+    },
+    "lede": {
+      "en": "Install the capacitive stylus tip on the push-pull solenoid. Then install the two together onto the X carriage.",
+      "zh": "把电容触控笔尖装到推拉式电磁铁上。再把两者一起装到 X 滑座上。"
+    }
   },
   {
     "type": "tall-left",
     "page": "tapz_10",
     "head": {
-      "title": { "en": "TOUCH END", "zh": "触控机构" },
+      "title": {
+        "en": "TOUCH END",
+        "zh": "触控机构"
+      },
       "small": "tapz_10"
     },
     "variant": "hero",
     "figures": [
-      { "src": "tapz_10_solenoid_tip_exploded_cam1_botx.svg" },
-      { "src": "tapz_10_solenoid_tip_assembled_cam1.svg" }
+      {
+        "src": "tapz_10_solenoid_tip_exploded_cam1_botx.svg"
+      },
+      {
+        "src": "tapz_10_solenoid_tip_assembled_cam1.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Fit the stylus tip", "zh": "装上触控笔尖" },
-        "body": { "en": "The solenoid ships with a nut on its bottom end. Remove that nut, then thread the stylus tip on in its place.", "zh": "电磁铁出厂时底端拧着一颗螺母。拧下螺母，换上触控笔尖，拧到原来的位置。" },
+        "h3": {
+          "en": "Install the stylus tip",
+          "zh": "安装触控笔尖"
+        },
+        "body": {
+          "en": "The solenoid ships with a nut on its bottom end. 1. Remove the nut. 2. Thread the stylus tip on in its place.",
+          "zh": "电磁铁底端出厂时拧有一颗螺母。1. 拧下螺母。2. 在原位拧上触控笔尖。"
+        },
         "classes": "note overlay sm",
         "style": "left:120mm; top:60mm; width:60mm;"
       },
       {
-        "h3": { "en": "Solenoid mount holes", "zh": "电磁铁安装孔" },
-        "body": { "en": "Two M3 holes, 15 mm apart.", "zh": "两个 M3 孔，间距 15 mm。" },
+        "h3": {
+          "en": "Solenoid mount holes",
+          "zh": "电磁铁安装孔"
+        },
+        "body": {
+          "en": "Two M3 holes, 15 mm apart.",
+          "zh": "两个 M3 孔，间距 15 mm。"
+        },
         "classes": "note overlay sm",
         "style": "left:120mm; top:105mm; width:60mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Solenoid", "zh": "推拉式电磁铁" }, "spec": { "en": "12 V, 2×M3, 15 mm pitch", "zh": "12 V，2×M3，孔距 15 mm" }, "qty": "1" },
-        { "component": { "en": "Stylus tip", "zh": "触控笔尖" }, "spec": { "en": "Conductive fabric tip, Ø7 mm", "zh": "导电布头 Ø7 mm" }, "qty": "1" }
+        {
+          "component": {
+            "en": "Solenoid",
+            "zh": "推拉式电磁铁"
+          },
+          "spec": {
+            "en": "12 V, 2×M3, 15 mm pitch",
+            "zh": "12 V，2×M3，孔距 15 mm"
+          },
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "Stylus tip",
+            "zh": "触控笔尖"
+          },
+          "spec": {
+            "en": "Conductive fabric tip, Ø7 mm",
+            "zh": "导电布头 Ø7 mm"
+          },
+          "qty": "1"
+        }
       ]
     }
   },
@@ -44,39 +95,84 @@
     "type": "tall-left",
     "page": "tapz_11",
     "head": {
-      "title": { "en": "TOUCH END", "zh": "触控机构" },
+      "title": {
+        "en": "TOUCH END",
+        "zh": "触控机构"
+      },
       "small": "tapz_11"
     },
     "variant": "hero",
     "figures": [
-      { "src": "tapz_11_solenoid_attach_exploded_cam1_cjmx.svg" },
-      { "src": "tapz_11_solenoid_attach_assembled_cam0.svg" }
+      {
+        "src": "tapz_11_solenoid_attach_exploded_cam1_cjmx.svg"
+      },
+      {
+        "src": "tapz_11_solenoid_attach_assembled_cam0.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "10 hole pairs for height tuning", "zh": "10 对孔，用来调高度" },
-        "body": { "en": "The mount has 10 pairs of holes, spaced 1 mm apart. Pick a pair now, and you can later raise or lower the stylus in 1 mm steps.", "zh": "支架上有 10 对孔，相邻两对相隔 1 mm。现在先选一对装上，以后能以 1 mm 为一档把触控笔调高或调低。" },
+        "h3": {
+          "en": "Ten hole pairs for height adjustment",
+          "zh": "十对高度调节孔"
+        },
+        "body": {
+          "en": "The mount has 10 pairs of holes, 1 mm apart. Pick one pair now. Later you can raise or lower the stylus in 1 mm steps.",
+          "zh": "支架上有 10 对孔，间距 1 mm。先选一对安装。以后可按 1 mm 步进调整触控笔高度。"
+        },
         "classes": "note overlay sm",
         "style": "left:50mm; top:20mm; width:80mm;"
       },
       {
-        "h3": { "en": "Route the power leads", "zh": "电源线走线" },
-        "body": { "en": "As indicated, feed the solenoid's +/− leads into the rectangular hole on the mount side, then run them up and out through the rectangular hole at the top.", "zh": "按图所示，把电磁铁的正负极引线从支架侧面的方孔穿进去，再往上从顶部的方孔引出来。" },
+        "h3": {
+          "en": "Route the power leads",
+          "zh": "引线走线"
+        },
+        "body": {
+          "en": "1. Feed the +/− leads of the solenoid into the rectangular hole in the side of the mount, as shown. 2. Run the leads up and out through the rectangular hole at the top.",
+          "zh": "1. 按图把电磁铁的正负极引线从支架侧面的方孔穿入。2. 向上从顶部方孔引出。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:60mm; width:60mm;"
       },
       {
-        "h3": { "en": "Ground the solenoid", "zh": "电磁铁接地" },
-        "body": { "en": "Clamp the ground wire's bare copper between the solenoid housing and the mount, then tighten a screw to pin it. This grounds the solenoid. Run the ground wire out through the other rectangular hole below to join the power leads.", "zh": "把接地线的裸露铜线夹在电磁铁外壳和支架之间，拧上螺栓压紧，这样电磁铁就接好了地。再把接地线从下方另一个方孔穿出，与电源线汇合。" },
+        "h3": {
+          "en": "Ground the solenoid",
+          "zh": "电磁铁接地"
+        },
+        "body": {
+          "en": "1. Clamp the bare copper of the ground wire between the solenoid housing and the mount. 2. Tighten one of the 2 mount screws to clamp it. 3. Run the ground wire out through the other rectangular hole below to join the power leads.",
+          "zh": "1. 把接地线剥出的铜线夹在电磁铁外壳和支架之间。2. 拧紧其中一颗支架螺栓压住铜线。3. 把接地线从下方另一个方孔穿出，与正负极引线汇合。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:110mm; width:60mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "Solenoid mount", "zh": "电磁铁支架" }, "spec": { "en": "SLS/MJF 3D Print", "zh": "SLS/MJF 3D 打印" }, "qty": "1" },
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M3×6", "qty": "2" }
+        {
+          "component": {
+            "en": "Solenoid mount",
+            "zh": "电磁铁支架"
+          },
+          "spec": {
+            "en": "SLS/MJF 3D Print",
+            "zh": "SLS/MJF 3D 打印"
+          },
+          "qty": "1"
+        },
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M3×6",
+          "qty": "2"
+        }
       ]
     }
   },
@@ -84,28 +180,65 @@
     "type": "tall-left",
     "page": "tapz_20",
     "head": {
-      "title": { "en": "TOUCH END", "zh": "触控机构" },
+      "title": {
+        "en": "TOUCH END",
+        "zh": "触控机构"
+      },
       "small": "tapz_20"
     },
     "variant": "hero",
     "figures": [
-      { "src": "tapz_20_solenoid_mount_exploded_cam1_hmwg.svg" },
-      { "src": "tapz_20_solenoid_mount_assembled_cam0_pydm.svg" }
+      {
+        "src": "tapz_20_solenoid_mount_exploded_cam1_hmwg.svg"
+      },
+      {
+        "src": "tapz_20_solenoid_mount_assembled_cam0_pydm.svg"
+      }
     ],
     "notes": [
       {
-        "h3": { "en": "Mount the solenoid to the clamp", "zh": "把电磁铁装到夹具上" },
-        "body": { "en": "Six screws hold the solenoid assembly to the clamp. To adjust the stylus height later, undo them and refit at a different hole pair.", "zh": "六颗螺栓把电磁铁总成固定在夹具上。以后想调触控笔的高度，松开这几颗螺栓，换到另一对孔上重新装好就行。" },
+        "h3": {
+          "en": "Install the solenoid on the belt clamp",
+          "zh": "把电磁铁装到同步带夹具上"
+        },
+        "body": {
+          "en": "Install the solenoid assembly on the belt clamp with 6 screws. To change the stylus height later, move the assembly to a different hole pair.",
+          "zh": "用 6 颗螺栓把电磁铁组件固定在同步带夹具上。以后调整触控笔高度时，把组件移到另一对孔上。"
+        },
         "classes": "note overlay sm",
         "style": "left:140mm; top:120mm; width:60mm;"
       }
     ],
     "bom": {
-      "label": { "en": "Bill of materials", "zh": "物料清单" },
+      "label": {
+        "en": "Bill of materials",
+        "zh": "物料清单"
+      },
       "rows": [
-        { "component": { "en": "BHCS", "zh": "半圆头螺栓" }, "spec": "M3×8", "qty": "4" },
-        { "component": { "en": "FHCS", "zh": "沉头螺栓" }, "spec": "M3×10", "qty": "2" },
-        { "component": { "en": "Square nut", "zh": "四方螺母" }, "spec": "M3", "qty": "6" }
+        {
+          "component": {
+            "en": "BHCS",
+            "zh": "半圆头螺栓"
+          },
+          "spec": "M3×8",
+          "qty": "4"
+        },
+        {
+          "component": {
+            "en": "FHCS",
+            "zh": "沉头螺栓"
+          },
+          "spec": "M3×10",
+          "qty": "2"
+        },
+        {
+          "component": {
+            "en": "Square nut",
+            "zh": "四方螺母"
+          },
+          "spec": "M3",
+          "qty": "6"
+        }
       ]
     }
   }

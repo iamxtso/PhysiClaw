@@ -1,4 +1,4 @@
-.PHONY: test test-cov test-fast test-slow test-integration test-all mutate lint fmt typecheck help bump build publish release \
+.PHONY: test test-cov test-fast test-slow test-integration test-all mutate lint fmt typecheck help bump build publish release docs-deploy \
         hw-help hw-parts hw-build hw-check hw-step hw-print hw-manual hw-manual-pdf hw-sourcing hw-drawing hw-mark hw-replay hw-camera hw-rebuild hw-preflight hw-deploy hw-release _hw-package
 
 PY ?= uv run
@@ -62,6 +62,7 @@ help:
 	@echo "  hw-rebuild              — full rebuild: parts → build → print → manual+pdf → sourcing"
 	@echo "  hw-deploy HW_VERSION=X.Y  — one-key release: cached build → docs → check → publish"
 	@echo "  hw-release HW_VERSION=X.Y — package output/ as-is into the 4 zips & publish (gh)"
+	@echo "  docs-deploy             — redeploy docs.physiclaw.ai (Cloudflare Pages deploy hook)"
 
 test:
 	$(PY) pytest
@@ -330,4 +331,12 @@ _hw-package:
 		--title "PhysiClaw hardware v$(HW_VERSION) — assembly manual, sourcing guide & printed parts (STEP)" \
 		--notes-file "$$REL/notes.md"; \
 	printf '\n\033[32m✓\033[0m Released $(HW_REL_TAG).\n'; \
-	printf '\033[33m!\033[0m The docs site serves the manual from this release — redeploy docs-site to pick it up.\n'
+	printf '\033[33m!\033[0m The docs site serves the manual from this release — run `make docs-deploy` to pick it up.\n'
+
+# Redeploy docs.physiclaw.ai after a hardware release: the site pulls the
+# manual, sourcing guide and drawing from the latest release at build time.
+# The Cloudflare Pages deploy hook URL is a secret (anyone holding it can
+# trigger a deploy), so it lives in the gitignored .docs-deploy-hook, one line.
+docs-deploy:
+	@[ -s .docs-deploy-hook ] || { echo "✗ .docs-deploy-hook missing — put the Cloudflare Pages deploy hook URL in it"; exit 1; }
+	@curl -fsS -o /dev/null -X POST "$$(cat .docs-deploy-hook)" && printf '\033[32m✓\033[0m docs-site deploy triggered.\n'

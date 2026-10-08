@@ -77,7 +77,8 @@ hardware/
 │   │                          BOM splits, headless-Chrome PDF)
 │   ├── content/           13 ordered JSON sections (front + 11 chapters + back)
 │   ├── MANUAL_VERSION     The cover's version stamp (single source of truth)
-│   └── sourcing_vendors.json   Supplier data, keyed to BOM rows
+│   ├── sourcing_vendors.cn.json      Suppliers for the Chinese guide, keyed to BOM rows
+│   └── sourcing_vendors.global.json  Suppliers for the English guide, keyed to BOM rows
 │
 └── output/                Generated artifacts (git-ignored)
     ├── step/  svg/  bom/  manual/  sourcing/  drawing/  print_3d/  render/
@@ -160,6 +161,7 @@ The subcommands — each forwarding its flags to the stage it wraps:
 | `sourcing` | sourcing guide → `output/sourcing/` |
 | `drawing` | extrusion tech drawing (cut & drill; EN + ZH, one A4 page each; `--pdf`) → `output/drawing/` |
 | `mark` / `replay` | annotate step SVGs / replay saved patches |
+| `refit <json> --parts …` | recompute a patch's highlights as the exact silhouettes of the named parts (by label prefix), then replay |
 | `camera` | FreeCAD camera view → `Camera()` literal |
 
 Geometry subcommands need `--group cad`; `check`, `manual`, `sourcing` and `drawing`
@@ -192,6 +194,13 @@ pbpaste | make hw-camera          # FreeCAD view → Camera() literal
 make hw-rebuild                   # full rebuild, all stages
 make hw-help                      # list every subcommand
 ```
+
+The sourcing builder reads `sourcing_vendors.cn.json` for `--lang zh` and
+`sourcing_vendors.global.json` for `--lang en`; the default builds both. Each
+file uses the same entry schema and shared BOM `part_id` values, but suppliers
+can be maintained independently. Vendor text is stored as plain Chinese strings
+in the CN file and plain English strings in the global file. `--scaffold` syncs the selected language files
+(or both by default) with the BOM.
 
 > **Photoreal render — WIP.** A separate Blender render of the full machine
 > (`camera_40_frame`) is being reworked; its scripts were cleared and are not
@@ -246,7 +255,8 @@ release with tag `physiclaw-hardware-vX.Y`. To publish `output/` as-is
 without building, use `make hw-release HW_VERSION=X.Y` — it guards that the
 artifacts (including the manual and drawing PDFs) exist first.
 
-After publishing, redeploy the docs site (docs-site) — it serves the
-assembly manual, the sourcing guide and the extrusion tech drawing from the
-release assets, so the live pages stay on the old release until the site
-rebuilds.
+After publishing, run `make docs-deploy` — it triggers the docs site's
+Cloudflare Pages deploy hook (the URL lives in the gitignored
+`.docs-deploy-hook` at the repo root). The site serves the assembly manual,
+the sourcing guide and the extrusion tech drawing from the release assets,
+so the live pages stay on the old release until it rebuilds.

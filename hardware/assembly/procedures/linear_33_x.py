@@ -1,6 +1,6 @@
 """Linear X rail on the crossbeam — extends linear_31_x by mounting
-the linear_32_x sub-assembly (130 mm MGN9H rail + 4 M3 × 10 FHCS +
-4 hammer M3 T-nuts, hanging loosely from the screw shanks) onto
+the linear_32_x sub-assembly (150 mm MGN9H rail + an M3 × 8 BHCS and
+hammer M3 T-nut in every hole, hanging loosely from the shanks) onto
 the 1020 crossbeam's slot.
 
 The rail runs along world X (= 1020 length axis), centered on the

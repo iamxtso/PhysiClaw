@@ -17,6 +17,7 @@ still apply:
     uv run            python -m hardware drawing    [--pdf] [--lang …]        extrusion tech drawing (cut & drill)
     uv run --group cad python -m hardware mark      <svg|json>                annotate a step drawing
     uv run --group cad python -m hardware replay    [file]                    replay annotation patches
+    uv run --group cad python -m hardware refit     <json> [--parts …]        refit a patch's highlights from the model
     uv run --group cad python -m hardware camera    "<freecad-view>"          FreeCAD view → Camera() literal
 
 Geometry commands need ``--group cad`` (build123d); ``check`` and the manual,
@@ -40,6 +41,7 @@ _DELEGATED: dict[str, list[str]] = {
     "print": ["-m", "hardware.parts.build_custom_parts"],
     "mark": ["-m", "hardware.assembly.mark"],
     "replay": ["-m", "hardware.assembly.mark.replay"],
+    "refit": ["-m", "hardware.assembly.mark.refit"],
     "camera": ["-m", "hardware.assembly.projection"],
     "manual": ["-m", "hardware.manual.build_manual"],
     "sourcing": ["-m", "hardware.manual.build_sourcing_guide"],
