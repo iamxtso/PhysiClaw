@@ -399,8 +399,8 @@ def check_sourcing(pages_by_file: dict[str, list]) -> list[str]:
             findings.append(
                 f"sourcing: duplicate part_id(s) in {vendor_file.name}: {', '.join(dupes)}"
             )
-        vendor_set = set(vendor_ids)
-        if stale := sorted(set(filter(None, vendor_set)) - row_set):
+        vendor_set = set(filter(None, vendor_ids))
+        if stale := sorted(vendor_set - row_set):
             findings.append(
                 f"sourcing: {vendor_file.name} has stale part_id(s) with no BOM "
                 f"row: {', '.join(stale)}"

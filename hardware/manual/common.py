@@ -14,12 +14,13 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, Callable
 
-CONTENT_DIR = Path(__file__).resolve().parent / "content"
+_MANUAL_DIR = Path(__file__).resolve().parent
+CONTENT_DIR = _MANUAL_DIR / "content"
 VENDOR_FILES = {
-    "zh": Path(__file__).resolve().parent / "sourcing_vendors.cn.json",
-    "en": Path(__file__).resolve().parent / "sourcing_vendors.global.json",
+    "zh": _MANUAL_DIR / "sourcing_vendors.cn.json",
+    "en": _MANUAL_DIR / "sourcing_vendors.global.json",
 }
-MANUAL_VERSION_FILE = Path(__file__).resolve().parent / "MANUAL_VERSION"
+MANUAL_VERSION_FILE = _MANUAL_DIR / "MANUAL_VERSION"
 
 # The <html lang> attribute value per language.
 HTML_LANG = {"en": "en", "zh": "zh-Hans"}

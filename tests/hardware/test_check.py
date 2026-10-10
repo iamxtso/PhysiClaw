@@ -352,7 +352,7 @@ def test_manual_content_with_invalid_json_is_flagged(world):
 
 
 @pytest.fixture(params=["sourcing_vendors.cn.json", "sourcing_vendors.global.json"])
-def filename(request):
+def vendor_filename(request):
     return request.param
 
 
@@ -376,40 +376,40 @@ def test_malformed_bom_row_is_flagged_not_crashed(world):
     assert_finding("malformed BOM row(s)")
 
 
-def test_stale_vendor_part_id_is_flagged(world, filename):
-    (world.manual / filename).write_text(
+def test_stale_vendor_part_id_is_flagged(world, vendor_filename):
+    (world.manual / vendor_filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", "p2", *EXTRUSION_IDS, "gone"]])
     )
 
     assert_finding("stale part_id(s) with no BOM row: gone")
 
 
-def test_bom_row_missing_from_vendors_is_flagged(world, filename):
-    (world.manual / filename).write_text(
+def test_bom_row_missing_from_vendors_is_flagged(world, vendor_filename):
+    (world.manual / vendor_filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", *EXTRUSION_IDS]])
     )
 
-    assert_finding(f"missing from {filename}: p2")
+    assert_finding(f"missing from {vendor_filename}: p2")
 
 
-def test_missing_vendor_file_is_flagged(world, filename):
-    (world.manual / filename).unlink()
+def test_missing_vendor_file_is_flagged(world, vendor_filename):
+    (world.manual / vendor_filename).unlink()
 
-    assert_finding(f"{filename} not found")
-
-
-def test_vendor_file_with_invalid_json_is_flagged(world, filename):
-    (world.manual / filename).write_text("{nope")
-
-    assert_finding(f"{filename} is not valid JSON")
+    assert_finding(f"{vendor_filename} not found")
 
 
-def test_duplicate_vendor_part_ids_are_flagged(world, filename):
-    (world.manual / filename).write_text(
+def test_vendor_file_with_invalid_json_is_flagged(world, vendor_filename):
+    (world.manual / vendor_filename).write_text("{nope")
+
+    assert_finding(f"{vendor_filename} is not valid JSON")
+
+
+def test_duplicate_vendor_part_ids_are_flagged(world, vendor_filename):
+    (world.manual / vendor_filename).write_text(
         json.dumps([{"part_id": i} for i in ["p1", "p1", "p2", *EXTRUSION_IDS]])
     )
 
-    assert_finding(f"duplicate part_id(s) in {filename}: p1")
+    assert_finding(f"duplicate part_id(s) in {vendor_filename}: p1")
 
 
 # ── extrusions ────────────────────────────────────────────────────────────────

@@ -72,6 +72,7 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -185,28 +186,19 @@ CHECK_ICON_SVG = (
 )
 
 
-def clean_taobao_url(url: str) -> str:
-    """Strip a Taobao/Tmall item URL down to only the identifying params.
+def clean_supplier_url(url: str) -> str:
+    """Clean supplier links at render time without rewriting vendor JSON.
 
-    Item links pasted from the browser carry a long tracking tail (spm,
-    utparam, xxc, mi_id, ...); only ``id`` — plus ``skuId`` when present —
-    identifies the listing. The query is rebuilt from that whitelist, the
-    scheme/host/path are preserved, and anything that isn't a Taobao-family
-    URL with an ``id`` passes through unchanged (e.g. shop homepages), so
-    this is safe to apply to every supplier ``url`` at render time.
-
-    >>> clean_taobao_url("https://item.taobao.com/item.htm?abbucket=14"
-    ...                  "&id=12345&mi_id=xyz&skuId=67890&spm=a21xtw.123&xxc=ad")
-    'https://item.taobao.com/item.htm?id=12345&skuId=67890'
-    >>> clean_taobao_url("https://item.taobao.com/item.htm?ns=1&id=98765")
-    'https://item.taobao.com/item.htm?id=98765'
-    >>> clean_taobao_url("https://shop123.taobao.com/")
-    'https://shop123.taobao.com/'
-    >>> clean_taobao_url("https://example.com/listing?id=1&color=red")
-    'https://example.com/listing?id=1&color=red'
+    AliExpress item links keep only the scheme, host and product path.
+    Taobao/Tmall links retain ``id`` and ``skuId``. Other URLs pass through.
     """
     parts = urlparse(url)
-    host = parts.netloc.lower()
+    host = parts.hostname or ""
+    if (
+        host in ("aliexpress.us", "aliexpress.com")
+        or host.endswith((".aliexpress.us", ".aliexpress.com"))
+    ) and re.fullmatch(r"/item/[0-9]+\.html", parts.path):
+        return urlunparse(parts._replace(query="", fragment=""))
     if not host.endswith(("taobao.com", "tmall.com")):
         return url
     params = parse_qs(parts.query)
@@ -379,7 +371,7 @@ def render_supplier_cell(supplier: dict | None, lang: str, span: int) -> str:
         return f'<td class="offer na"{_span_attr(span)}>—</td>'
     name = html.escape(name)
     if supplier.get("url"):
-        href = html.escape(clean_taobao_url(supplier["url"]), quote=True)
+        href = html.escape(clean_supplier_url(supplier["url"]), quote=True)
         name = f'<a href="{href}" target="_blank" rel="noopener">{name}</a>'
     product = loc(supplier.get("product") or "", lang)
     product_html = (
