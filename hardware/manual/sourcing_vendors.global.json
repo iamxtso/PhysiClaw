@@ -95,22 +95,22 @@
   },
   {
     "part_id": "pulley",
-    "ref": "¥3",
+    "ref": "¥1",
     "suppliers": [
       {
-        "name": "TwoTrees",
-        "product": "20T, 5 mm bore (6 mm belt)",
-        "url": "https://item.taobao.com/item.htm?id=571029008660&skuId=3695816317651"
+        "name": "POWGE",
+        "product": "Bore 5mm, For Belt Width 6mm, 2pcs",
+        "url": "https://www.aliexpress.us/item/2251832808788159.html"
       },
       {
-        "name": "Sanwei Cube",
-        "product": "20T, 5 mm bore (6 mm belt)",
-        "url": "https://item.taobao.com/item.htm?id=545252492404&skuId=3691748481218"
+        "name": "Mellow",
+        "product": "Size: For 6mm, 2Pcs",
+        "url": "https://www.aliexpress.us/item/2251832836965041.html"
       },
       {
-        "name": "Tongtuo Zhanzhi",
-        "product": "20T, 5 mm bore, 16 mm height (6 mm belt)",
-        "url": "https://item.taobao.com/item.htm?id=559194333476&skuId=4038283182661"
+        "name": "Creality",
+        "product": "20T Bore 5mm 2PCS",
+        "url": "https://www.aliexpress.us/item/3256807522316463.html"
       }
     ],
     "note": "Standard part, same spec from every maker. Buy the cheapest."
